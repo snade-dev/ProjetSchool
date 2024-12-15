@@ -1,13 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 // USE LAZY LOADING
 
 // import TeacherForm from "./forms/TeacherForm";
 // import StudentForm from "./forms/StudentForm";
 import dynamic from "next/dynamic";
+import { useFormState } from "react-dom";
+import { deleteClass, deleteExam, deleteStudent, deleteSubject, deleteTeacher } from "@/lib/actions";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { FormContainerProps } from "./FormContainer";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
   loading: () => <h1>Loading...</h1>,
@@ -15,39 +20,65 @@ const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
 const StudentForms = dynamic(() => import("./forms/StudentForms"), {
   loading: () => <h1>Loading...</h1>,
 });
-
+const SubjectForms = dynamic(() => import("./forms/SubjectForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ClassForm = dynamic(() => import("./forms/ClassForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ExamForm = dynamic(() => import("./forms/ExamForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 
 const forms: {
-  [key: string]: (type: "create" | "update", data?: any) => JSX.Element;
+  [key: string]: (
+    type: "create" | "update",
+    setOpen: Dispatch<SetStateAction<boolean>>,
+    data?: any,
+    relaratedData?: any
+  ) => JSX.Element;
 } = {
-  teacher : (type, data) => <TeacherForms type={type} data={data} />,
-  student : (type, data) => <StudentForms type={type} data={data} />
-}
+  subject: (type, data, setOpen, relatedData) => (
+    <SubjectForms
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  class: (type, data, setOpen, relatedData) => (
+    <ClassForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  teacher: (type, data, setOpen, relatedData) => (
+    <TeacherForms
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  exam: (type, data, setOpen, relatedData) => (
+    <ExamForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+};
 
 const FormModal = ({
   table,
   type,
   data,
   id,
-}: {
-  // le nom de la table envoyer en props
-  table:
-    | "teacher"
-    | "student"
-    | "parent"
-    | "subject"
-    | "class"
-    | "lesson"
-    | "exam"
-    | "assignment"
-    | "result"
-    | "attendance"
-    | "event"
-    | "announcement";
-  type: "create" | "update" | "delete";
-  data?: any;
-  id?: number | string;
-}) => {
+  relatedData,
+}: FormContainerProps & { relatedData?: any }) => {
   const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
   const bgColor =
     type === "create"
@@ -71,21 +102,54 @@ const FormModal = ({
   }, [open]);
 
   const Form = () => {
-    // si c'est un formulaire de suppression 
+    const deleteActionMap = {
+      subject: deleteSubject,
+      class: deleteClass,
+      teacher: deleteTeacher,
+      student: deleteStudent,
+      exam: deleteExam,
+      // TODO: OTHER DELETE ACTIONS
+      parent: deleteSubject,
+      lesson: deleteSubject,
+      assignment: deleteSubject,
+      result: deleteSubject,
+      attendance: deleteSubject,
+      event: deleteSubject,
+      announcement: deleteSubject,
+    };
+    // si c'est un formulaire de suppression
+    const [state, formAction] = useFormState(deleteActionMap[table], {
+      success: false,
+      error: false,
+    });
+
+    const router = useRouter();
+
+    useEffect(() => {
+      if (state.success) {
+        toast(`Sujet à ete supprimer`);
+        setOpen(false);
+        router.refresh();
+      }
+    }, [state, router]);
+
     return type === "delete" && id ? (
-      <form action="" className="p-4 flex flex-col gap-4">
+      <form action={formAction} className="p-4 flex flex-col gap-4">
+        <input type="text | number" name="id" value={id} hidden />
         <span className="text-center font-medium">
-          Toutes les données seront perdu.Ête vous sure de vouloir supprimer l&apos;
+          Toutes les données seront perdu.Ête vous sure de vouloir supprimer
+          l&apos;
           {table}?
         </span>
         <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center">
           Delete
         </button>
+        {state.error && <p className=" font-bold text-red-300">Une erreur c&apos;est prouite</p>}
       </form>
     ) : type === "create" || type === "update" ? (
       // si c'est un formulaire de creation ou de modification
-      forms[table](type, data)
-    ): (
+      forms[table](type, data, setOpen, relatedData)
+    ) : (
       "Form not found"
     );
   };

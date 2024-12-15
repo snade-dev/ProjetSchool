@@ -2,9 +2,25 @@
 
 import * as Clerk from "@clerk/elements/common";
 import * as SignIn from "@clerk/elements/sign-in";
+import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const LoginPage = () => {
+
+  const { isLoaded, isSignedIn, user } = useUser();
+  console.log(user);
+  const router = useRouter();
+
+  useEffect(() => {
+    const role = user?.publicMetadata.role;
+    if (role) {
+      router.push(`/${role}`);
+    }
+  }, [user, router])
+  
+
   return (
     <div className=" h-screen flex justify-center items-center bg-lamaSky">
       <SignIn.Root>
