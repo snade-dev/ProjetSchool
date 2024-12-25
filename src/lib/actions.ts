@@ -8,7 +8,14 @@ type CurrentState = {
     success: boolean,
     error: boolean
 }
+type CurrentState2 = {
+    success: boolean,
+    error: boolean,
+    message: string
+}
 
+
+// SUBJECT
 export const createSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
         await prisma.subject.create({
@@ -71,22 +78,36 @@ export const deleteSubject = async (currentState: CurrentState ,data: FormData) 
     
 }
 
-export const createClass = async (currentState: CurrentState ,data: ClassSchema) => {
+
+
+// CLASS
+export const createClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
+
+        const existingClass = await prisma.class.findFirst({
+          where: {
+            name: data.name
+          }
+        })
+
+        if (existingClass) {
+          return {success: false, error: true, message: "La class existe déjà"};
+        }
+      
         await prisma.class.create({
           data
         });
 
         // revalidatePath("/list/subjects");
-        return {success: true, error: false};
+        return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true};
+        return {success: false, error: true, message: ""};
     }
     
 }
 
-export const updateClass = async (currentState: CurrentState ,data: ClassSchema) => {
+export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
         await prisma.class.update({
           where: {
@@ -96,10 +117,10 @@ export const updateClass = async (currentState: CurrentState ,data: ClassSchema)
         });
 
         // revalidatePath("/list/class");
-        return {success: true, error: false};
+        return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true};
+        return {success: false, error: true, message: ""};
     }
     
 }
@@ -122,19 +143,59 @@ export const deleteClass = async (currentState: CurrentState ,data: FormData) =>
     
 }
 
-export const createTeacher = async (currentState: CurrentState ,data: TeacherSchema) => {
+
+
+// TEACHER
+export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
+
     try {
-        const client = await await clerkClient();
+        const client = await clerkClient();
 
-        const user = await client.users.createUser({
-          username: data.username,
-          emailAddress: [`${data.email}`],
-          password: data.password,
-          firstName: data.name,
-          lastName: data.surname,
-          publicMetadata: {role: "teacher"}
-        })
+        
+        const existingTeacher = await prisma.teacher.findFirst({
+          where: {
+            OR: [
+              { username: data.username},
+              { phone: data.phone },
+              { id: data.id },
+              { email: data.email }
+            ]
+          }
+        });
 
+        // Déterminer le champ dupliqué pour un message d'erreur spécifique
+    if (existingTeacher) {
+      if (existingTeacher.phone === data.phone) {
+        return { success: false, error: true, message: "Le numéro de téléphone existe déjà." };
+      }
+      if (existingTeacher.email === data.email) {
+        return { success: false, error: true, message: "L'adresse e-mail existe déjà." };
+      }
+      if (existingTeacher.username === data.username) {
+        return { success: false, error: true, message: "L'identifiant existe déjà." };
+      }
+    }
+
+        let user: any = {}
+
+        try {
+          user = await client.users.createUser({
+            username: data.username,
+            emailAddress: [`${data.email}`],
+            password: data.password,
+            firstName: data.name,
+            lastName: data.surname,
+            publicMetadata: {role: "teacher"}
+          });
+
+
+
+        } catch (clerkError) {
+          console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
+          return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
+        }
+
+        
         await prisma.teacher.create({
           data: {
             id: user.id,
@@ -156,29 +217,37 @@ export const createTeacher = async (currentState: CurrentState ,data: TeacherSch
           },
         });
 
+        
+
         // revalidatePath("/list/teache");
-        return {success: true, error: false};
+        return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true};
+        return {success: false, error: true, message: `${error}`};
     }
     
 }
 
-export const updateTeacher = async (currentState: CurrentState ,data: TeacherSchema) => {
+export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
     try {
-      const client = await await clerkClient();
+      const client = await clerkClient();
+
       if (!data.id) {
-        return {success: false, error: true}
+        return {success: false, error: true, message: ""}
       }
 
-      const user = await client.users.updateUser(data.id, {
-        username: data.username,
-        ...(data.password !== "" && {password: data.password}),
-        firstName: data.name,
-        lastName: data.surname,
-        publicMetadata: {role: "teacher"}
-      })
+      try {
+        const user = await client.users.updateUser(data.id, {
+          username: data.username,
+          ...(data.password !== "" && {password: data.password}),
+          firstName: data.name,
+          lastName: data.surname,
+          publicMetadata: {role: "teacher"}
+        })
+       } catch (clerkError) {
+        console.warn(`Utilisateur avec l'id ${data.id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
+       }
+
 
       await prisma.teacher.update({
         where: {
@@ -205,10 +274,10 @@ export const updateTeacher = async (currentState: CurrentState ,data: TeacherSch
       });
 
         // revalidatePath("/list/teacher");
-        return {success: true, error: false};
+        return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true};
+        return {success: false, error: true, message: `${error}`};
     }
     
 }
@@ -217,13 +286,18 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
     const id = data.get("id") as string;
     try {
 
-      const client = await await clerkClient();
-      await client.users.deleteUser(id);
+      const client = await clerkClient();
+      try {
+        await client.users.deleteUser(id);
         await prisma.teacher.delete({
           where: {
             id: id
           }
         });
+    } catch (clerkError) {
+        console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
+    }
+
 
         // revalidatePath("/list/teacher");
         return {success: true, error: false};
@@ -234,27 +308,75 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
     
 }
 
-export const createStudent = async (currentState: CurrentState ,data: StudentSchema) => {
+
+
+
+//Student
+export const createStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
+      const client = await clerkClient();
+
+      const existingStudent = await prisma.student.findFirst({
+        where: {
+          OR: [
+            { username: data.username},
+            { phone: data.phone },
+            { id: data.id },
+            { email: data.email }
+          ]
+        }
+      });
+
+      // Déterminer le champ dupliqué pour un message d'erreur spécifique
+  if (existingStudent) {
+    if (existingStudent.phone === data.phone) {
+      return { success: false, error: true, message: "Le numéro de téléphone existe déjà." };
+    }
+    if (existingStudent.email === data.email) {
+      return { success: false, error: true, message: "L'adresse e-mail existe déjà." };
+    }
+    if (existingStudent.username === data.username) {
+      return { success: false, error: true, message: "L'identifiant existe déjà." };
+    }
+  }
+
+
+      // Verifier si il y a de la place dans la classe
        const classItem = await prisma.class.findUnique({
         where: {id: data.classId},
         include:  {_count: {select: {students: true}}}
        })
 
        if (classItem && classItem.capacity === classItem._count.students) {
-         return {success: false, error: true}
+         return {success: false, error: true, message: "La classe à déja ateint sa capacité maximale"}
        }
+        // Recherchez le parent par son nom
+       const parent = await prisma.parent.findUnique({
+        where: { username: data.parentUsername }, // Supposez que `parentName` est fourni dans les données
+        });
 
-        const client = await await clerkClient();
+      if (!parent) {
+         return { success: false, error: true, message: "Parent n'existe pas" };
+      }
 
-        const user = await client.users.createUser({
-          username: data.username,
-          emailAddress: [`${data.email}`],
-          password: data.password,
-          firstName: data.name,
-          lastName: data.surname,
-          publicMetadata: {role: "student"}
-        })
+         let user: any = {}
+
+         try {
+           user = await client.users.createUser({
+             username: data.username,
+             emailAddress: [`${data.email}`],
+             password: data.password,
+             firstName: data.name,
+             lastName: data.surname,
+             publicMetadata: {role: "teacher"}
+           });
+ 
+ 
+ 
+         } catch (clerkError) {
+           console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
+           return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
+         }
 
         await prisma.student.create({
           data: {
@@ -269,27 +391,35 @@ export const createStudent = async (currentState: CurrentState ,data: StudentSch
             bloodType: data.bloodType,
             sex: data.sex,
             birthday: data.birthday,
-            gradeId: data.gradeId,
             classId: data.classId,
-            parentId: data.parentId
+            parentId: parent.id
           },
         });
 
         // revalidatePath("/list/teache");
-        return {success: true, error: false};
+        return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true};
+        return {success: false, error: true, message: ""};
     }
     
 }
 
-export const updateStudent = async (currentState: CurrentState ,data: StudentSchema) => {
+export const updateStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      const client = await await clerkClient();
+      const client =  await clerkClient();
       if (!data.id) {
-        return {success: false, error: true}
+        return {success: false, error: true, message: "l'etudiant n'existe pas"}
       }
+
+      // Recherchez le parent par son nom
+    const parent = await prisma.parent.findUnique({
+      where: { username: data.parentUsername }, // Supposez que `parentName` est fourni dans les données
+    });
+
+    if (!parent) {
+      return { success: false, error: true, message: "Parent n'existe pas" };
+    }
 
       const user = await client.users.updateUser(data.id, {
         username: data.username,
@@ -315,17 +445,16 @@ export const updateStudent = async (currentState: CurrentState ,data: StudentSch
           bloodType: data.bloodType,
           sex: data.sex,
           birthday: data.birthday,
-          gradeId: data.gradeId,
             classId: data.classId,
-            parentId: data.parentId
+            parentId: parent.id
         },
       });
 
         // revalidatePath("/list/student");
-        return {success: true, error: false};
+        return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true};
+        return {success: false, error: true, message: ""};
     }
     
 }

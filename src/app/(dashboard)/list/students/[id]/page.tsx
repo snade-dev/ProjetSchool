@@ -52,7 +52,7 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
             </div>
             <div className="w-2/3 flex flex-col justify-between gap-4">
               <div className=" flex items-center gap-2">
-                <h1 className="text-xl font-semibold">
+                <h1 className="text-lg font-semibold">
                   {student.name + " " + student.surname}
                 </h1>
                 {/* La FormModal */}
@@ -112,11 +112,11 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
               />
               <div className="">
                 <h1 className="text-xl font-semibold">{student.class.name}</h1>
-                <span className="text-sm text-gray-400">Grade</span>
+                <span className="text-sm text-gray-400">Classe</span>
               </div>
             </div>
             {/* CARD */}
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
+            {/* <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
               <Image
                 src="/singleLesson.png"
                 alt=""
@@ -129,7 +129,7 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
                 <span className="text-sm text-gray-400">Lessons</span>
               </div>
             </div>
-            {/* CARD */}
+            
             <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
               <Image
                 src="/singleClass.png"
@@ -142,7 +142,7 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
                 <h1 className="text-xl font-semibold">{student.class.name}</h1>
                 <span className="text-sm text-gray-400">Class</span>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
         {/* BOTTOM */}
@@ -154,37 +154,31 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
       {/* RIGHT */}
       <div className="w-full xl:w-1/3 flex flex-col gap-4">
         <div className="bg-white p-4 rounded-md">
-          <h1 className="text-xl font-semibold">Shortcuts</h1>
+          <h1 className="text-xl font-semibold">Racourcie</h1>
           <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-500">
             <Link
               className="p-3 rounded-md bg-lamaSkyLight"
               href={`/list/lessons?classId=${2}`}
             >
-              Student&apos;s Lessons
+              Lessons de l&apos;etudiant
             </Link>
             <Link
               className="p-3 rounded-md bg-lamaPurpleLight"
               href={`/list/teachers?classId=${2}`}
             >
-              Ensaignant de l&apos;élèves
+              Ensaignant de l&apos;étudiant
             </Link>
             <Link
               className="p-3 rounded-md bg-pink-50"
               href={`/list/exams?classId=${2}`}
             >
-              Student&apos;s Exams
-            </Link>
-            <Link
-              className="p-3 rounded-md bg-lamaSkyLight"
-              href={`/list/assignments?classId=${2}`}
-            >
-              Student&apos;s Assignments
+              Examès de l&apos;étudiant;
             </Link>
             <Link
               className="p-3 rounded-md bg-lamaYellowLight"
               href={`/list/results?studentId=${"student2"}`}
             >
-              Student&apos;s Results
+               Resultat de l&apos;étudiant;
             </Link>
           </div>
         </div>

@@ -29,10 +29,11 @@ const ParentListPage = async ({
     >
       <td className=" flex items-center gap-4 p-4">
         <div className=" flex flex-col">
-          <h3 className=" font-semibold">{item.name}</h3>
+          <h3 className=" font-semibold">{item.username}</h3>
           <p className=" text-xs text-gray-500">{item?.email}</p>
         </div>
       </td>
+      <td className=" hidden lg:table-cell">{item.name}</td>
       <td className=" hidden md:table-cell">
         {item.students.map((student) => student.name).join(",")}
       </td>
@@ -53,16 +54,20 @@ const ParentListPage = async ({
 
   const columns = [
     {
-      header: "Info",
-      accessor: "info",
+      header: "Nom d'utilisateur",
+      accessor: "username",
     },
     {
-      header: "Student Names",
+      header: "Nom",
+      accessor: "nom",
+    },
+    {
+      header: "Etudiants",
       accessor: "students",
       className: "hidden md:table-cell",
     },
     {
-      header: "Phone",
+      header: "Téléphone",
       accessor: "phone",
       className: "hidden lg:table-cell",
     },

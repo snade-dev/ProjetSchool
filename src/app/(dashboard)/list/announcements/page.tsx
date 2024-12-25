@@ -1,10 +1,11 @@
+import FormContainer from "@/components/FormContainer";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { Announcement, Class, Prisma } from "@prisma/client";
 import Image from "next/image";
 
@@ -54,8 +55,8 @@ const AnnouncementsListPage = async ({
         <div className=" flex items-center gap-2">
           {role === "admin" && (
             <>
-              <FormModal table="announcement" type="update" data={item} />
-              <FormModal table="announcement" type="delete" id={item.id} />
+              <FormContainer table="announcement" type="update" data={item} />
+              <FormContainer table="announcement" type="delete" id={item.id} />
             </>
           )}
         </div>
@@ -74,6 +75,8 @@ const AnnouncementsListPage = async ({
     for (const [key, value] of Object.entries(queryParams)) {
       if (value !== undefined) {
         switch (key) {
+          case "admin":
+            break;
           case "search":
             query.title = {
               contains: value,
@@ -94,10 +97,17 @@ const AnnouncementsListPage = async ({
       parent: { students: { some: { parentId: currentUserId! } } },
     };
   
-    query.OR = [
-      { classId: null },
-      { class: roleConditions[role as keyof typeof roleConditions] || {} },
-    ];
+    if (role === "admin") {
+      // L'admin peut tout voir, pas besoin de filtrer par classe
+    
+    } else {
+      // Pour les autres rôles, appliquer des conditions spécifiques
+      query.OR = [
+        { classId: null },
+        { class: roleConditions[role as keyof typeof roleConditions] || {} },
+      ];
+    }
+    
 
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
@@ -111,6 +121,9 @@ const AnnouncementsListPage = async ({
     }),
     prisma.announcement.count({ where: query }),
   ]);
+
+  console.log(data);
+  
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -129,7 +142,7 @@ const AnnouncementsListPage = async ({
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              <FormModal table="announcement" type="create" />
+              <FormContainer table="announcement" type="create" />
             )}
           </div>
         </div>

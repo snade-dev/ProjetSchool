@@ -25,21 +25,31 @@ const ParentListPage = async ({
   const { page, ...queryParams } = searchParams;
   const columns = [
     {
-      header: "Subject Name",
+      header: "Nom",
       accessor: "name",
     },
     {
-      header: "Class",
-      accessor: "class",
+      header: "Matieres",
+      accessor: "subject",
     },
     {
-      header: "Teacher",
+      header: "Classe",
+      accessor: "class",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Enseignant",
       accessor: "teacher",
       className: "hidden md:table-cell",
     },
     {
-      header: "Date",
+      header: "Date de debut",
       accessor: "date",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Date de fin",
+      accessor: "date2",
       className: "hidden md:table-cell",
     },
     ...(role === "admin" || role === "teacher"
@@ -58,14 +68,20 @@ const ParentListPage = async ({
       className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
     >
       <td className="flex items-center gap-4 p-4">
+        {item.title}
+      </td>
+      <td className="hidden md:table-cell">
         {item.lesson.subject.name}
       </td>
-      <td>{item.lesson.class.name}</td>
+      <td className="">{item.lesson.class.name}</td>
       <td className="hidden md:table-cell">
         {item.lesson.teacher.name + "" + item.lesson.teacher.surname}
       </td>
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("en-US").format(item.startTime)}
+      </td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("en-US").format(item.endTime)}
       </td>
       <td>
         <div className=" flex items-center gap-2">
@@ -175,8 +191,7 @@ const ParentListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src={"/sort.png"} alt="" width={14} height={14} />
             </button>
-            {role === "admin" ||
-              (role === "teacher" && <FormContainer table="exam" type="create" />)}
+            {(role === "admin" || role === "teacher") && <FormContainer table="exam" type="create" />}
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ const matchers = Object.keys(routeAccessMap).map((route) => ({
   allowedRoutes: routeAccessMap[route],
 }))
 
-console.log("matchers",  matchers)
+// console.log("matchers",  matchers)
 
 export default clerkMiddleware(async (auth, req) => {
  

@@ -4,15 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 
-import {
-  createClass,
-  updateClass,
-} from "@/lib/actions";
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { ClassSchema, classSchema } from "@/lib/formsValidationSchema";
+import { createClass, updateClass } from "@/lib/actions";
 
 const ClassForm = ({
   type,
@@ -25,6 +22,7 @@ const ClassForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+
   const {
     register,
     handleSubmit,
@@ -40,11 +38,12 @@ const ClassForm = ({
     {
       success: false,
       error: false,
+      message: ""
     }
   );
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    // console.log(data);
     formAction(data);
   });
 
@@ -52,30 +51,30 @@ const ClassForm = ({
 
   useEffect(() => {
     if (state.success) {
-      toast(`Subject has been ${type === "create" ? "created" : "updated"}!`);
+      toast(`La classe a été ${type === "create" ? "créée" : "mise à jour"}!`);
       setOpen(false);
       router.refresh();
     }
   }, [state, router, type, setOpen]);
 
-  const { teachers, grades } = relatedData;
+  const { teachers } = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Create a new class" : "Update the class"}
+        {type === "create" ? "Créer une nouvelle classe" : "Modifier la classe"}
       </h1>
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Class name"
+          label="Classe"
           name="name"
           defaultValue={data?.name}
           register={register}
           error={errors?.name}
         />
         <InputField
-          label="Capacity"
+          label="Capacité"
           name="capacity"
           defaultValue={data?.capacity}
           register={register}
@@ -83,7 +82,7 @@ const ClassForm = ({
         />
         {data && (
           <InputField
-            label="Id"
+            label="Identifiant"
             name="id"
             defaultValue={data?.id}
             register={register}
@@ -92,7 +91,7 @@ const ClassForm = ({
           />
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Supervisor</label>
+          <label className="text-xs text-gray-500">Superviseur</label>
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             {...register("supervisorId")}
@@ -111,40 +110,19 @@ const ClassForm = ({
             )}
           </select>
           {errors.supervisorId?.message && (
-            <p className="text-xs text-red-400">
+            <p className="text-xs text-red-400 font-bold">
               {errors.supervisorId.message.toString()}
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Grade</label>
-          <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("gradeId")}
-            defaultValue={data?.gradeId}
-          >
-            {grades.map((grade: { id: number; level: number }) => (
-              <option
-                value={grade.id}
-                key={grade.id}
-                selected={data && grade.id === data.gradeId}
-              >
-                {grade.level}
-              </option>
-            ))}
-          </select>
-          {errors.gradeId?.message && (
-            <p className="text-xs text-red-400">
-              {errors.gradeId.message.toString()}
-            </p>
-          )}
-        </div>
+          
       </div>
       {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
+        <span className="text-red-500">{state.message ? state.message : "Une erreur c&apos;est produite!"}</span>
       )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      
+      <button className="bg-blue-400 text-white p-2 rounded-md" type="submit">
+        {type === "create" ? "Créer" : "Modifier"}
       </button>
     </form>
   );

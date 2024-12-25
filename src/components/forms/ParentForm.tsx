@@ -5,14 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import Image from "next/image";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { teacherSchema, TeacherSchema } from "@/lib/formsValidationSchema";
+import { parentSchema, ParentSchema, teacherSchema, TeacherSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
-import { createTeacher, updateTeacher } from "@/lib/actions";
-import { CldUploadWidget } from "next-cloudinary";
+import { createParent, updateParent } from "@/lib/parentAction";
 
-const TeacherForms = ({
+const ParentForms = ({
   type,
   setOpen,
   data,
@@ -27,15 +26,15 @@ const TeacherForms = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<TeacherSchema>({
-    resolver: zodResolver(teacherSchema),
+  } = useForm<ParentSchema>({
+    resolver: zodResolver(parentSchema),
   });
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   const [img, setImg] = useState<any>();
 
   const [state, formAction] = useFormState(
-    type === "create" ? createTeacher : updateTeacher,
+    type === "create" ? createParent : updateParent,
     {
       success: false,
       error: false,
@@ -46,14 +45,14 @@ const TeacherForms = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     // console.log(data);
-    formAction({...data, img: img?.secure_url});
+    formAction(data);
   });
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Professeur ${type === "create" ? "créer" : "modifier"}`);
+      toast(`Parent ${type === "create" ? "créer" : "modifier"}`);
       setOpen(false);
       setLoading(false);
       router.refresh();
@@ -61,14 +60,13 @@ const TeacherForms = ({
       setLoading(false)
     }
   }, [state, type, router, setOpen]);
-  const { subjects } = relatedData;
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className=" text-xl font-semibold">
         {type === "create"
-          ? "Créer un nouveau Professeur"
-          : "Modifier un Professeur"}
+          ? "Créer un nouveau Parent"
+          : "Modifier un Parent"}
       </h1>
       <span className=" text-xs text-gray-400 font-medium">
         Information d&apos;authentification
@@ -140,77 +138,7 @@ const TeacherForms = ({
           register={register}
           error={errors.address}
         />
-        <InputField
-          label="Groupe sanguin"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType}
-        />
-        <InputField
-          label="Date de naissance"
-          name="birthday"
-          defaultValue={data?.birthday.toISOString().split("T")[0]}
-          register={register}
-          error={errors.birthday}
-          type="date"
-        />
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sujet</label>
-          <select
-            multiple
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-            {...register("subjects")}
-            defaultValue={data?.subjects}
-          >
-            {subjects.map((subject: { id: string; name: string }) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          {errors.sex?.message && (
-            <p className=" text-red-400 text-xs">
-              {errors.sex?.message.toString()}
-            </p>
-          )}
-        </div>
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sex</label>
-          <select
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-            {...register("sex")}
-            defaultValue={data?.sex}
-          >
-            <option value="MALE">Homme</option>
-            <option value="FEMALE">Femme</option>
-          </select>
-          {errors.sex?.message && (
-            <p className=" text-red-400 text-xs">
-              {errors.sex?.message.toString()}
-            </p>
-          )}
-        </div>
 
-        <CldUploadWidget
-          uploadPreset="school"
-          onSuccess={(result, { widget }) => {
-            setImg(result.info);
-            widget.close();
-          }}
-        >
-          {({ open }) => {
-            return (
-              <div
-                className=" text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-                onClick={() => open()}
-              >
-                <Image src="/upload.png" alt="" width={28} height={28} />
-                <span>Téléverser une photo</span>
-              </div>
-            );
-          }}
-        </CldUploadWidget>
       </div>
 
       {state.error && (
@@ -225,4 +153,4 @@ const TeacherForms = ({
     </form>
   );
 };
-export default TeacherForms;
+export default ParentForms;

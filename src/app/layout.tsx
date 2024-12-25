@@ -8,8 +8,8 @@ import "react-toastify/dist/ReactToastify.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Lama Dev School Management Dashboard",
-  description: "Next.js School Management System",
+  title: "Tableau de Bord de Gestion de l'École LS_school",
+  description: "Système de Gestion Scolaire LS_school",
 };
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="fr">
         <body className={inter.className}>
           {children} <ToastContainer position="bottom-right" theme="dark" />{" "}
         </body>

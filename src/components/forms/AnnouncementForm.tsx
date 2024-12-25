@@ -3,26 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useFormState } from "react-dom";
-import {
-  createExam,
-  createStudent,
-  updateExam,
-  updateStudent,
-} from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { CldUploadWidget } from "next-cloudinary";
-import {
-  examSchema,
-  ExamSchema,
-  studentSchema,
-  StudentSchema,
-} from "@/lib/formsValidationSchema";
+import { announceSchema, AnnounceSchema } from "@/lib/formsValidationSchema";
+import { createAnnounce, updateAnnounce } from "@/lib/actions/announceAction";
 
-const ExamForm = ({
+const AnnouncementForm = ({
   type,
   data,
   setOpen,
@@ -37,15 +25,14 @@ const ExamForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ExamSchema>({
-    resolver: zodResolver(examSchema),
+  } = useForm<AnnounceSchema>({
+    resolver: zodResolver(announceSchema),
   });
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
-  const [img, setImg] = useState<any>();
 
   const [state, formAction] = useFormState(
-    type === "create" ? createExam : updateExam,
+    type === "create" ? createAnnounce : updateAnnounce,
     {
       success: false,
       error: false,
@@ -71,45 +58,71 @@ const ExamForm = ({
       setLoading(false);
     }
   }, [state, router, type, setOpen]);
-
-  const { lessons } = relatedData;
   // console.log("leeosns", lessons);
   
+  const {classes} = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create"
-          ? "Créer un nouvel exament"
-          : "Modifier un exament"}
+        {type === "create" ? "Créer un nouvel annonce" : "Modifier un annonce"}
       </h1>
       <span className="text-xs text-gray-400 font-medium">
         Information d&apos;authentication
       </span>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Titre de l'examen"
+          label="Titre de l'annonce"
           name="title"
           defaultValue={data?.title}
           register={register}
           error={errors?.title}
         />
+        <textarea
+          placeholder="Titre de l'annonce"
+          defaultValue={data?.title}
+          {...register("description")}
+          className="ring-[1.5px] ring-gray-300 p-2 rounded-md w-full"
+        />
+        {errors.description && (
+          <p className="text-xs text-red-400">{errors.description.message}</p>
+        )}
         <InputField
-          label="Date de debut"
-          name="startTime"
-          defaultValue={data?.startTime}
+          label="Date"
+          name="date"
+          defaultValue={data?.date}
           register={register}
-          error={errors?.startTime}
+          error={errors?.date}
           type="dateTime-local"
         />
-        <InputField
-          label="Date de fin"
-          name="endTime"
-          defaultValue={data?.endTime}
-          register={register}
-          error={errors?.endTime}
-          type="dateTime-local"
-        />
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Classe</label>
+          <select
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            {...register("classId")}
+            defaultValue={data?.classId}
+          >
+            {classes.map(
+              (classItem: {
+                id: number;
+                name: string;
+                capacity: number;
+                _count: { students: number };
+              }) => (
+                <option value={classItem.id} key={classItem.id}>
+                  ({classItem.name} -{" "}
+                  {classItem.capacity}{" "}
+                  Capacité)
+                </option>
+              )
+            )}
+          </select>
+          {errors.classId?.message && (
+            <p className="text-xs text-red-400">
+              {errors.classId.message.toString()}
+            </p>
+          )}
+        </div>
       </div>
       {data && (
         <InputField
@@ -121,33 +134,16 @@ const ExamForm = ({
           hidden
         />
       )}
-      <div className="flex flex-col gap-2 w-full md:w-1/4">
-        <label className="text-xs text-gray-500">Lesson</label>
-        <select
-          className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-          {...register("lessonId")}
-          defaultValue={data?.teachers}
-        >
-          {lessons.map((lesson: { id: number; name: string }) => (
-            <option value={lesson.id} key={lesson.id}>
-              {lesson.name}
-            </option>
-          ))}
-        </select>
-        {errors.lessonId?.message && (
-          <p className="text-xs text-red-400">
-            {errors.lessonId.message.toString()}
-          </p>
-        )}
-      </div>
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button disabled={loading} type="submit" className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500">
+      
+      <button
+        disabled={loading}
+        type="submit"
+        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
+      >
         {type === "create" ? "Créer" : "Modifier"}
       </button>
     </form>
   );
 };
 
-export default ExamForm;
+export default AnnouncementForm;

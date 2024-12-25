@@ -25,11 +25,11 @@ const SubjectListPage = async ({
   
   const columns = [
     {
-      header: "Subject Name",
+      header: "Nom de la Matière",
       accessor: "name",
     },
     {
-      header: "Teachers",
+      header: "Enseiagnants",
       accessor: "teachers",
       className: "hidden md:table-cell",
     },

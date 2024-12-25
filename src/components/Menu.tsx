@@ -1,6 +1,8 @@
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { LinKed } from "./LinKed";
 
 const menuItems = [
   {
@@ -8,19 +10,19 @@ const menuItems = [
     items: [
       {
         icon: "/home.png",
-        label: "Home",
+        label: "Acceuil",
         href: "/",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/teacher.png",
-        label: "Teachers",
+        label: "Enseignants",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
         icon: "/student.png",
-        label: "Students",
+        label: "Etudiants",
         href: "/list/students",
         visible: ["admin", "teacher"],
       },
@@ -32,7 +34,7 @@ const menuItems = [
       },
       {
         icon: "/subject.png",
-        label: "Subjects",
+        label: "Matières",
         href: "/list/subjects",
         visible: ["admin"],
       },
@@ -50,31 +52,31 @@ const menuItems = [
       },
       {
         icon: "/exam.png",
-        label: "Exams",
+        label: "Examens",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
-      {
-        icon: "/assignment.png",
-        label: "Assignments",
-        href: "/list/assignments",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
+      // {
+      //   icon: "/assignment.png",
+      //   label: "Assignments",
+      //   href: "/list/assignments",
+      //   visible: ["admin", "teacher", "student", "parent"],
+      // },
       {
         icon: "/result.png",
-        label: "Results",
+        label: "Resultats",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/attendance.png",
-        label: "Attendance",
-        href: "/list/attendance",
+        label: "Presence",
+        href: "/list/attendances",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/calendar.png",
-        label: "Events",
+        label: "Evènements",
         href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -86,31 +88,25 @@ const menuItems = [
       },
       {
         icon: "/announcement.png",
-        label: "Announcements",
+        label: "Annonces",
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
   },
   {
-    title: "OTHER",
+    title: "Autres",
     items: [
       {
         icon: "/profile.png",
-        label: "Profile",
+        label: "Profil",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/setting.png",
-        label: "Settings",
+        label: "Paramètre",
         href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/logout.png",
-        label: "Logout",
-        href: "/logout",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
@@ -119,9 +115,9 @@ const menuItems = [
 
 const Menu = async () => {
 
-  const user = await currentUser() 
+  const user = await currentUser() ;
   const role  = user?.publicMetadata.role as string;
-  // console.log("user Menu", user);
+
 
  
   return (
@@ -133,15 +129,9 @@ const Menu = async () => {
           </span>
           {i.items.map((item) => {
             if (item.visible.includes(role)) {
+              
               return (
-                <Link
-                  href={item.href}
-                  key={item.label}
-                  className=" flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 rounded-md hover:bg-lamaSkyLight md:px-2 transition-colors"
-                >
-                  <Image src={item.icon} alt="" width={20} height={20} />
-                  <span className=" hidden lg:block">{item.label}</span>
-                </Link>
+                <LinKed item={item} key={item.label} />
               );
             }
           })}

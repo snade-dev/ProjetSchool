@@ -79,12 +79,12 @@ const TeacherListPage = async ({
       accessor: "info",
     },
     {
-      header: "Teacher ID",
+      header: "Nom d'utilisateur",
       accessor: "teacherId",
       className: "hidden md:table-cell",
     },
     {
-      header: "Subjects",
+      header: "Matieres",
       accessor: "subjects",
       className: "hidden md:table-cell",
     },
@@ -94,7 +94,7 @@ const TeacherListPage = async ({
       className: "hidden md:table-cell",
     },
     {
-      header: "Phone",
+      header: "Telephone",
       accessor: "phone",
       className: "hidden lg:table-cell",
     },

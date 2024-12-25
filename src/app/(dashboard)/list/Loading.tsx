@@ -1,6 +1,6 @@
 const Loading = () => {
   return (
-    <div className=" h-full w-full justify-center items-center font-bold">Loading...</div>
+    <div className=" h-[100vh] w-full flex justify-center items-center font-bold">Loading...</div>
   )
 }
 export default Loading

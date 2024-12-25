@@ -6,7 +6,7 @@ import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formsValidationSchema";
 import { createSubject, updateSubject } from "@/lib/actions";
 import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -30,6 +30,9 @@ const SubjectForms = ({
     resolver: zodResolver(subjectSchema),
   });
 
+    const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
+  
+
   const [state, formAction] = useFormState(
     type === "create" ? createSubject : updateSubject,
     {
@@ -40,6 +43,7 @@ const SubjectForms = ({
 
   const onSubmit = handleSubmit((data) => {
     console.log(data);
+    setLoading(true);
     formAction(data);
   });
 
@@ -48,8 +52,11 @@ const SubjectForms = ({
   useEffect(() => {
     if (state.success) {
       toast(`Sujet ${type === "create" ? "créer" : "modifier"}`);
+      setLoading(false)
       setOpen(false);
       router.refresh();
+    } else {
+      setLoading(false);
     }
   }, [state, type, router, setOpen]);
 

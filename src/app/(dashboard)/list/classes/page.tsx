@@ -22,21 +22,16 @@ const ClassListPage = async ({
 
   const columns = [
     {
-      header: "Class Name",
+      header: "Nom",
       accessor: "name",
     },
     {
-      header: "Capacity",
+      header: "Capacité",
       accessor: "capacity",
       className: "hidden md:table-cell",
     },
     {
-      header: "Grade",
-      accessor: "grade",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Supervisor",
+      header: "Superviseur",
       accessor: "supervisor",
       className: "hidden md:table-cell",
     },

@@ -8,8 +8,8 @@ import Link from "next/link";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Lama Dev School Management Dashboard",
-  description: "Next.js School Management System",
+  title: "Tableau de Bord de Gestion de l'École LS_School",
+  description: "Système de Gestion Scolaire",
 };
 
 export default function DasboardLayout({
@@ -25,7 +25,7 @@ export default function DasboardLayout({
       <div className=" w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-4">
         <Link href="/" className=" flex items-center justify-center lg:justify-start gap-2">
           <Image src="/logo.png" alt="logo" width={32} height={32} />
-          <span className=" hidden lg:block font-bold">SchooLama</span>
+          <span className=" hidden lg:block font-bold">LS_School</span>
         </Link>
         <Menu />
       </div>

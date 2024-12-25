@@ -9,12 +9,25 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 // import StudentForm from "./forms/StudentForm";
 import dynamic from "next/dynamic";
 import { useFormState } from "react-dom";
-import { deleteClass, deleteExam, deleteStudent, deleteSubject, deleteTeacher } from "@/lib/actions";
+import {
+  deleteClass,
+  deleteExam,
+  deleteStudent,
+  deleteSubject,
+  deleteTeacher,
+} from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
+import { deleteParent } from "@/lib/parentAction";
+import { deleteLesson } from "@/lib/lessonAction";
+import { deleteAnnounce } from "@/lib/actions/announceAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
+  loading: () => <h1>Loading...</h1>,
+});
+
+const ParentForms = dynamic(() => import("./forms/ParentForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const StudentForms = dynamic(() => import("./forms/StudentForms"), {
@@ -27,6 +40,15 @@ const ClassForm = dynamic(() => import("./forms/ClassForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ExamForm = dynamic(() => import("./forms/ExamForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const LessonForm = dynamic(() => import("./forms/LessonForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const EventsForm = dynamic(() => import("./forms/EventsForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -62,8 +84,48 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  parent: (type, data, setOpen, relatedData) => (
+    <ParentForms
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  student: (type, data, setOpen, relatedData) => (
+    <StudentForms
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  lesson: (type, data, setOpen, relatedData) => (
+    <LessonForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
   exam: (type, data, setOpen, relatedData) => (
     <ExamForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  announcement: (type, data, setOpen, relatedData) => (
+    <AnnouncementForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  event: (type, data, setOpen, relatedData) => (
+    <EventsForm
       type={type}
       data={data}
       setOpen={setOpen}
@@ -109,13 +171,13 @@ const FormModal = ({
       student: deleteStudent,
       exam: deleteExam,
       // TODO: OTHER DELETE ACTIONS
-      parent: deleteSubject,
-      lesson: deleteSubject,
+      parent: deleteParent,
+      lesson: deleteLesson,
       assignment: deleteSubject,
       result: deleteSubject,
       attendance: deleteSubject,
       event: deleteSubject,
-      announcement: deleteSubject,
+      announcement: deleteAnnounce,
     };
     // si c'est un formulaire de suppression
     const [state, formAction] = useFormState(deleteActionMap[table], {
@@ -144,7 +206,11 @@ const FormModal = ({
         <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center">
           Delete
         </button>
-        {state.error && <p className=" font-bold text-red-300">Une erreur c&apos;est prouite</p>}
+        {state.error && (
+          <p className=" font-bold text-red-300">
+            Une erreur c&apos;est proudite lors de la suppression
+          </p>
+        )}
       </form>
     ) : type === "create" || type === "update" ? (
       // si c'est un formulaire de creation ou de modification
@@ -157,7 +223,9 @@ const FormModal = ({
   return (
     <>
       <button
-        className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
+        className={`${size} flex items-center justify-center rounded-full ${bgColor} ${
+          type === "update" && " bg-slate-950  font-bold"
+        }`}
         onClick={() => setOpen(true)}
       >
         <Image src={`/${type}.png`} alt="" width={16} height={16} />

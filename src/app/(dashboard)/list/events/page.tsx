@@ -1,3 +1,4 @@
+import FormContainer from "@/components/FormContainer";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -21,25 +22,25 @@ const EventListPage = async ({
 
   const columns = [
     {
-      header: "Title",
+      header: "Nom",
       accessor: "title",
     },
     {
-      header: "Class",
+      header: "Classe",
       accessor: "class",
     },
     {
-      header: "Date",
+      header: "Date de l'evenement",
       accessor: "date",
       className: "hidden md:table-cell",
     },
     {
-      header: "Start Time",
+      header: "Date de Début",
       accessor: "startTime",
       className: "hidden md:table-cell",
     },
     {
-      header: "End Time",
+      header: "Date de Fin",
       accessor: "endTime",
       className: "hidden md:table-cell",
     },
@@ -81,8 +82,8 @@ const EventListPage = async ({
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
-              <FormModal table="class" type="update" data={item} />
-              <FormModal table="class" type="delete" id={item.id} />
+              <FormContainer table="event" type="update" data={item} />
+              <FormContainer table="event" type="delete" id={item.id} />
             </>
           )}
         </div>
@@ -121,10 +122,16 @@ const EventListPage = async ({
     parent: { students: { some: { parentId: currentUserId! } } },
   };
 
-  query.OR = [
-    { classId: null },
-    { class: roleConditions[role as keyof typeof roleConditions] || {} },
-  ];
+  if (role === "admin") {
+    // L'admin peut tout voir, pas besoin de filtrer par classe
+  
+  } else {
+    // Pour les autres rôles, appliquer des conditions spécifiques
+    query.OR = [
+      { classId: null },
+      { class: roleConditions[role as keyof typeof roleConditions] || {} },
+    ];
+  }
 
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
@@ -156,9 +163,7 @@ const EventListPage = async ({
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-                <Image src={"/plus.png"} alt="" width={14} height={14} />
-              </button>
+              <FormContainer table="event" type="create" />
             )}
           </div>
         </div>
