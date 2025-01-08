@@ -25,12 +25,14 @@ model Student {
   sex         UserSex
   createdAt   DateTime     @default(now())
   parentId    String
-  parent      Parent       @relation(fields: [parentId], references: [id])
+  parent      Parent       @relation(fields: [parentId], references: [id], onDelete: Cascade)
   classId     Int
-  class       Class        @relation(fields: [classId], references: [id])
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   attendances Attendance[]
   results     Result[]
   birthday    DateTime
+
+  ExamAverage ExamAverage[]
 }
 
 model Teacher {
@@ -57,12 +59,11 @@ model Parent {
   name      String
   surname   String
   email     String?   @unique
-  phone     String?    @unique
+  phone     String?   @unique
   address   String
   createdAt DateTime  @default(now())
   students  Student[]
 }
-
 
 model Class {
   id       Int    @id @default(autoincrement())
@@ -70,11 +71,15 @@ model Class {
   capacity Int
 
   supervisorId  String?
-  supervisor    Teacher?       @relation(fields: [supervisorId], references: [id])
+  supervisor    Teacher?       @relation(fields: [supervisorId], references: [id], onDelete: SetNull)
   lessons       Lesson[]
   students      Student[]
   events        Event[]
   announcements Announcement[]
+
+  Quiz Quiz[]
+
+  Attendance Attendance[]
 }
 
 model Subject {
@@ -82,21 +87,25 @@ model Subject {
   name     String    @unique
   teachers Teacher[]
   lessons  Lesson[]
+  results  Result[]
+
+  Quiz Quiz[]
+
+  Attendance Attendance[]
 }
 
 model Lesson {
-  id        Int      @id @default(autoincrement())
-  name      String
-  day       Day
+  id   Int    @id @default(autoincrement())
+  name String
+  day  Day
 
-  subjectId   Int
-  subject     Subject      @relation(fields: [subjectId], references: [id])
-  classId     Int
-  class       Class        @relation(fields: [classId], references: [id])
-  teacherId   String
-  teacher     Teacher      @relation(fields: [teacherId], references: [id])
-  exams       Exam[]
-  attendances Attendance[]
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classId   Int
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  exams     Exam[]
 }
 
 model Exam {
@@ -106,20 +115,35 @@ model Exam {
   endTime   DateTime
 
   lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id])
+  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   results  Result[]
-}
 
+  ExamAverage ExamAverage[]
+}
 
 model Result {
   id    Int @id @default(autoincrement())
   score Int
 
-  examId       Int?
-  exam         Exam?       @relation(fields: [examId], references: [id])
-  assignmentId Int?
-  studentId    String
-  student      Student     @relation(fields: [studentId], references: [id])
+  examId    Int?
+  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: SetNull)
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId, subjectId]) // Contrainte pour éviter les doublons
+}
+
+model ExamAverage {
+  id        Int     @id @default(autoincrement())
+  examId    Int
+  exam      Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  average   Float
+
+  @@unique([examId, studentId]) // Contrainte pour éviter les doublons
 }
 
 model Attendance {
@@ -128,9 +152,11 @@ model Attendance {
   present Boolean
 
   studentId String
-  student   Student @relation(fields: [studentId], references: [id])
-  lessonId  Int
-  lesson    Lesson  @relation(fields: [lessonId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   Int
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
 
 model Event {
@@ -141,7 +167,7 @@ model Event {
   endTime     DateTime
 
   classId Int?
-  class   Class? @relation(fields: [classId], references: [id])
+  class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
 }
 
 model Announcement {
@@ -151,7 +177,40 @@ model Announcement {
   date        DateTime
 
   classId Int?
-  class   Class? @relation(fields: [classId], references: [id])
+  class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
+}
+
+model AnswerOption {
+  id         String   @id @default(uuid())
+  answerText String
+  isCorrect  Boolean
+  questionId String
+  Question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  // @@map("answer_options")
+}
+
+model Question {
+  id            String         @id @default(uuid())
+  questionText  String
+  answerOptions AnswerOption[]
+  quizId        String
+  quiz          Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model Quiz {
+  id        String     @id @default(uuid())
+  title     String     @unique
+  score     Int?
+  date      DateTime
+  questions Question[]
+
+  classId   Int
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([id, subjectId])
 }
 
 enum UserSex {

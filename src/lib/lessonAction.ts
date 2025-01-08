@@ -50,8 +50,8 @@ export const createLesson = async (currentState: CurrentState2 ,data: LessonSche
       data: {
         name: data.name,
         day: data.day,
-        subjectId: data.subjectId,
-        classId: data.classId,
+        subjectId: Number(data.subjectId),
+        classId: Number(data.classId),
         teacherId: teacher.id
       },
     });
@@ -92,8 +92,8 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
         data: {
           name: data.name,
         day: data.day,
-        subjectId: data.subjectId,
-        classId: data.classId,
+        subjectId: Number(data.subjectId),
+        classId: Number(data.classId),
         teacherId: teacher.username
         },
       });

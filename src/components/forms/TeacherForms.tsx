@@ -169,9 +169,9 @@ const TeacherForms = ({
               </option>
             ))}
           </select>
-          {errors.sex?.message && (
+          {errors.subjects?.message && (
             <p className=" text-red-400 text-xs">
-              {errors.sex?.message.toString()}
+              {errors.subjects?.message.toString()}
             </p>
           )}
         </div>

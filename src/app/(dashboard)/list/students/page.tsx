@@ -78,7 +78,7 @@ const StudentListPage = async ({
           <p className=" text-xs text-gray-500">{item.class.name}</p>
         </div>
       </td>
-      <td className=" hidden md:table-cell">{item.id}</td>
+      <td className=" hidden md:table-cell">{item.username}</td>
       <td className=" hidden md:table-cell">{item.class.name[0]}</td>
       <td className=" hidden lg:table-cell">{item.phone}</td>
       <td className=" hidden lg:table-cell">{item.address}</td>
@@ -160,9 +160,6 @@ const StudentListPage = async ({
               <Image src={"/sort.png"} alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              // <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              //   {/* <Image src={"/plus.png"} alt="" width={14} height={14} /> */}
-              // </button>
               <FormContainer table="student" type="create" />
             )}
           </div>

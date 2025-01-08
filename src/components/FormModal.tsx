@@ -22,6 +22,9 @@ import { FormContainerProps } from "./FormContainer";
 import { deleteParent } from "@/lib/parentAction";
 import { deleteLesson } from "@/lib/lessonAction";
 import { deleteAnnounce } from "@/lib/actions/announceAction";
+import { deleteAverage } from "@/lib/actions/averageAction";
+import { deleteResult } from "@/lib/actions/resultAction";
+import { deleteAttendance } from '../lib/actions/attendanceAction';
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
   loading: () => <h1>Loading...</h1>,
@@ -49,6 +52,18 @@ const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const EventsForm = dynamic(() => import("./forms/EventsForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AverageForm = dynamic(() => import("./forms/AverageForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ResultForm = dynamic(() => import("./forms/ResultForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const QuizForm = dynamic(() => import("./forms/QuizForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AttendanceForm = dynamic(() => import("./forms/AttendanceForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -124,8 +139,40 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  attendance: (type, data, setOpen, relatedData) => (
+    <AttendanceForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  quiz: (type, data, setOpen, relatedData) => (
+    <QuizForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
   event: (type, data, setOpen, relatedData) => (
     <EventsForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  average: (type, data, setOpen, relatedData) => (
+    <AverageForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  result: (type, data, setOpen, relatedData) => (
+    <ResultForm
       type={type}
       data={data}
       setOpen={setOpen}
@@ -153,7 +200,7 @@ const FormModal = ({
 
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = "hidden";
+      // document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
@@ -174,10 +221,12 @@ const FormModal = ({
       parent: deleteParent,
       lesson: deleteLesson,
       assignment: deleteSubject,
-      result: deleteSubject,
+      average: deleteAverage,
+      result: deleteResult,
       attendance: deleteSubject,
       event: deleteSubject,
       announcement: deleteAnnounce,
+      quiz: deleteAnnounce,
     };
     // si c'est un formulaire de suppression
     const [state, formAction] = useFormState(deleteActionMap[table], {

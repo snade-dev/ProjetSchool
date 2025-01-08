@@ -148,7 +148,8 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
         {/* BOTTOM */}
         <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
           <h1>Student&apos;s Schedule</h1>
-          <BigCalandarContainer type="classId" id={student.class.id} />
+          {/* <BigCalandarContainer type="classId" id={student.class.id} /> */}
+          
         </div>
       </div>
       {/* RIGHT */}
@@ -176,7 +177,7 @@ const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
             </Link>
             <Link
               className="p-3 rounded-md bg-lamaYellowLight"
-              href={`/list/results?studentId=${"student2"}`}
+              href={`/list/results?studentId=${id}`}
             >
                Resultat de l&apos;étudiant;
             </Link>

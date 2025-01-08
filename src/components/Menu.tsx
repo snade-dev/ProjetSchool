@@ -51,17 +51,29 @@ const menuItems = [
         visible: ["admin", "teacher"],
       },
       {
+        icon: "/lesson.png",
+        label: "cours en ligne",
+        href: "https://meet.google.com/landing",
+        visible: ["admin", "teacher"],
+      },
+      {
         icon: "/exam.png",
-        label: "Examens",
+        label: " Examens",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
-      // {
-      //   icon: "/assignment.png",
-      //   label: "Assignments",
-      //   href: "/list/assignments",
-      //   visible: ["admin", "teacher", "student", "parent"],
-      // },
+      {
+        icon: "/exam.png",
+        label: "Examens en Ligne",
+        href: "/list/onlineExam",
+        visible: ["admin", "teacher", "student"],
+      },
+      {
+        icon: "/assignment.png",
+        label: "Quiz",
+        href: "/quiz",
+        visible: ["admin", "teacher"],
+      },
       {
         icon: "/result.png",
         label: "Resultats",

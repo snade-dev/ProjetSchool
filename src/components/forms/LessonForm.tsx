@@ -53,9 +53,11 @@ const StudentForm = ({
 
   useEffect(() => {
     if (state.success) {
-      toast(`L'lesson a été ${type === "create" ? "créé" : "modifié"} !`);
+      toast(`Lesson a été ${type === "create" ? "créé" : "modifié"} !`);
       setOpen(false);
       router.refresh();
+    }  else if (state.error) {
+      setLoading(false)
     }
   }, [state, router, type, setOpen]);
 
@@ -100,7 +102,7 @@ const StudentForm = ({
         <InputField
           label="Enseignant"
           name="teacherUsername"
-          defaultValue={data?.teacher.name}
+          defaultValue={data?.teacher.username}
           register={register}
           error={errors?.teacherUsername}
         />
@@ -144,7 +146,7 @@ const StudentForm = ({
           )}
         </div>
         <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sujet</label>
+          <label className=" text-xs text-gray-500">Matiere</label>
           <select
             className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
             {...register("subjectId")}

@@ -34,7 +34,6 @@ const StudentForm = ({
   const [img, setImg] = useState<any>();
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
 
-
   const [state, formAction] = useFormState(
     type === "create" ? createStudent : updateStudent,
     {
@@ -233,7 +232,11 @@ const StudentForm = ({
           {state.message ? state.message : "Une erreur c&apos;est produit"}
         </span>
       )}
-      <button type="submit" className="bg-blue-400 text-white p-2 rounded-md" disabled={!loading}>
+      <button
+        type="submit"
+        className="bg-blue-400 text-white p-2 rounded-md cursor-pointer disabled:bg-slate-400"
+        disabled={loading}
+      >
         {type === "create" ? "Créer" : "Modifier"}
       </button>
     </form>

@@ -22,7 +22,7 @@ const Studentpage = async () => {
       <div className="w-full xl:w-2/3">
       <div className=" h-full bg-white p-4 rounded-md">
         <h1 className=" text-xl font-semibold">Programme (4A)</h1>
-        <BigCalandarContainer id={classItem[0].id} type="classId" />
+        {/* <BigCalandarContainer id={classItem[0].id} type="classId" /> */}
       </div>
       </div>
       {/* RIGHT */}

@@ -5,8 +5,10 @@ import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from '@clerk/nextjs/server';
-import { Prisma } from "@prisma/client";
+import { Attendance, Class, Prisma, Student, Subject } from "@prisma/client";
 import Image from "next/image";
+
+type AttendanceList = Attendance & { class: Class } & { student: Student} & { subject: Subject};
 
 const AttendanceListPage = async ({
   searchParams,
@@ -22,23 +24,19 @@ const AttendanceListPage = async ({
     { header: "Date", accessor: "date" },
     { header: "Présent", accessor: "present" },
     { header: "Étudiant", accessor: "student.name" },
-    { header: "Cours", accessor: "lesson.title" },
+    { header: "class", accessor: "class.name" },
+    { header: "Matiere", accessor: "subject.title" },
     ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
   ];
 
   // Génération des lignes
-  const renderRow = (item: {
-    id: number;
-    date: Date;
-    present: boolean;
-    student?: { name: string };
-    lesson?: { title: string };
-  }) => (
+  const renderRow = (item: AttendanceList) => (
     <tr key={item.id}>
       <td>{new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))}</td>
-      <td>{item.present ? "Présent" : "Absent"}</td>
+      <td className={item.present ? "text-green-500 font-bold" : "text-red-600"}>{item.present ? "Présent" : "Absent"}</td>
       <td>{item.student?.name || "N/A"}</td>
-      <td>{item.lesson?.title || "N/A"}</td>
+      <td>{item.class?.name || "N/A"}</td>
+      <td>{item.subject?.name || "N/A"}</td>
       {role === "admin" && (
         <td>
           <div className="flex items-center gap-2">
@@ -60,20 +58,21 @@ const AttendanceListPage = async ({
   if (queryParams.search) {
     query.OR = [
       { student: { name: { contains: queryParams.search, mode: "insensitive" } } },
-      { lesson: { name: { contains: queryParams.search, mode: "insensitive" } } },
+      { subject: { name: { contains: queryParams.search, mode: "insensitive" } } },
+      { class: { name: { contains: queryParams.search, mode: "insensitive" } } },
     ];
   }
 
   // Ajout de restrictions basées sur le rôle
-  if (role !== "admin") {
-    const roleConditions = {
-      teacher: { lesson: { teacherId: currentUserId! } },
-      student: { studentId: currentUserId! },
-      parent: { student: { parentId: currentUserId! } },
-    };
+  // if (role !== "admin") {
+  //   const roleConditions = {
+  //     teacher: { lesson: { teacherId: currentUserId! } },
+  //     student: { studentId: currentUserId! },
+  //     parent: { student: { parentId: currentUserId! } },
+  //   };
 
-    query.AND = [roleConditions[role as keyof typeof roleConditions] || {}];
-  }
+  //   query.AND = [roleConditions[role as keyof typeof roleConditions] || {}];
+  // }
 
   // Requête vers la base de données
   const [data, count] = await prisma.$transaction([
@@ -81,7 +80,8 @@ const AttendanceListPage = async ({
       where: query,
       include: {
         student: true, // Inclure les détails de l'étudiant
-        lesson: true,  // Inclure les détails de la leçon
+        subject: true,  // Inclure les détails de la leçon
+        class: true
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

@@ -55,7 +55,7 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
             password: data.password,
             firstName: data.name,
             lastName: data.surname,
-            publicMetadata: {role: "Parent"}
+            publicMetadata: {role: "parent"}
           });
 
         } catch (clerkError) {

@@ -289,14 +289,23 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
       const client = await clerkClient();
       try {
         await client.users.deleteUser(id);
-        await prisma.teacher.delete({
-          where: {
-            id: id
-          }
-        });
+        
     } catch (clerkError) {
         console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
     }
+
+    await prisma.lesson.deleteMany({
+      where: {
+        teacherId: id, // Replace teacherId with the actual teacher's ID
+      },
+    });
+    
+    await prisma.teacher.delete({
+      where: {
+        id: id, // Replace with the actual teacher's ID
+      },
+    });
+    
 
 
         // revalidatePath("/list/teacher");
@@ -368,7 +377,7 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
              password: data.password,
              firstName: data.name,
              lastName: data.surname,
-             publicMetadata: {role: "teacher"}
+             publicMetadata: {role: "student"}
            });
  
  

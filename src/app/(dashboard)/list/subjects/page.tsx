@@ -29,7 +29,7 @@ const SubjectListPage = async ({
       accessor: "name",
     },
     {
-      header: "Enseiagnants",
+      header: "Enseignants",
       accessor: "teachers",
       className: "hidden md:table-cell",
     },

@@ -105,7 +105,7 @@ export const announceSchema = z.object({
   id: z.coerce.number().optional(),
   title: z.string().min(1, { message: "Le titre est requis !" }),
   description: z.string().min(1, { message: "Le titre est requis !" }),
-  date: z.coerce.date({ message: "L'heure de début est requise !" }),
+  date: z.coerce.date({ message: "La date est requise !" }),
   classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
 });
 
@@ -170,3 +170,62 @@ export const lessonSchema = z.object({
 
 export type LessonSchema = z.infer<typeof lessonSchema>;
 
+export const resultMSchema = z.object({
+  id: z.coerce.number().optional(),
+  average: z.coerce.number().min(1, {message: "La moyenne est requise"}),
+  studentUsername: z.string().min(1, { message: "L'etudiant est requise !" }),
+  examId: z.coerce.number().min(1, { message: "L'exame est requise !" }),
+});
+
+export type ResultMSchema = z.infer<typeof resultMSchema>;
+
+export const resultSchema = z.object({
+  id: z.coerce.number().optional(),
+  score: z.coerce.number().min(1, {message: "La moyenne est requise"}),
+  studentUsername: z.string().min(1, { message: "L'etudiant est requise !" }),
+  examId: z.coerce.number().min(1, { message: "L'exame est requise !" }),
+  subjectId: z.coerce.number().min(1, { message: "L'exame est requise !" }),
+});
+
+export type ResultSchema = z.infer<typeof resultSchema>;
+
+export const answerOptionSchema = z.object({
+  id: z.coerce.string().optional(),
+  answerText: z.string().min(1, "la réponse est requis"),
+  isCorrect: z.boolean(),
+});
+
+export type AnswerOptionSchema = z.infer<typeof answerOptionSchema>;
+
+
+export const questionSchema = z.object({
+  id: z.coerce.string().optional(),
+  questionText: z.string().min(1, "Question text is required"),
+  answerOptions: z
+    .array(answerOptionSchema)
+    .optional(),
+});
+export type QuestionSchema = z.infer<typeof questionSchema>;
+
+export const quizSchema = z.object({
+  id: z.coerce.string().optional(),
+  title: z.string().min(1, "Le titre est oblicatoire"),
+  date: z.coerce.date({ message: "La date est requise !" }),
+  questions: z
+    .array(questionSchema)
+    .optional(),
+  subjectId: z.string().min(1, "la matiere doit etre entrer"),
+  classId: z.string().min(1, "la class doit etre entrer")
+});
+
+
+export const attendancechema = z.object({
+  id: z.coerce.number().optional(),
+  date: z.coerce.date({ message: "La date est requise !" }),
+  present:z.string(),
+  studentUsername: z.string().min(1, "l'etudiant doit etre entrer"),
+  subjectId: z.coerce.number({ message: "La leçon est requise !" }),
+  classId: z.coerce.number({ message: "La leçon est requise !" }),
+});
+
+export type Attendancechema = z.infer<typeof attendancechema>;

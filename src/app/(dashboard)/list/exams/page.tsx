@@ -13,7 +13,7 @@ type ExamList = Exam & {
   lesson: { subject: Subject; class: Class; teacher: Teacher };
 };
 
-const ParentListPage = async ({
+const ExamListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
@@ -206,4 +206,4 @@ const ParentListPage = async ({
     </div>
   );
 };
-export default ParentListPage;
+export default ExamListPage;
