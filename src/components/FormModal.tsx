@@ -19,12 +19,13 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
-import { deleteParent } from "@/lib/parentAction";
-import { deleteLesson } from "@/lib/lessonAction";
+import { deleteLesson } from "@/lib/actions/lessonAction";
 import { deleteAnnounce } from "@/lib/actions/announceAction";
 import { deleteAverage } from "@/lib/actions/averageAction";
 import { deleteResult } from "@/lib/actions/resultAction";
-import { deleteAttendance } from '../lib/actions/attendanceAction';
+import { deleteAttendance } from "../lib/actions/attendanceAction";
+import { deleteQuiz } from "@/lib/actions/quizAction";
+import { deleteParent } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
   loading: () => <h1>Loading...</h1>,
@@ -223,10 +224,10 @@ const FormModal = ({
       assignment: deleteSubject,
       average: deleteAverage,
       result: deleteResult,
-      attendance: deleteSubject,
       event: deleteSubject,
       announcement: deleteAnnounce,
-      quiz: deleteAnnounce,
+      attendance: deleteAttendance,
+      quiz: deleteQuiz,
     };
     // si c'est un formulaire de suppression
     const [state, formAction] = useFormState(deleteActionMap[table], {

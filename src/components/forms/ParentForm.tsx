@@ -5,11 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import Image from "next/image";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { parentSchema, ParentSchema, teacherSchema, TeacherSchema } from "@/lib/formsValidationSchema";
+import { parentSchema, ParentSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useFormState } from "react-dom";
-import { createParent, updateParent } from "@/lib/parentAction";
+import { createParent, updateParent } from "@/lib//actions/parentAction";
 
 const ParentForms = ({
   type,

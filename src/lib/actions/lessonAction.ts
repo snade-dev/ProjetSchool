@@ -1,8 +1,7 @@
 "use server";
 
-import { clerkClient, User } from '@clerk/nextjs/server';
-import { LessonSchema } from './formsValidationSchema';
-import prisma from './prisma';
+import { LessonSchema } from '../formsValidationSchema';
+import prisma from '../prisma';
 
 type CurrentState = {
     success: boolean,
@@ -90,11 +89,11 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
           id: data.id
         },
         data: {
-          name: data.name,
+        name: data.name,
         day: data.day,
         subjectId: Number(data.subjectId),
         classId: Number(data.classId),
-        teacherId: teacher.username
+        teacherId: teacher.id
         },
       });
 

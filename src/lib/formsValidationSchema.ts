@@ -218,6 +218,8 @@ export const quizSchema = z.object({
   classId: z.string().min(1, "la class doit etre entrer")
 });
 
+export type QuizSchema = z.infer<typeof quizSchema>;
+
 
 export const attendancechema = z.object({
   id: z.coerce.number().optional(),

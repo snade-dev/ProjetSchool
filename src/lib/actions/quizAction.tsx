@@ -12,6 +12,10 @@ type CurrentState = {
   error: boolean;
   message: string;
 };
+type CurrentState2 = {
+  success: boolean;
+  error: boolean;
+};
 
 export const createQuiz = async (
   currentState: CurrentState,
@@ -63,7 +67,7 @@ export const updateQuiz = async (
   }
 };
 export const deleteQuiz = async (
-  currentState: CurrentState,
+  currentState: CurrentState2,
   data: FormData
 ) => {
   try {
@@ -77,10 +81,10 @@ export const deleteQuiz = async (
 
 
 
-    return { success: true, error: false, message: "Hello" };
+    return { success: true, error: false };
   } catch (error) {
     console.log(error);
-    return { success: false, error: true, message: "" };
+    return { success: false, error: true };
   }
 };
 
