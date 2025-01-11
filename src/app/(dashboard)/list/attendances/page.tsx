@@ -4,11 +4,14 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from '@clerk/nextjs/server';
+import { auth } from "@clerk/nextjs/server";
 import { Attendance, Class, Prisma, Student, Subject } from "@prisma/client";
+import clsx from "clsx";
 import Image from "next/image";
 
-type AttendanceList = Attendance & { class: Class } & { student: Student} & { subject: Subject};
+type AttendanceList = Attendance & { class: Class } & { student: Student } & {
+  subject: Subject;
+};
 
 const AttendanceListPage = async ({
   searchParams,
@@ -21,22 +24,33 @@ const AttendanceListPage = async ({
 
   // Colonnes du tableau
   const columns = [
-    { header: "Date", accessor: "date" },
+    { header: "Date", accessor: "date" , className: "hidden md:table-cell"},
     { header: "Présent", accessor: "present" },
-    { header: "Étudiant", accessor: "student.name" },
-    { header: "class", accessor: "class.name" },
-    { header: "Matiere", accessor: "subject.title" },
+    { header: "Étudiant", accessor: "student.name", className: "hidden md:table-cell" },
+    { header: "class", accessor: "class.name" , className: "hidden md:table-cell"},
+    { header: "Matiere", accessor: "subject.title" , className: "hidden md:table-cell"},
     ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
   ];
 
   // Génération des lignes
   const renderRow = (item: AttendanceList) => (
-    <tr key={item.id}>
-      <td>{new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))}</td>
-      <td className={item.present ? "text-green-500 font-bold" : "text-red-600"}>{item.present ? "Présent" : "Absent"}</td>
-      <td>{item.student?.name || "N/A"}</td>
-      <td>{item.class?.name || "N/A"}</td>
-      <td>{item.subject?.name || "N/A"}</td>
+    <tr
+      key={item.id}
+      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
+    >
+
+      <td className=" hidden md:table-cell">{new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))}</td>
+      <td
+        className={clsx ("flex items-center gap-4 p-4", {
+          "text-green-500 font-bold": item.present,
+          "font-bold text-red-600": !item.present,
+        })}
+      >
+        {item.present ? "Présent" : "Absent"}
+      </td>
+      <td className=" hidden md:table-cell">{item.student?.name || "N/A"}</td>
+      <td className=" hidden md:table-cell">{item.class?.name || "N/A"}</td>
+      <td className=" hidden md:table-cell">{item.subject?.name || "N/A"}</td>
       {role === "admin" && (
         <td>
           <div className="flex items-center gap-2">
@@ -57,9 +71,19 @@ const AttendanceListPage = async ({
   // Ajout de filtres basés sur la recherche
   if (queryParams.search) {
     query.OR = [
-      { student: { name: { contains: queryParams.search, mode: "insensitive" } } },
-      { subject: { name: { contains: queryParams.search, mode: "insensitive" } } },
-      { class: { name: { contains: queryParams.search, mode: "insensitive" } } },
+      {
+        student: {
+          name: { contains: queryParams.search, mode: "insensitive" },
+        },
+      },
+      {
+        subject: {
+          name: { contains: queryParams.search, mode: "insensitive" },
+        },
+      },
+      {
+        class: { name: { contains: queryParams.search, mode: "insensitive" } },
+      },
     ];
   }
 
@@ -80,8 +104,8 @@ const AttendanceListPage = async ({
       where: query,
       include: {
         student: true, // Inclure les détails de l'étudiant
-        subject: true,  // Inclure les détails de la leçon
-        class: true
+        subject: true, // Inclure les détails de la leçon
+        class: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
