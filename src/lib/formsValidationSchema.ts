@@ -201,27 +201,28 @@ export type AnswerOptionSchema = z.infer<typeof answerOptionSchema>;
 export const questionSchema = z.object({
   id: z.coerce.string().optional(),
   questionText: z.string().min(1, "Question text is required"),
-  answerOptions: z
-    .array(answerOptionSchema)
-    .optional(),
+  createdBy: z.string().min(1, "L'enseignant doit être ensignant")
 });
+
 export type QuestionSchema = z.infer<typeof questionSchema>;
 
 export const quizSchema = z.object({
   id: z.coerce.string().optional(),
   title: z.string().min(1, "Le titre est oblicatoire"),
   date: z.coerce.date({ message: "La date est requise !" }),
+  duration: z.coerce.number(),
   questions: z
     .array(questionSchema)
     .optional(),
   subjectId: z.string().min(1, "la matiere doit etre entrer"),
-  classId: z.string().min(1, "la class doit etre entrer")
+  classId: z.string().min(1, "la class doit etre entrer"),
+  teacherUsername: z.string().min(1, "l'enseignant doit être renseigner")
 });
 
 export type QuizSchema = z.infer<typeof quizSchema>;
 
 
-export const attendancechema = z.object({
+export const attendancSchema = z.object({
   id: z.coerce.number().optional(),
   date: z.coerce.date({ message: "La date est requise !" }),
   present:z.string(),
@@ -230,4 +231,15 @@ export const attendancechema = z.object({
   classId: z.coerce.number({ message: "La leçon est requise !" }),
 });
 
-export type Attendancechema = z.infer<typeof attendancechema>;
+export type Attendancechema = z.infer<typeof attendancSchema>;
+
+export const studentAnswerSchema = z.object({
+  answers: z.array(
+    z.object({
+      questionId: z.string(),
+      answerText: z.string().min(1, 'Answer is required'),
+    })
+  ),
+});
+
+export type StudentAnswerschema = z.infer<typeof studentAnswerSchema>;

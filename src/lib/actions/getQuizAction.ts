@@ -12,9 +12,7 @@ export const getQuiz = async (quizId: string) => {
             },
             include: {
                 questions: {
-                    include: {
-                        answerOptions: true
-                    }
+                    
                 }
             }
         })

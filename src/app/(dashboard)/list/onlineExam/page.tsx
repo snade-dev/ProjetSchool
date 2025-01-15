@@ -8,8 +8,12 @@ import { auth } from "@clerk/nextjs/server";
 import { Prisma, Subject, Class, Quiz } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { log } from "node:console";
 
-type QuizList = Quiz & { subject: Subject } & { class: Class };
+type QuizList = Quiz & { subject: Subject } & { class: Class } & {
+  StudentAnswer: { id: string }[];
+};
 
 const QuizListPage = async ({
   searchParams,
@@ -20,6 +24,10 @@ const QuizListPage = async ({
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const { page, ...queryParams } = searchParams;
+
+  if (!currentUserId) {
+    return notFound();
+  }
 
   const p = page ? parseInt(page) : 1;
 
@@ -46,31 +54,30 @@ const QuizListPage = async ({
     },
   ];
 
-  const RenderRow = (item: QuizList) => (
-    <tr
-      key={item.id}
-      className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
-    >
-      <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
-      <td className="hidden md:table-cell">{item.class.name}</td>
-      <td className="hidden md:table-cell">
-        {new Intl.DateTimeFormat("en-US").format(item.date)}
-      </td>
-      <td className="hidden md:table-cell">
-        {(item.score === null || role === "admin")  ? (
-          <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
-        ) : (
-          <span className=" text-slate-500">
-            {" "}
-            vous avez deja éffectuer cet examen
-          </span>
-        )}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.score === null ? <span>pas encore de note</span> : item.score}
-      </td>
-    </tr>
-  );
+  const RenderRow = (item: QuizList) => {
+    
+    const hasAnswered = item.StudentAnswer?.length > 0;
+  
+    return (
+      <tr
+        key={item.id}
+        className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
+      >
+        <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
+        <td className="hidden md:table-cell">{item.class.name}</td>
+        <td className="hidden md:table-cell">
+          {new Intl.DateTimeFormat("en-US").format(item.date)}
+        </td>
+        <td className="hidden md:table-cell">
+          {hasAnswered ? (
+            <span className="text-gray-500">Déjà répondu</span>
+          ) : (
+            <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
+          )}
+        </td>
+      </tr>
+    );
+  };
 
   // Initialisation de la condition de requête
   const query: Prisma.QuizWhereInput = {};
@@ -111,6 +118,14 @@ const QuizListPage = async ({
       include: {
         subject: { select: { name: true } },
         class: { select: { name: true } },
+        StudentAnswer: {
+          where: {
+            studentId: currentUserId,
+          },
+          select: {
+            id: true, // On a juste besoin de savoir si une réponse existe
+          },
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -118,7 +133,7 @@ const QuizListPage = async ({
     prisma.quiz.count({ where: query }),
   ]);
 
-  console.log(data);
+  console.log(currentUserId);
   
   return (
     <div className=" bg-white p-4 rounded-md m-4 mt-0 flex-1">
@@ -136,7 +151,6 @@ const QuizListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src={"/sort.png"} alt="Sort" width={14} height={14} />
             </button>
-            {/* {role === "admin" && <FormContainer table="lesson" type="create" />} */}
           </div>
         </div>
       </div>

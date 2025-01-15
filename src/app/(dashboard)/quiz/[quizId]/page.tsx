@@ -13,23 +13,33 @@ const QuestionPage = async ({params}: {params: {quizId: string}}) => {
       select: {
         id: true,
         questionText: true,
+        createdBy: true,
         quizId: true
       },
     });
 
+    const quiz = await prisma.quiz.findUnique({
+      where: {
+        id: quizId
+      },
+      select: {
+        teacherId: true
+      }
+    })
 
-  const subject = await prisma.subject.findMany({
-    select: {
-      id: true,
-      name: true,
-    },
-  });
+
+  // const subject = await prisma.subject.findMany({
+  //   select: {
+  //     id: true,
+  //     name: true,
+  //   },
+  // });
 
   return (
     <div className=" bg-white p-6 m-4 mt-0 rounded-lg shadow-md">
       <h1 className=" font-bold text-2xl">Créer une question</h1>
 
-      <QuizForm quizId={quizId} />
+      { quiz?.teacherId && <QuizForm quizId={quizId} teacherId={quiz?.teacherId} />}
       <div className=" text-xl font-bold">Liste des devoirs</div>
       {data.length === 0 ? (
         "pas de quiz"

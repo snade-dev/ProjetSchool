@@ -7,10 +7,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import {
-  quizSchema,
-  QuizSchema,
-} from "@/lib/formsValidationSchema";
+import { quizSchema, QuizSchema } from "@/lib/formsValidationSchema";
 import { createQuiz, updateQuiz } from "@/lib/actions/quizAction";
 
 const QuizForm = ({
@@ -39,7 +36,7 @@ const QuizForm = ({
     {
       success: false,
       error: false,
-      message: ""
+      message: "",
     }
   );
 
@@ -64,17 +61,19 @@ const QuizForm = ({
   }, [state, router, type, setOpen]);
   // console.log("leeosns", lessons);
 
-  const { classes,subjects } = relatedData;
+  const { classes, subjects } = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Créer un nouvel annonce" : "Modifier un annonce"}
+        {type === "create"
+          ? "Créer un nouvel examen en ligne"
+          : "Modifier un examen en ligne"}
       </h1>
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Titre de l'annonce"
+          label="Titre de l'examen"
           name="title"
           defaultValue={data?.title}
           register={register}
@@ -87,6 +86,22 @@ const QuizForm = ({
           register={register}
           error={errors?.date}
           type="dateTime-local"
+        />
+        <InputField label="Durée" name="duration" defaultValue={data?.duration} register={register} error={errors?.duration} />
+        {/* <div>
+          <label htmlFor="">number</label>
+          <input type="number" {...register("duration")} />
+          {errors.duration && (
+            <p className=" text-red-400">{errors.duration.message?.toString()}</p>
+          )}
+          
+        </div> */}
+        <InputField
+          label="Enseignant"
+          name="teacherUsername"
+          defaultValue={data?.teacher.username}
+          register={register}
+          error={errors?.teacherUsername}
         />
         <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-xs text-gray-500">Classe</label>
