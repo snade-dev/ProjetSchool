@@ -1,8 +1,6 @@
 "use server";
 
 import {
-  AnswerOptionSchema,
-  QuestionSchema,
   QuizSchema,
 } from "../formsValidationSchema";
 import prisma from "../prisma";

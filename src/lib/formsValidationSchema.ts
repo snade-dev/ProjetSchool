@@ -222,7 +222,7 @@ export const quizSchema = z.object({
 export type QuizSchema = z.infer<typeof quizSchema>;
 
 
-export const attendancSchema = z.object({
+export const attendanceSchema = z.object({
   id: z.coerce.number().optional(),
   date: z.coerce.date({ message: "La date est requise !" }),
   present:z.string(),
@@ -231,7 +231,7 @@ export const attendancSchema = z.object({
   classId: z.coerce.number({ message: "La leçon est requise !" }),
 });
 
-export type Attendancechema = z.infer<typeof attendancSchema>;
+export type Attendancechema = z.infer<typeof attendanceSchema>;
 
 export const studentAnswerSchema = z.object({
   answers: z.array(
@@ -243,3 +243,13 @@ export const studentAnswerSchema = z.object({
 });
 
 export type StudentAnswerschema = z.infer<typeof studentAnswerSchema>;
+
+export const teacherResponsSchema = z.object({
+  answers: z.array(
+    z.object({
+      score: z.coerce.number(),
+    })
+  ),
+});
+
+export type TeacherResponsschema = z.infer<typeof teacherResponsSchema>;

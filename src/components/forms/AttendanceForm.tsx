@@ -6,7 +6,7 @@ import InputField from "../InputField";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { attendancechema, Attendancechema } from "@/lib/formsValidationSchema";
+import { attendanceSchema, Attendancechema } from "@/lib/formsValidationSchema";
 import { useFormState } from "react-dom";
 import {
   createAttendance,
@@ -29,7 +29,7 @@ const AttendanceForm = ({
     handleSubmit,
     formState: { errors },
   } = useForm<Attendancechema>({
-    resolver: zodResolver(attendancechema),
+    resolver: zodResolver(attendanceSchema),
   });
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"

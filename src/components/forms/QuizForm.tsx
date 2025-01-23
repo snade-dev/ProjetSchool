@@ -55,6 +55,9 @@ const QuizForm = ({
       toast(`le quiz à été ${type === "create" ? "crée" : "modifier"}!`);
       setOpen(false);
       router.refresh();
+    } else if (state.error) {
+      toast.error(state.message);
+      setLoading(false);
     } else {
       setLoading(false);
     }

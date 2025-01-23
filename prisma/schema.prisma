@@ -35,6 +35,7 @@ model Student {
   ExamAverage ExamAverage[]
 
   StudentAnswer StudentAnswer[]
+  QuizResult    QuizResult[] // Relation avec QuizResult
 }
 
 model Teacher {
@@ -203,6 +204,7 @@ model Quiz {
 
   questions   Question[]
   StudentAnswer StudentAnswer[]
+  QuizResult    QuizResult[] // Relation avec QuizResult
 
   ExamCorrection ExamCorrection[]
 }
@@ -219,21 +221,37 @@ model Question {
 }
 
 model StudentAnswer {
-  id          String    @id @default(uuid())
+  id          String      @id @default(uuid())
   studentId   String
-  student     Student   @relation(fields: [studentId], references: [id])
+  student     Student     @relation(fields: [studentId], references: [id])
   quizId      String
-  quiz        Quiz      @relation(fields: [quizId], references: [id])
+  quiz        Quiz        @relation(fields: [quizId], references: [id])
   questionId  String
-  question    Question  @relation(fields: [questionId], references: [id])
+  question    Question    @relation(fields: [questionId], references: [id])
   answerText  String
-  isCorrect   Boolean?  // Évaluation après correction
-  submittedAt DateTime  @default(now())
+  score       Float?      // Note attribuée par l'enseignant pour cette réponse
+  submittedAt DateTime    @default(now())
+
+  quizResultId String?    // Clé étrangère vers QuizResult
+  quizResult   QuizResult? @relation(fields: [quizResultId], references: [id]) // Relation avec QuizResult
 
   @@index([studentId])
   @@index([quizId])
   @@index([questionId])
   @@unique([studentId, quizId, questionId]) // Contrainte pour éviter les doublons
+}
+
+model QuizResult {
+  id          String    @id @default(uuid())
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id])
+  quizId      String
+  quiz        Quiz      @relation(fields: [quizId], references: [id])
+  totalScore  Float     // Note totale sur 20 pour l'étudiant
+
+  studentAnswers StudentAnswer[] // Relation avec StudentAnswer
+
+  @@unique([studentId, quizId]) // Contrainte pour éviter les doublons
 }
 
 model ExamCorrection {
@@ -245,7 +263,6 @@ model ExamCorrection {
   anonymousReview Boolean   @default(true)
   correctionDate  DateTime  @default(now())
 }
-
 
 enum UserSex {
   MALE

@@ -1,28 +1,27 @@
-import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
-import { Prisma, Subject, Class, Quiz } from "@prisma/client";
+import { Prisma, StudentAnswer, Student } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { log } from "node:console";
 
-type QuizList = Quiz & { subject: Subject } & { class: Class } & {
-  StudentAnswer: { id: string }[];
-};
+type StudentAnswerList = StudentAnswer & { student: Student };
 
 const QuizListPage = async ({
   searchParams,
+  params,
 }: {
   searchParams: { [key: string]: string | undefined };
+  params: { quizId: string };
 }) => {
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const { quizId } = await params;
   const { page, ...queryParams } = searchParams;
 
   if (!currentUserId) {
@@ -33,20 +32,8 @@ const QuizListPage = async ({
 
   const columns = [
     {
-      header: "Matieres",
+      header: "Etudiant",
       accessor: "name",
-    },
-    {
-      header: "Classes",
-      accessor: "class",
-    },
-    {
-      header: "Date de l'examen",
-      accessor: "date",
-    },
-    {
-      header: "Faire l'examen",
-      accessor: "subject",
     },
     {
       header: "Note de l'examen",
@@ -54,58 +41,45 @@ const QuizListPage = async ({
     },
   ];
 
-  const RenderRow = (item: QuizList) => {
-    
-    const hasAnswered = item.StudentAnswer?.length > 0;
-  
+  const RenderRow = async (item: StudentAnswerList) => {
+    const result = await prisma.quizResult.findUnique({
+      where: {
+        studentId_quizId: { studentId: item.studentId, quizId: quizId },
+      },
+    });
+
+    console.log(result);    
+
     return (
       <tr
         key={item.id}
         className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
       >
-        <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
-        <td className="hidden md:table-cell">{item.class.name}</td>
-        <td className="hidden md:table-cell">
-          {new Intl.DateTimeFormat("en-US").format(item.date)}
+        <td className="flex items-center gap-4 p-4">
+          {
+            <Link href={`/quiz/${quizId}/correction/${item.student.id}`}>
+              {`${item.student.name} ${item.student.surname}`}
+            </Link>
+          }
         </td>
-        <td className="hidden md:table-cell">
-          {hasAnswered ? (
-            <span className="text-gray-500">Déjà répondu</span>
-          ) : (
-            <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
-          )}
-        </td>  
-        <td className="hidden md:table-cell">{<Link href={`/quiz/${item.id}/correction`}>corriger</Link>}</td>
+        <td className=" md:table-cell hidden">{result?.totalScore}</td>
       </tr>
     );
   };
 
   // Initialisation de la condition de requête
-  const query: Prisma.QuizWhereInput = {};
-
-  // Si l'utilisateur est étudiant, filtrer uniquement par sa classe
-  if (role === "student") {
-    const studentClass = await prisma.class.findFirst({
-      where: {
-        students: {
-          some: {
-            id: currentUserId!,
-          },
-        },
-      },
-      select: { id: true },
-    });
-
-    if (studentClass) {
-      query.classId = studentClass.id;
-    }
-  }
+  const query: Prisma.StudentAnswerWhereInput = {
+    score: {
+      not: null,
+    },
+    quizId: quizId, // Filtrer uniquement les réponses sans score
+  };
 
   // Filtrage basé sur les paramètres de recherche
   if (queryParams.search) {
     query.OR = [
       {
-        subject: {
+        student: {
           name: { contains: queryParams.search, mode: "insensitive" },
         },
       },
@@ -114,28 +88,19 @@ const QuizListPage = async ({
 
   // Requête vers la base de données Prisma avec filtrage conditionnel
   const [data, count] = await prisma.$transaction([
-    prisma.quiz.findMany({
+    prisma.studentAnswer.findMany({
       where: query,
       include: {
-        subject: { select: { name: true } },
-        class: { select: { name: true } },
-        StudentAnswer: {
-          where: {
-            studentId: currentUserId,
-          },
-          select: {
-            id: true, // On a juste besoin de savoir si une réponse existe
-          },
-        },
+        student: { select: { id: true, name: true, surname: true } },
+        question: { select: { questionText: true } }, // Inclure la question associée
       },
+      distinct: ["studentId"], // Éviter les doublons (un étudiant peut avoir plusieurs réponses)
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.quiz.count({ where: query }),
+    prisma.studentAnswer.count({ where: query }),
   ]);
 
-  console.log(currentUserId);
-  
   return (
     <div className=" bg-white p-4 rounded-md m-4 mt-0 flex-1">
       {/* TOP */}
