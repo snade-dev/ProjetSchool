@@ -37,14 +37,17 @@ const QuizListPage = async ({
     {
       header: "Classes",
       accessor: "class",
+      className: "hidden md:table-cell"
     },
     {
       header: "Date de l'examen",
       accessor: "date",
+      className: "hidden md:table-cell"
     },
     {
       header: "Faire l'examen",
       accessor: "subject",
+      className: "hidden md:table-cell"
     },
     {
       header: "Note de l'examen",
@@ -75,7 +78,7 @@ const QuizListPage = async ({
             <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
           )}
         </td>
-        <td className="hidden md:table-cell">
+        <td className="">
           {hasCorrection ? (
             <Link href={`/quiz/${item.id}/resultat`}>Voir les resultats</Link>
           ) : (

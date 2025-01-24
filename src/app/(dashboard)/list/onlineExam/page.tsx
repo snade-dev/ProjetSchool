@@ -1,4 +1,3 @@
-import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -9,7 +8,6 @@ import { Prisma, Subject, Class, Quiz } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { log } from "node:console";
 
 type QuizList = Quiz & { subject: Subject } & { class: Class } & {
   StudentAnswer: { id: string }[];
@@ -44,10 +42,14 @@ const QuizListPage = async ({
       header: "Date de l'examen",
       accessor: "date",
     },
-    {
-      header: "Faire l'examen",
-      accessor: "subject",
-    },
+    ...(role !== "student"
+      ? [
+          {
+            header: "Faire l'examen",
+            accessor: "subject",
+          },
+        ]
+      : []),
     {
       header: "Note de l'examen",
       accessor: "score",
@@ -55,9 +57,8 @@ const QuizListPage = async ({
   ];
 
   const RenderRow = (item: QuizList) => {
-    
     const hasAnswered = item.StudentAnswer?.length > 0;
-  
+
     return (
       <tr
         key={item.id}
@@ -74,8 +75,12 @@ const QuizListPage = async ({
           ) : (
             <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
           )}
-        </td>  
-        <td className="hidden md:table-cell">{<Link href={`/quiz/${item.id}/correction`}>corriger</Link>}</td>
+        </td>
+        <td className="hidden md:table-cell">
+          {role !== "student" && (
+            <Link href={`/quiz/${item.id}/correction`}>corriger</Link>
+          )}
+        </td>
       </tr>
     );
   };
@@ -134,8 +139,8 @@ const QuizListPage = async ({
     prisma.quiz.count({ where: query }),
   ]);
 
-  console.log(currentUserId);
-  
+  // console.log(currentUserId);
+
   return (
     <div className=" bg-white p-4 rounded-md m-4 mt-0 flex-1">
       {/* TOP */}

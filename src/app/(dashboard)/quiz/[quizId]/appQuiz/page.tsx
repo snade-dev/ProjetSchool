@@ -5,7 +5,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 
 const page = async ({params}: {params: {quizId: string}}) => {
   
-  const { userId} = await auth();
+  const { userId, sessionClaims} = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
 
    const quiz =await prisma.quiz.findUnique({
@@ -23,7 +24,7 @@ const page = async ({params}: {params: {quizId: string}}) => {
 
   return (
     <div>
-      <StudentAnswer quizId={quiz.id} questions={quiz.questions} studentId={userId} />
+      <StudentAnswer quizId={quiz.id} questions={quiz.questions} studentId={userId} role={role} />
     </div>
   )
 }

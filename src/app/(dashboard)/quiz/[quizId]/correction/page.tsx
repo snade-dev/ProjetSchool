@@ -54,25 +54,9 @@ const QuizListPage = async ({
             </Link>
           }
         </td>
-        {/* <td className="hidden md:table-cell">{item.class.name}</td> */}
       </tr>
     );
   };
-
-  // Initialisation de la condition de requête
-  // Si l'utilisateur est étudiant, filtrer uniquement par sa classe
-  // if (role === "student") {
-  //   const studentClass = await prisma.class.findFirst({
-  //     where: {
-  //       students: {
-  //         some: {
-  //           id: currentUserId!,
-  //         },
-  //       },
-  //     },
-  //     select: { id: true },
-  //   });
-  // }
 
     // Initialisation de la condition de requête
     const query: Prisma.StudentAnswerWhereInput = {

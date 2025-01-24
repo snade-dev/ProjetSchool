@@ -17,12 +17,14 @@ type StudentAnswerProps = {
   questions: Question[];
   quizId: string;
   studentId: string;
+  role: string;
 };
 
 export const StudentAnswer = ({
   questions,
   quizId,
   studentId,
+  role
 }: StudentAnswerProps) => {
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
@@ -89,12 +91,12 @@ export const StudentAnswer = ({
             </div>
           ))}
           {state.error && state.message}
-          <button
+          {(role === "student") && <button
             type="submit"
             className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
           >
             Envoyer les réponses
-          </button>
+          </button>}
         </form>
       )}
     </div>

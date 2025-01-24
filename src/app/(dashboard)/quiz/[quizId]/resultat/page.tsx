@@ -39,16 +39,20 @@ const QuizListPage = async ({
       header: "Note de l'examen",
       accessor: "score",
     },
+    {
+      header: "Detail du resultat",
+      accessor: "score",
+      className: "md:table-cell hidden",
+    },
   ];
 
   const RenderRow = async (item: StudentAnswerList) => {
+    // on recupere le resultat pour ce etudiant
     const result = await prisma.quizResult.findUnique({
       where: {
         studentId_quizId: { studentId: item.studentId, quizId: quizId },
       },
     });
-
-    console.log(result);    
 
     return (
       <tr
@@ -56,13 +60,22 @@ const QuizListPage = async ({
         className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
       >
         <td className="flex items-center gap-4 p-4">
-          {
-            <Link href={`/quiz/${quizId}/correction/${item.student.id}`}>
-              {`${item.student.name} ${item.student.surname}`}
-            </Link>
-          }
+          {`${item.student.name} ${item.student.surname}`}
         </td>
         <td className=" md:table-cell hidden">{result?.totalScore}</td>
+        <td className=" md:table-cell hidden">
+          <div className=" rounded-md flex items-center">
+            <Link href={`/quiz/${quizId}/resultat/${item.studentId}`}>
+              <Image
+                src="/view.png"
+                alt="c'est une image"
+                width={20}
+                height={20}
+                className=" rounded-md cursor-pointer"
+              />
+            </Link>
+          </div>
+        </td>
       </tr>
     );
   };
@@ -106,7 +119,7 @@ const QuizListPage = async ({
       {/* TOP */}
       <div className=" flex items-center justify-between">
         <h1 className=" hidden md:block text-lg font-semibold">
-          Tous les Examen en ligne prevue
+          Tous les resultats à l&apos;examen en ligne
         </h1>
         <div className=" flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />

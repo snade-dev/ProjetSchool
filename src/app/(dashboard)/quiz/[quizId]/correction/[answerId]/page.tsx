@@ -4,10 +4,6 @@ import { Correct } from "./components/CorrectionForm";
 
 const page = async ({ params }: { params: {quizId: string, answerId: string } }) => {
   const { answerId,quizId } = params;
-//   console.log("answerId", answerId);
-//   console.log("quizId", quizId);
-
-
   
   const questionsWithAnswers = await prisma.question.findMany({
     where: {
