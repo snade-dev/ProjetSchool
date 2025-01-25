@@ -31,8 +31,13 @@ const QuizListPage = async ({
 
   const columns = [
     {
-      header: "Matières",
+      header: "Examen",
       accessor: "name",
+    },
+    {
+      header: "Matiere",
+      accessor: "subject",
+      className: "hidden md:table-cell"
     },
     {
       header: "Classes",
@@ -42,11 +47,6 @@ const QuizListPage = async ({
     {
       header: "Date de l'examen",
       accessor: "date",
-      className: "hidden md:table-cell"
-    },
-    {
-      header: "Faire l'examen",
-      accessor: "subject",
       className: "hidden md:table-cell"
     },
     {
@@ -66,18 +66,15 @@ const QuizListPage = async ({
         key={item.id}
         className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
       >
-        <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
+        <td className="flex items-center gap-4 p-4">{item.title}</td>
+        <td className="hidden md:table-cell">
+          {item.subject.name}
+        </td>
         <td className="hidden md:table-cell">{item.class.name}</td>
         <td className="hidden md:table-cell">
           {new Intl.DateTimeFormat("en-US").format(item.date)}
         </td>
-        <td className="hidden md:table-cell">
-          {hasAnswered ? (
-            <span className="text-gray-500">Déjà répondu</span>
-          ) : (
-            <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
-          )}
-        </td>
+      
         <td className="">
           {hasCorrection ? (
             <Link href={`/quiz/${item.id}/resultat`}>Voir les resultats</Link>

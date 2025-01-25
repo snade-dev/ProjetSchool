@@ -4,6 +4,9 @@ import Image from "next/image";
 
 const Navbar = async () => {
   const user = await currentUser();
+  if (!user) {
+    return <p>Utilisateur non trouver</p>
+  }
 
   return (
     <div className=" flex items-center justify-between p-4">
@@ -28,10 +31,10 @@ const Navbar = async () => {
           </div>
         </div>
         <div className=" flex flex-col">
-          <span className=" text-xs leading-3 font-medium">Jhon Doe</span>
-          <span className=" text-[10px] text-gray-500 text-right">
-            {user?.publicMetadata.role as string}
-          </span>
+          <span className=" text-xs leading-3 font-medium">{user.username || "Lamine"}</span>
+            <span className=" text-[10px] text-gray-500 text-right">
+            {user?.publicMetadata.role === 'student' ? 'étudiant' : user?.publicMetadata.role === 'teacher' ? 'enseignant' : user?.publicMetadata.role === 'admin' ? 'administrateur' : ''}
+            </span>
         </div>
 
         <UserButton />

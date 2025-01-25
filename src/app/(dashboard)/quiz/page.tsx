@@ -71,7 +71,7 @@ const QuizListPage = async ({
       </td>
       <td>
         <div className=" flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "teacher") && (
             <>
               <FormContainer table="quiz" type="update" data={item} />
               <FormContainer table="quiz" type="delete" id={item.id} />
@@ -134,6 +134,9 @@ const QuizListPage = async ({
         subject: true,
         teacher: true,
       },
+      orderBy: {
+        title: "asc",
+      },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
@@ -141,7 +144,6 @@ const QuizListPage = async ({
   ]);
 
   
-
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}

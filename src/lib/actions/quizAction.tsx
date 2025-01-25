@@ -66,6 +66,7 @@ export const updateQuiz = async (
         date: data.date,
         classId: parseInt(data.classId),
         subjectId: parseInt(data.subjectId),
+        duration: data.duration
       },
     });
 

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 type StudentAnswerList = StudentAnswer & { student: Student };
-
+// modifier ça pou recuperer
 const QuizListPage = async ({
   searchParams,
   params,
@@ -21,7 +21,7 @@ const QuizListPage = async ({
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-  const { quizId } = await params;
+  const { quizId } = params;
   const { page, ...queryParams } = searchParams;
 
   if (!currentUserId) {
@@ -47,7 +47,6 @@ const QuizListPage = async ({
   ];
 
   const RenderRow = async (item: StudentAnswerList) => {
-    // on recupere le resultat pour ce etudiant
     const result = await prisma.quizResult.findUnique({
       where: {
         studentId_quizId: { studentId: item.studentId, quizId: quizId },
@@ -85,8 +84,13 @@ const QuizListPage = async ({
     score: {
       not: null,
     },
-    quizId: quizId, // Filtrer uniquement les réponses sans score
+    quizId: quizId,
   };
+
+  // Si l'utilisateur est un étudiant, on filtre les réponses pour ne récupérer que les siennes
+  if (role === "student") {
+    query.studentId = currentUserId;
+  }
 
   // Filtrage basé sur les paramètres de recherche
   if (queryParams.search) {
@@ -105,9 +109,9 @@ const QuizListPage = async ({
       where: query,
       include: {
         student: { select: { id: true, name: true, surname: true } },
-        question: { select: { questionText: true } }, // Inclure la question associée
+        question: { select: { questionText: true } },
       },
-      distinct: ["studentId"], // Éviter les doublons (un étudiant peut avoir plusieurs réponses)
+      distinct: ["studentId"],
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),

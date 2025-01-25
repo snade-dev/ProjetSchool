@@ -18,13 +18,13 @@ const page = async ({params}: {params: {quizId: string}}) => {
     }
   })
 
-  if (!quiz || !userId) {
+  if (!quiz || !userId || !role) {
     return notFound();
   }
 
   return (
     <div>
-      <StudentAnswer quizId={quiz.id} questions={quiz.questions} studentId={userId} role={role} />
+      <StudentAnswer quizId={quiz.id} questions={quiz.questions} studentId={userId} role={role} duration={quiz.duration} />
     </div>
   )
 }

@@ -90,7 +90,13 @@ const QuizForm = ({
           error={errors?.date}
           type="dateTime-local"
         />
-        <InputField label="Durée" name="duration" defaultValue={data?.duration} register={register} error={errors?.duration} />
+        <InputField
+          label="Durée"
+          name="duration"
+          defaultValue={data?.duration}
+          register={register}
+          error={errors?.duration}
+        />
         {/* <div>
           <label htmlFor="">number</label>
           <input type="number" {...register("duration")} />

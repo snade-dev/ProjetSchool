@@ -24,9 +24,10 @@ type CorrectProps = {
   questions: QuestionWithAnswers[];
   quizId: string;
   studentId: string;
+  role: string;
 };
 
-export const Correct = ({ questions, quizId, studentId }: CorrectProps) => {
+export const Correct = ({ questions, quizId, studentId, role }: CorrectProps) => {
   // console.log(questions[0].StudentAnswer);
   
   const [submitted, setSubmitted] = useState(false);
@@ -110,12 +111,12 @@ export const Correct = ({ questions, quizId, studentId }: CorrectProps) => {
             </div>
           ))}
           {state.error && state.message}
-          <button
+          {(role === "teacher") && <button
             type="submit"
             className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
           >
             Envoyer les réponses
-          </button>
+          </button>}
         </form>
       )}
     </div>
