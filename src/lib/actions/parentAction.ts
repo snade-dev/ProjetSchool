@@ -1,8 +1,9 @@
 "use server";
 
 import { clerkClient } from '@clerk/nextjs/server';
-import { ParentSchema } from './formsValidationSchema';
-import prisma from './prisma';
+import { ParentSchema } from '../formsValidationSchema';
+import prisma from '../prisma';
+
 
 type CurrentState = {
     success: boolean,

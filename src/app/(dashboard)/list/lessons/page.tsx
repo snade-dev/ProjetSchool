@@ -12,19 +12,14 @@ type LessonList = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };
 
-
-
-
-
-
 const LessonsListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
   const { userId, sessionClaims } = await auth();
-    // const currentUserId = userId;
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+  // const currentUserId = userId;
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
@@ -42,7 +37,7 @@ const LessonsListPage = async ({
       header: "Classes",
       accessor: "class",
     },
-    { 
+    {
       header: "Enseignants",
       accessor: "teacher",
       className: "hidden md:table-cell",
@@ -61,7 +56,9 @@ const LessonsListPage = async ({
       <td className="flex items-center gap-4 p-4">{item.name}</td>
       <td className="hidden md:table-cell">{item.subject.name}</td>
       <td>{item.class.name}</td>
-      <td className="hidden md:table-cell">{item.teacher.name + " " + item.teacher.surname}</td>
+      <td className="hidden md:table-cell">
+        {item.teacher.name + " " + item.teacher.surname}
+      </td>
       <td>
         <div className=" flex items-center gap-2">
           {role === "admin" && (
@@ -107,8 +104,8 @@ const LessonsListPage = async ({
       where: query,
       include: {
         subject: { select: { name: true } },
-        class: { select: { name: true } },
-        teacher: { select: { name: true, surname: true,username: true } },
+        class: { select: { name: true, capacity: true } },
+        teacher: { select: { name: true, surname: true, username: true } },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

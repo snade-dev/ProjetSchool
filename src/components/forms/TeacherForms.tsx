@@ -46,7 +46,7 @@ const TeacherForms = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     // console.log(data);
-    formAction({...data, img: img?.secure_url});
+    formAction({ ...data, img: img?.secure_url });
   });
 
   const router = useRouter();
@@ -58,7 +58,7 @@ const TeacherForms = ({
       setLoading(false);
       router.refresh();
     } else {
-      setLoading(false)
+      setLoading(false);
     }
   }, [state, type, router, setOpen]);
   const { subjects } = relatedData;
@@ -102,7 +102,7 @@ const TeacherForms = ({
         Information personnel
       </span>
       <div className="flex justify-between flex-wrap gap-4">
-      {data && (
+        {data && (
           <InputField
             label="Id"
             name="id"
@@ -219,7 +219,11 @@ const TeacherForms = ({
         </span>
       )}
 
-      <button disabled={loading} className=" bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400" type="submit">
+      <button
+        disabled={loading}
+        className=" bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400"
+        type="submit"
+      >
         {type === "create" ? "Créer" : "Modifier"}
       </button>
     </form>

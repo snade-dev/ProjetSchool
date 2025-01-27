@@ -1,12 +1,30 @@
-import { QuizApp } from "./components/QuizApp"
+import prisma from "@/lib/prisma"
+import { StudentAnswer } from "./components/StudentAnswer"
+import { notFound } from "next/navigation"
+import { auth, currentUser } from '@clerk/nextjs/server';
 
 const page = async ({params}: {params: {quizId: string}}) => {
+  
+  const { userId, sessionClaims} = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
 
-  const {quizId}= await params;
+   const quiz =await prisma.quiz.findUnique({
+    where: {
+      id: params.quizId
+    },
+    include: {
+      questions: true
+    }
+  })
+
+  if (!quiz || !userId || !role) {
+    return notFound();
+  }
+
   return (
     <div>
-      <QuizApp quizId={quizId} />
+      <StudentAnswer quizId={quiz.id} questions={quiz.questions} studentId={userId} role={role} duration={quiz.duration} />
     </div>
   )
 }

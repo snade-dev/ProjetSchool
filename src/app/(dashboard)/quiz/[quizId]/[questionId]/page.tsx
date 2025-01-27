@@ -2,10 +2,8 @@ import React from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
-import QuestionForm from "./_components/QuestionForm";
 import TextForm from "./_components/TextForm";
-import OptionForm from "./_components/OptionForm";
-import CreateOptionForm from "./_components/CreateOptionForm";
+
 
 const QuestionPage = async ({
   params,
@@ -21,9 +19,6 @@ const QuestionPage = async ({
     where: {
       id: questionId,
       quizId: quizId,
-    },
-    include: {
-      answerOptions: true,
     },
   });
 
@@ -48,14 +43,8 @@ const QuestionPage = async ({
       {/* <div className="mb-3 p-3 text-base border-2 border-black rounded-lg shadow-[2.5px_3px_0px_#000] focus:shadow-[5.5px_7px_0px_#000] focus:outline-none transition-all duration-200 my-2 mr-2">
         <p>{question.questionText}</p>
       </div> */}
-      <TextForm data={question} />
-      {question.answerOptions.length < 5 && <CreateOptionForm questionId={questionId} />}
-      <p className=" font-bold">Modifier la question</p>
-      {question.answerOptions.length === 0
-        ? "pas de reponse pour cette question"
-        : question.answerOptions.map((option) => (
-            <OptionForm key={option.id} data={option} questionId={questionId} />
-          ))}
+      <TextForm data={question}  />
+
     </div>
   );
 };

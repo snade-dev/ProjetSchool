@@ -33,6 +33,9 @@ model Student {
   birthday    DateTime
 
   ExamAverage ExamAverage[]
+
+  StudentAnswer StudentAnswer[]
+  QuizResult    QuizResult[] // Relation avec QuizResult
 }
 
 model Teacher {
@@ -51,6 +54,12 @@ model Teacher {
   lessons   Lesson[]
   classes   Class[]
   birthday  DateTime
+
+  Question Question[]
+
+  ExamCorrection ExamCorrection[]
+
+  Quiz Quiz[]
 }
 
 model Parent {
@@ -180,37 +189,79 @@ model Announcement {
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
 }
 
-model AnswerOption {
-  id         String   @id @default(uuid())
-  answerText String
-  isCorrect  Boolean
-  questionId String
-  Question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+model Quiz {
+  id          String     @id @default(uuid())
+  title       String     @unique
+  date        DateTime
+  duration    Int        // Durée de l'examen en minutes
+  published   Boolean    @default(false)  // Contrôle de la publication des résultats
+  teacherId   String
+  teacher     Teacher    @relation(fields: [teacherId], references: [id])
+  classId     Int
+  class       Class      @relation(fields: [classId], references: [id])
+  subjectId   Int
+  subject     Subject    @relation(fields: [subjectId], references: [id])
 
-  // @@map("answer_options")
+  questions   Question[]
+  StudentAnswer StudentAnswer[]
+  QuizResult    QuizResult[] // Relation avec QuizResult
+
+  ExamCorrection ExamCorrection[]
 }
 
 model Question {
-  id            String         @id @default(uuid())
+  id            String    @id @default(uuid())
   questionText  String
-  answerOptions AnswerOption[]
+  createdBy     String
+  teacher       Teacher   @relation(fields: [createdBy], references: [id])
   quizId        String
-  quiz          Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quiz          Quiz      @relation(fields: [quizId], references: [id])
+
+  StudentAnswer StudentAnswer[]
 }
 
-model Quiz {
-  id        String     @id @default(uuid())
-  title     String     @unique
-  score     Int?
-  date      DateTime
-  questions Question[]
+model StudentAnswer {
+  id          String      @id @default(uuid())
+  studentId   String
+  student     Student     @relation(fields: [studentId], references: [id])
+  quizId      String
+  quiz        Quiz        @relation(fields: [quizId], references: [id])
+  questionId  String
+  question    Question    @relation(fields: [questionId], references: [id])
+  answerText  String
+  score       Float?      // Note attribuée par l'enseignant pour cette réponse
+  submittedAt DateTime    @default(now())
 
-  classId   Int
-  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subjectId Int
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  quizResultId String?    // Clé étrangère vers QuizResult
+  quizResult   QuizResult? @relation(fields: [quizResultId], references: [id]) // Relation avec QuizResult
 
-  @@unique([id, subjectId])
+  @@index([studentId])
+  @@index([quizId])
+  @@index([questionId])
+  @@unique([studentId, quizId, questionId]) // Contrainte pour éviter les doublons
+}
+
+model QuizResult {
+  id          String    @id @default(uuid())
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id])
+  quizId      String
+  quiz        Quiz      @relation(fields: [quizId], references: [id])
+  totalScore  Float     // Note totale sur 20 pour l'étudiant
+
+  studentAnswers StudentAnswer[] // Relation avec StudentAnswer
+
+  @@unique([studentId, quizId]) // Contrainte pour éviter les doublons
+}
+
+model ExamCorrection {
+  id              String    @id @default(uuid())
+  quizId          String
+  quiz            Quiz      @relation(fields: [quizId], references: [id])
+  correctedBy     String
+  teacher         Teacher   @relation(fields: [correctedBy], references: [id])
+  anonymousReview Boolean   @default(true)
+  correctionDate  DateTime  @default(now())
 }
 
 enum UserSex {
