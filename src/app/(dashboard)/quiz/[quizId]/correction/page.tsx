@@ -50,7 +50,7 @@ const QuizListPage = async ({
         <td className="flex items-center gap-4 p-4">
           {
             <Link href={`/quiz/${quizId}/correction/${item.student.id}`}>
-              {item.student.id}
+              {Math.random().toString(36).substr(2, 9)}
             </Link>
           }
         </td>

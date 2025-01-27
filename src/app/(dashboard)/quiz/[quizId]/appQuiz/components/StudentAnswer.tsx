@@ -40,7 +40,6 @@ export const StudentAnswer = ({
     resolver: zodResolver(studentAnswerSchema),
   });
 
-  console.log(duration);
   
 
   const [state, formAction] = useFormState(submitStudentAnswers, {
@@ -60,17 +59,22 @@ export const StudentAnswer = ({
     return () => clearInterval(timerId);
   }, [submitted, timeLeft]);
 
-  // Soumission automatique quand le temps est écoulé
-  useEffect(() => {
-    if (timeLeft === 0 && !submitted) {
-      handleAutoSubmit();
-    }
-  }, [timeLeft, submitted]);
-
   const handleAutoSubmit = useCallback(() => {
     const form = document.getElementById("quiz-form") as HTMLFormElement;
     if (form) form.requestSubmit();
   }, []);
+
+  // Soumission automatique quand le temps est écoulé
+  useEffect(() => {
+    if (timeLeft === 0 && !submitted && role === "student") {
+      handleAutoSubmit();
+    } else if (timeLeft === 0 && !submitted) {
+      toast.error("Le temps est écoulé");
+      router.push(`/list/onlineExam`);
+    }
+  }, [timeLeft, submitted, handleAutoSubmit, role, router]);
+
+
 
   // Soumission du formulaire
   const onSubmit = handleSubmit(async (data: StudentAnswerschema) => {
@@ -113,7 +117,7 @@ export const StudentAnswer = ({
     <div className="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6">Répondez aux questions :</h2>
       <div className="text-right mb-4 text-xl font-semibold">
-        Temps restant : {formatTime(timeLeft)}
+        Temps restant : <span className={`${timeLeft < (duration*60 /2) && "text-red-400"}`}>{formatTime(timeLeft)}</span> 
       </div>
 
       {submitted ? (
@@ -132,6 +136,7 @@ export const StudentAnswer = ({
                 value={question.id}
               />
               <textarea
+                defaultValue={"Aucune reponse rendu"}
                 {...register(`answers.${index}.answerText`)}
                 className="border-2 p-2 rounded"
                 disabled={submitted}
