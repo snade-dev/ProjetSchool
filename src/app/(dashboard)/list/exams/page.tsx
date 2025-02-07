@@ -112,11 +112,13 @@ const ExamListPage = async ({
           case "teacherId":
             query.lesson.teacherId = value;
             break;
+       
           case "search":
             query.lesson.subject = {
               name: { contains: value, mode: "insensitive" },
             };
             break;
+            
           default:
             break;
         }

@@ -125,6 +125,9 @@ model Exam {
 
   lessonId Int
   lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    
+  semesterId Int
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   results  Result[]
 
   ExamAverage ExamAverage[]
@@ -140,6 +143,8 @@ model Result {
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subjectId Int
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  semesterId Int
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentId, subjectId]) // Contrainte pour éviter les doublons
 }
@@ -264,6 +269,13 @@ model ExamCorrection {
   correctionDate  DateTime  @default(now())
 }
 
+model Semester {
+  id     Int    @id @default(autoincrement())
+  name   String @unique
+  results Result[]
+  exams  Exam[]
+
+ }
 enum UserSex {
   MALE
   FEMALE

@@ -8,7 +8,7 @@ type RouteAccessMap = {
     "/admin(.*)": ["admin"],
     "/student(.*)": ["student"],
     "/teacher(.*)": ["teacher"],
-    "/parent(.*)": ["parent"],  
+    "/parent(.*)": ["parent"],
     "/quiz(.*)": ["admin", "teacher", "student"],
     "/list/teachers": ["admin", "teacher"],
     "/list/students": ["admin", "teacher"],
@@ -23,4 +23,5 @@ type RouteAccessMap = {
     "/list/attendance": ["admin", "teacher", "student", "parent"],
     "/list/events": ["admin", "teacher", "student", "parent"],
     "/list/announcements": ["admin", "teacher", "student", "parent"],
+    "/list/semester": ["admin", "teacher", "student", "parent"],
   };

@@ -525,6 +525,7 @@ export const createExam = async (
         startTime: data.startTime,
         endTime: data.endTime,
         lessonId: data.lessonId,
+        semesterId: data.semesterId,
       },
     });
 

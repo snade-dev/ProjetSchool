@@ -60,7 +60,9 @@ const ResultForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  const { exams, subjects } = relatedData;
+  const { exams, subjects,semesters } = relatedData;
+
+  
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -110,7 +112,7 @@ const ResultForm = ({
           <select
             className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
             {...register("subjectId")}
-            defaultValue={data?.subjects}
+            defaultValue={data?.subjectId}
           >
             {subjects.map((subject: { id: string; name: string }) => (
               <option key={subject.id} value={subject.id}>
@@ -121,6 +123,27 @@ const ResultForm = ({
           {errors.subjectId?.message && (
             <p className=" text-red-400 text-xs">
               {errors.subjectId?.message.toString()}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Semestre</label>
+          <select
+            className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+            {...register("semesterId")}
+            defaultValue={data?.semesterId}
+          >
+            {semesters?.map(
+              (semester: { id: number; name: string }) => (
+                <option key={semester.id} value={semester.id}>
+                  {semester.name}
+                </option>
+              )
+            )}
+          </select>
+          {errors.semesterId?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.semesterId?.message.toString()}
             </p>
           )}
         </div>
