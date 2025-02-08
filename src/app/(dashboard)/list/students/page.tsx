@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
 import { Class, Prisma, Student } from "@prisma/client";
+import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -85,8 +86,8 @@ const StudentListPage = async ({
       <td>
         <div className=" flex items-center gap-2">
           <Link href={`/list/students/${item.id}`}>
-            <button className=" w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-              <Image src={"/view.png"} alt="" width={16} height={16} />
+            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+              <Eye className="w-4 h-4 text-white" />
             </button>
           </Link>
           {role === "admin" && (

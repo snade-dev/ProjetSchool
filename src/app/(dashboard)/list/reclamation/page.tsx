@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
 import { Complaint, Prisma, Quiz } from "@prisma/client";
+import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -117,7 +118,7 @@ const ReclamationListPage = async ({
         </td>
         <td>
           <Link href={`/list/reclamation/${item.id}`}>
-          <Image src="/view.png" alt="" width={20} height={20} />
+            <Eye className="w-4 h-4 text-white" />
           </Link>
         </td>
         {role === "admin" && (
@@ -131,7 +132,6 @@ const ReclamationListPage = async ({
       </tr>
     );
   };
-
 
   const { page, ...queryParams } = searchParams;
 
