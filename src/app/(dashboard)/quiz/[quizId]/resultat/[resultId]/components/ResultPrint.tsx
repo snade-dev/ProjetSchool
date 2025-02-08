@@ -14,8 +14,6 @@ type ResultProps = {
 export const Result = ({ questions, score }: ResultProps) => {
 
 
-
-
   return (
     <div className="p-8 min-w-[500px] mx-auto bg-white rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6">La copie corriger :</h2>

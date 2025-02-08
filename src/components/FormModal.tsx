@@ -26,6 +26,7 @@ import { deleteResult } from "@/lib/actions/resultAction";
 import { deleteAttendance } from "../lib/actions/attendanceAction";
 import { deleteQuiz } from "@/lib/actions/quizAction";
 import { deleteParent } from "@/lib/actions/parentAction";
+import AttestationForm from "./forms/AttestationForm";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
   loading: () => <h1>Loading...</h1>,
@@ -156,6 +157,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  attestation: (type, data, setOpen, relatedData) => (
+    <AttestationForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
   event: (type, data, setOpen, relatedData) => (
     <EventsForm
       type={type}
@@ -228,6 +237,7 @@ const FormModal = ({
       announcement: deleteAnnounce,
       attendance: deleteAttendance,
       quiz: deleteQuiz,
+      attestation: deleteQuiz
     };
     // si c'est un formulaire de suppression
     const [state, formAction] = useFormState(deleteActionMap[table], {

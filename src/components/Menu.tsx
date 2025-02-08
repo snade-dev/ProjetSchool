@@ -1,7 +1,4 @@
 import { currentUser } from "@clerk/nextjs/server";
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { LinKed } from "./LinKed";
 
 const menuItems = [
@@ -97,6 +94,18 @@ const menuItems = [
         label: "Evènements",
         href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/calendar.png",
+        label: "Reclamation",
+        href: "/list/reclamation",
+        visible: ["admin", "teacher", "student"],
+      },
+      {
+        icon: "/calendar.png",
+        label: "Demande",
+        href: "/list/demande",
+        visible: ["admin", "teacher", "student"],
       },
       {
         icon: "/message.png",
