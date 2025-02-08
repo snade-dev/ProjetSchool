@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import async from './list/reclamation/[reclamationId]/page';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,6 +19,7 @@ export default function DasboardLayout({
   children: React.ReactNode;
 }>) {
   return (
+
     // le layout de la dashboard
     // mettre h-screen
     <div className="flex">
@@ -27,8 +29,11 @@ export default function DasboardLayout({
           <Image src="/logo.png" alt="logo" width={32} height={32} />
           <span className=" hidden lg:block font-bold">LS_School</span>
         </Link>
+
         <Menu />
       </div>
+
+
       {/* MAIN  RIGHT*/}
       <div className=" w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F8F7FA] overflow-y-scroll flex flex-col">
         <Navbar />
