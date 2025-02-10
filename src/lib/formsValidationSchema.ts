@@ -1,3 +1,4 @@
+import { title } from "process";
 import { z } from "zod";
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
@@ -253,3 +254,17 @@ export const teacherResponsSchema = z.object({
 });
 
 export type TeacherResponsschema = z.infer<typeof teacherResponsSchema>;
+
+export const complainSchema = z.object({
+  title: z.string().min(1, { message: "Le titre est requis !" }),
+  description: z.string().min(1, { message: "La description est requis !" }),
+});
+
+export type ComplainSchema = z.infer<typeof complainSchema>;
+
+export const attestationSchema = z.object({
+  title: z.string().min(1, { message: "Le titre est requis !" }),
+  description: z.string().min(1, { message: "La description est requis !" }),
+});
+
+export type AttestationSchema = z.infer<typeof attestationSchema>;

@@ -36,6 +36,10 @@ model Student {
 
   StudentAnswer StudentAnswer[]
   QuizResult    QuizResult[] // Relation avec QuizResult
+
+  Complaint Complaint[]
+
+  Attestation Attestation[]
 }
 
 model Teacher {
@@ -195,6 +199,7 @@ model Quiz {
   date        DateTime
   duration    Int        // Durée de l'examen en minutes
   published   Boolean    @default(false)  // Contrôle de la publication des résultats
+  createdAt   DateTime   @default(now())
   teacherId   String
   teacher     Teacher    @relation(fields: [teacherId], references: [id])
   classId     Int
@@ -207,6 +212,8 @@ model Quiz {
   QuizResult    QuizResult[] // Relation avec QuizResult
 
   ExamCorrection ExamCorrection[]
+
+  Complaint Complaint[]
 }
 
 model Question {
@@ -264,6 +271,54 @@ model ExamCorrection {
   correctionDate  DateTime  @default(now())
 }
 
+model Complaint {
+  id          String          @id @default(uuid())
+  title       String          @db.VarChar(255)
+  description String
+  status      ComplaintStatus @default(PENDING)
+  createdAt   DateTime        @default(now())
+  
+  // Auteur obligatoire (étudiant uniquement)
+  studentId   String
+  student     Student         @relation(fields: [studentId], references: [id])
+  
+  // Cible obligatoire (quiz concerné)
+  quizId      String
+  quiz        Quiz            @relation(fields: [quizId], references: [id])
+
+
+  @@index([studentId])
+  @@index([quizId])
+}
+
+model Attestation {
+  id           String         @id @default(uuid())
+  title        String
+  description   String
+  status       RequestStatus  @default(PENDING)
+  requestDate  DateTime       @default(now())
+  resolvedDate DateTime?
+  studentId    String
+  student      Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+
+  @@index([studentId])
+}
+
+enum RequestStatus {
+  PENDING    @map("En attente")
+  PROCESSING @map("En traitement")
+  COMPLETED  @map("Terminé")
+  REJECTED   @map("Rejeté")
+}
+
+enum ComplaintStatus {
+  PENDING     @map("En attente")
+  UNDER_REVIEW @map("En cours")
+  RESOLVED    @map("Résolu")
+  REJECTED    @map("Rejeté")
+}
+
 enum UserSex {
   MALE
   FEMALE
@@ -276,3 +331,4 @@ enum Day {
   THURSDAY
   FRIDAY
 }
+

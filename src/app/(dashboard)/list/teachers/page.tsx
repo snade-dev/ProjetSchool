@@ -6,20 +6,18 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
 import { Class, Prisma, Subject, Teacher } from "@prisma/client";
+import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 // Genere les lignes de la table
-
 
 const TeacherListPage = async ({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -59,7 +57,7 @@ const TeacherListPage = async ({
         <div className=" flex items-center gap-2">
           <Link href={`/list/teachers/${item.id}`}>
             <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
-              <Image src="/view.png" alt="" width={16} height={16} />
+              <Eye className="w-4 h-4 text-white" />{" "}
             </button>
           </Link>
           {role === "admin" && (
@@ -112,7 +110,6 @@ const TeacherListPage = async ({
         ]
       : []),
   ];
-  
 
   // URL params condition
   const query: Prisma.TeacherWhereInput = {};

@@ -26,6 +26,8 @@ import { deleteResult } from "@/lib/actions/resultAction";
 import { deleteAttendance } from "../lib/actions/attendanceAction";
 import { deleteQuiz } from "@/lib/actions/quizAction";
 import { deleteParent } from "@/lib/actions/parentAction";
+import AttestationForm from "./forms/AttestationForm";
+import { Edit, Plus, Trash } from "lucide-react";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
   loading: () => <h1>Loading...</h1>,
@@ -156,6 +158,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  attestation: (type, data, setOpen, relatedData) => (
+    <AttestationForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
   event: (type, data, setOpen, relatedData) => (
     <EventsForm
       type={type}
@@ -228,6 +238,7 @@ const FormModal = ({
       announcement: deleteAnnounce,
       attendance: deleteAttendance,
       quiz: deleteQuiz,
+      attestation: deleteQuiz
     };
     // si c'est un formulaire de suppression
     const [state, formAction] = useFormState(deleteActionMap[table], {
@@ -274,11 +285,13 @@ const FormModal = ({
     <>
       <button
         className={`${size} flex items-center justify-center rounded-full ${bgColor} ${
-          type === "update" && " bg-slate-950  font-bold"
+          type === "update" && "text-white  font-bold"
         }`}
         onClick={() => setOpen(true)}
       >
-        <Image src={`/${type}.png`} alt="" width={16} height={16} />
+        {type === "create" && <Plus size={16} />}
+        {type === "update" && <Edit size={16} />}
+        {type === "delete" && <Trash size={16} className="font-bold" />}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">

@@ -39,10 +39,7 @@ const QuestionPage = async ({
           </Link>
         </div>
       </div>
-      {/* <QuestionForm data={question} /> */}
-      {/* <div className="mb-3 p-3 text-base border-2 border-black rounded-lg shadow-[2.5px_3px_0px_#000] focus:shadow-[5.5px_7px_0px_#000] focus:outline-none transition-all duration-200 my-2 mr-2">
-        <p>{question.questionText}</p>
-      </div> */}
+
       <TextForm data={question}  />
 
     </div>
