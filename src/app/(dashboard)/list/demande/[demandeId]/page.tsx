@@ -1,4 +1,3 @@
-// app/reclamations/[id]/page.tsx
 import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { Attestation, Student } from "@prisma/client";
@@ -25,6 +24,7 @@ export default async function DemandeDetailsPage({
   });
 
   if (!attestation) notFound();
+  
 
   if (!role) {
     notFound();
@@ -191,11 +191,13 @@ export default async function DemandeDetailsPage({
             {/* Copie de l'étudiant */}
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
               {/* <Result questions={questionsWithAnswers} score={result.totalScore} /> */}
-              {attestation.status === "REJECTED" ? (
-                <p>Cette reclamation à été rejetéé </p>
-              ) : (
+                {attestation.status === null ? (
                 <UpdateDate attestationId={demandeId} role={role} />
-              )}
+                ) : attestation.status === "REJECTED" ? (
+                <p>Cette réclamation a été rejetée</p>
+                ) : attestation.status === "COMPLETED" && (
+                <p>Votre demande a été acceptée</p>
+                )}
             </div>
           </div>
         </div>
