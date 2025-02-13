@@ -104,6 +104,12 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
+        icon: Clipboard,
+        label: "Scolarité",
+        href: "/list/tuitionPayment",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
         icon: CheckSquare,
         label: "Presence",
         href: "/list/attendances",
@@ -139,6 +145,7 @@ const menuItems = [
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
+    
     ],
   },
   {

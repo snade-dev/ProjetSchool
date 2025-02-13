@@ -17,6 +17,8 @@ export default clerkMiddleware(async (auth, req) => {
   // Récupération des informations de session
   const { sessionClaims } = await auth();
   
+
+  
   // Extraction du rôle utilisateur depuis les métadonnées
   const role = (sessionClaims?.metadata as { role?: string })?.role || "guest";
 

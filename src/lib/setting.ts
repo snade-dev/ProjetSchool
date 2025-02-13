@@ -16,6 +16,7 @@ type RouteAccessMap = {
     "/list/subjects": ["admin"],
     "/list/classes": ["admin", "teacher"],
     "/list/exams": ["admin", "teacher", "student", "parent"],
+    "/list/tuitionPayment": ["admin", "teacher", "student", "parent"],
     "/list/onlineExam": ["admin", "teacher", "student"],
     "/list/resultExam": ["admin", "teacher", "student"],
     "/list/correction": ["admin", "teacher", "student"],
