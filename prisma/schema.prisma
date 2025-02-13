@@ -40,6 +40,8 @@ model Student {
   Complaint Complaint[]
 
   Attestation Attestation[]
+
+  TuitionPayment TuitionPayment[]
 }
 
 model Teacher {
@@ -304,6 +306,22 @@ model Attestation {
 
   @@index([studentId])
 }
+
+
+model TuitionPayment {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  month       Int      // Représente le mois (1 = janvier, 12 = décembre)
+  year        Int      // Année du paiement
+  amount      Float    // Montant payé pour la scolarité
+  paymentDate DateTime // Date à laquelle le paiement a été effectué
+  createdAt   DateTime @default(now())
+
+  // Pour éviter que le même étudiant ne paie deux fois pour le même mois/année
+  @@unique([studentId, month, year])
+}
+
 
 enum RequestStatus {
   PENDING    @map("En attente")

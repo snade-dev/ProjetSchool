@@ -268,3 +268,11 @@ export const attestationSchema = z.object({
 });
 
 export type AttestationSchema = z.infer<typeof attestationSchema>;
+
+
+export const schemas = z.object({
+  amont: z.number().min(2, "Le texte est requis")
+
+})
+
+export type Schemas = z.infer<typeof schemas>;
