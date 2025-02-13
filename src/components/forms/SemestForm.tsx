@@ -38,14 +38,21 @@ const SemesterForm = ({
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    formAction(data);
-  });
+const onSubmit = handleSubmit(async (data) => {
+  console.log("🟡 Données envoyées par React Hook Form :", data);
+
+  formAction(data);
+});
+
+
+
+
 
   const router = useRouter();
 
   useEffect(() => {
-    console.log(state); // Débogage de l'état
+    console.log("🔍 State après formAction :", state);
+
     if (state.success) {
       toast(`Le semestre a été ${type === "create" ? "créé" : "mis à jour"}!`);
       setOpen(false);
@@ -53,7 +60,11 @@ const SemesterForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  const { semesters} = relatedData;
+
+  const { semesters, subjects } = relatedData;
+  // console.log(JSON.stringify(subjects));
+
+
   // console.log(semesters); // Vérification des données liées aux classes
 
   return (
@@ -83,7 +94,30 @@ const SemesterForm = ({
           />
         )}
       </div>
+      <div className="flex flex-col gap-2 w-full md:w-4/4">
+        <label className="text-xs text-gray-500">Matières</label>
+        <select
+          className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+          {...register("subjects", {
+            required: "Les matières sont requises",
+          })}
+          multiple
+        >
+          {subjects.map((subject: { id: string; name: string }) => (
+            <option key={subject.id} value={subject.id}>
+              {subject.name}
+            </option>
+          ))}
+        </select>
 
+        {errors.subjects && (
+          <p className="text-red-400 text-xs">{errors.subjects.message}</p>
+        )}
+
+        {errors.subjects && (
+          <p className="text-red-400 text-xs">{errors.subjects.message}</p>
+        )}
+      </div>
       {state.error && (
         <span className="text-red-500">
           {state.message ? state.message : "Une erreur c&apos;est produite!"}

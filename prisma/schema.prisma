@@ -97,7 +97,7 @@ model Subject {
   teachers Teacher[]
   lessons  Lesson[]
   results  Result[]
-
+  semesters Semester[] 
   Quiz Quiz[]
 
   Attendance Attendance[]
@@ -274,8 +274,10 @@ model Semester {
   name   String @unique
   results Result[]
   exams  Exam[]
-
+  subjects  Subject[] 
+ 
  }
+
 enum UserSex {
   MALE
   FEMALE

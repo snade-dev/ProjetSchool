@@ -5,10 +5,21 @@ import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
-import { Class, Prisma, Result, Semester, Teacher } from "@prisma/client";
+import {
+  Class,
+  Prisma,
+  Result,
+  Semester,
+  Teacher,
+  Subject,
+} from "@prisma/client";
 import Image from "next/image";
 
-type SemesterList = Semester & { classes: Class[]; results: Result[] };
+type SemesterList = Semester & {
+  classes: Class[];
+  results: Result[];
+  subjects: Subject[];
+};
 
 const SemesterListPage = async ({
   searchParams,
@@ -23,6 +34,10 @@ const SemesterListPage = async ({
       header: "Nom",
       accessor: "name",
     },
+    {
+      header: "Matières",
+      accessor: "subjects", // Ajoute une colonne pour les matières
+    },
     ...(role === "admin"
       ? [
           {
@@ -36,13 +51,21 @@ const SemesterListPage = async ({
   const RenderRow = (item: SemesterList) => (
     <tr
       key={item.id}
-      className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
+      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
     >
       <td className="flex items-center gap-4 p-4">{item.name}</td>
-      {/* <td className="hidden md:table-cell">{item.classes.length}</td> */}
-      {/* <td className="hidden md:table-cell">{item.results.length}</td> */}
       <td>
-        <div className=" flex items-center gap-2">
+        {/* Affichage des matières associées au semestre */}
+        <ul className="list-disc pl-5 text-sm">
+          {item.subjects.map((subject) => (
+            <li className="list-none" key={subject.id}>
+              {subject.name}
+            </li>
+          ))}
+        </ul>
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
               <FormContainer table="semester" type="update" data={item} />
@@ -83,7 +106,8 @@ const SemesterListPage = async ({
       where: query,
       include: {
         results: true, // Inclure les résultats associés à ce semestre
-        exams: true, // Inclure les classes associées à
+        exams: true, // Inclure les examens associés à ce semestre
+        subjects: true, // Inclure les matières associées à ce semestre
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
@@ -92,15 +116,15 @@ const SemesterListPage = async ({
   ]);
 
   return (
-    <div className=" bg-white p-4 rounded-md m-4 mt-0 flex-1">
+    <div className="bg-white p-4 rounded-md m-4 mt-0 flex-1">
       {/* TOP */}
-      <div className=" flex items-center justify-between">
-        <h1 className=" hidden md:block text-lg font-semibold">
+      <div className="flex items-center justify-between">
+        <h1 className="hidden md:block text-lg font-semibold">
           Tous les semestres
         </h1>
-        <div className=" flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
-          <div className=" flex items-center self-end gap-4">
+          <div className="flex items-center self-end gap-4">
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src={"/filter.png"} alt="" width={14} height={14} />
             </button>
@@ -114,11 +138,11 @@ const SemesterListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <div className="">
+      <div>
         <Table columns={columns} renderRow={RenderRow} data={data} />
       </div>
       {/* PAGINATION */}
-      <div className="">
+      <div>
         <Pagination page={p} count={count} />
       </div>
     </div>
@@ -126,6 +150,3 @@ const SemesterListPage = async ({
 };
 
 export default SemesterListPage;
-
-
-

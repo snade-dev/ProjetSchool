@@ -253,6 +253,10 @@ export type TeacherResponsschema = z.infer<typeof teacherResponsSchema>;
 export const semesterSchema = z.object({
   id: z.coerce.number().optional(),
   name: z.string().min(1, { message: "Le nom du semestre est requis !" }),
+  subjects: z
+    .array(z.coerce.number()) // Assure que subjects est bien un tableau de nombres
+    .min(1, { message: "Sélectionnez au moins une matière" }),
 });
+
 
 export type SemesterSchema = z.infer<typeof semesterSchema>;

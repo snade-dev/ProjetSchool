@@ -19,13 +19,14 @@ export const createSemester = async (
   data: SemesterSchema
 ) => {
   try {
+    console.log("🟡 createSemester appelé avec :", data);
+
     const existingSemester = await prisma.semester.findFirst({
-      where: {
-        name: data.name,
-      },
+      where: { name: data.name },
     });
 
     if (existingSemester) {
+      console.log("🔴 Semestre déjà existant :", existingSemester);
       return {
         success: false,
         error: true,
@@ -34,16 +35,26 @@ export const createSemester = async (
     }
 
     await prisma.semester.create({
-      data,
+      data: {
+        name: data.name,
+        subjects: {
+          connect: data.subjects.map((id) => ({ id: Number(id) })), // Vérifier le type ici
+        },
+      },
     });
 
-    // revalidatePath("/list/semesters");
-    return { success: true, error: false, message: "" };
+    console.log("✅ Semestre créé avec succès !");
+    return {
+      success: true,
+      error: false,
+      message: "Semestre créé avec succès",
+    };
   } catch (error) {
-    console.log(error);
-    return { success: false, error: true, message: `${error}` };
+    console.error("❌ Erreur Prisma :", error);
+    return { success: false, error: true, message: `Erreur serveur: ${error}` };
   }
 };
+
 
 export const updateSemester = async (
   currentState: CurrentState2,
@@ -54,7 +65,12 @@ export const updateSemester = async (
       where: {
         id: data.id,
       },
-      data,
+      data: {
+        name: data.name,
+        subjects: {
+          set: data.subjects.map((id) => ({ id })), // Remplace les matières
+        },
+      },
     });
 
     // revalidatePath("/list/semesters");
