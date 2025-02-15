@@ -1,7 +1,7 @@
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import prisma from "@/lib/prisma";
+
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
 import {
@@ -15,7 +15,11 @@ import {
 } from "@prisma/client";
 import FormContainer from "@/components/FormContainer";
 import ClientFilters from "./components/ClientFilters";
-
+// import ClickableStudentName from "./components/ClickableStudentName";
+import ResultTable from "./components/ResultTable";
+import { renderResultActions } from "./components/actions";
+import ClickableStudentName from "./components/ClickableStudentName";
+import prisma from "@/lib/prisma";
 
 type ResultList = Result & {
   exam: Exam;
@@ -29,8 +33,12 @@ export default async function ResultListPage({
   searchParams: { [key: string]: string | undefined };
 }) {
   const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const role: string | undefined = (
+    sessionClaims?.metadata as { role?: string }
+  )?.role;
+
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
+  console.log(searchParams); // Vérifie si studentId est présent et correct
 
   // Récupération des données initiales
   const [classes, semesters] = await Promise.all([
@@ -40,16 +48,37 @@ export default async function ResultListPage({
 
   // Construction de la query
   const query: Prisma.ResultWhereInput = {};
+
+  // Filtrer par classe si `classId` est défini
   if (searchParams.classId) {
-    query.student = { classId: parseInt(searchParams.classId) };
+    query.student = {
+      classId: parseInt(searchParams.classId),
+    };
   }
+
+  // Filtrer par semestre si `semesterId` est défini
   if (searchParams.semesterId) {
     query.semesterId = parseInt(searchParams.semesterId);
   }
+
+  // Filtrer par `studentId` si défini
+  if (searchParams.studentId) {
+    query.student = {
+      id: searchParams.studentId
+    };
+  } else if (searchParams.classId) {
+    query.student = {
+      classId: parseInt(searchParams.classId),
+    };
+  }
+
+  // Recherche par texte (examen ou nom de l'étudiant)
   if (searchParams.search) {
     query.OR = [
       {
-        exam: { title: { contains: searchParams.search, mode: "insensitive" } },
+        exam: {
+          title: { contains: searchParams.search, mode: "insensitive" },
+        },
       },
       {
         student: {
@@ -59,20 +88,51 @@ export default async function ResultListPage({
     ];
   }
 
+  // Pour déboguer
+  console.log("SearchParams:", searchParams);
+  console.log("Query finale:", JSON.stringify(query, null, 2));
+
   // Récupération des résultats
   const [data, count] = await prisma.$transaction([
     prisma.result.findMany({
       where: query,
       include: {
         exam: { select: { id: true, title: true } },
-        student: { select: { id: true, name: true } },
+        student: {
+          select: {
+            id: true,
+            name: true,
+            classId: true,
+            class: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
         subject: { select: { id: true, name: true } },
+      },
+      orderBy: {
+        student: {
+          name: "asc",
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (page - 1),
     }),
     prisma.result.count({ where: query }),
   ]);
+
+  // Pour déboguer
+  console.log("Nombre de résultats:", count);
+  console.log("Premier résultat:", data[0]);
+
+  const actions = (role === "admin" || role === "teacher") && (
+    <>
+      <FormContainer table="result" type="update" data={data} />
+      <FormContainer table="result" type="delete" id={data[0]?.id} />
+    </>
+  );
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -87,6 +147,7 @@ export default async function ResultListPage({
             semesters={semesters}
             initialClassId={searchParams.classId}
             initialSemesterId={searchParams.semesterId}
+            initialStudentId={searchParams.studentId}
           />
 
           <TableSearch />
@@ -99,49 +160,7 @@ export default async function ResultListPage({
         </div>
       </div>
 
-      <Table
-        columns={[
-          {
-            header: "Examen",
-            accessor: "exam",
-            className: "hidden md:table-cell",
-          },
-          { header: "Etudiants", accessor: "student" },
-          { header: "Matière", accessor: "subject" },
-          {
-            header: "Note",
-            accessor: "score",
-            className: "hidden md:table-cell",
-          },
-          ...(role === "admin" || role === "teacher"
-            ? [{ header: "Actions", accessor: "action" }]
-            : []),
-        ]}
-        renderRow={(item: ResultList) => (
-          <tr
-            key={item.id}
-            className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-          >
-            <td className="flex items-center gap-4 p-4">
-              {item.exam?.title || "-"}
-            </td>
-            <td>{item.student.name}</td>
-            <td>{item.subject.name}</td>
-            <td className="hidden md:table-cell">{item.score}</td>
-            <td>
-              <div className="flex items-center gap-2">
-                {(role === "admin" || role === "teacher") && (
-                  <>
-                    <FormContainer table="result" type="update" data={item} />
-                    <FormContainer table="result" type="delete" id={item.id} />
-                  </>
-                )}
-              </div>
-            </td>
-          </tr>
-        )}
-        data={data}
-      />
+      <ResultTable data={data} role={role ?? ""} actions={actions} />
 
       <Pagination page={page} count={count} />
     </div>
