@@ -8,12 +8,21 @@ interface ActionResult {
   success: boolean;
   error: boolean;
   message: string;
+};
+
+interface ActionResult {
+  success: boolean;
+  error: boolean;
+  message: string;
 }
 
 export const createResult = async (
-  prevState: ActionResult,
+  currentState: ActionResult,
   data: ResultSchema
 ): Promise<ActionResult> => {
+  // const { userId, sessionClaims } = auth();
+  // const role = (sessionClaims?.metadata as { role?: string })?.role;
+
   try {
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername },
@@ -23,24 +32,25 @@ export const createResult = async (
       return {
         success: false,
         error: true,
-        message: `L'étudiant avec le nom d'utilisateur "${data.studentUsername}" n'existe pas`,
+        message: "L'étudiant n'existe pas",
       };
     }
 
-    // Vérifier si un résultat existe déjà
-    const existingResult = await prisma.result.findFirst({
+    const result = await prisma.result.findUnique({
       where: {
-        studentId: student.id,
-        subjectId: data.subjectId,
-        semesterId: data.semesterId,
+        examId_studentId_subjectId: {
+          studentId: student.id,
+          examId: data.examId,
+          subjectId: data.subjectId,
+        },
       },
     });
 
-    if (existingResult) {
+    if (result) {
       return {
         success: false,
         error: true,
-        message: `Une note existe déjà pour cet étudiant dans cette matière pour ce semestre`,
+        message: "Ce résultat existe déjà",
       };
     }
 
@@ -60,11 +70,11 @@ export const createResult = async (
       message: "Note enregistrée avec succès",
     };
   } catch (err) {
-    console.log("Erreur détaillée:", err);
+    console.error("Erreur détaillée:", err);
     return {
       success: false,
       error: true,
-      message: "Erreur lors de la création des notes",
+      message: "Erreur lors de la création de la note",
     };
   }
 };
