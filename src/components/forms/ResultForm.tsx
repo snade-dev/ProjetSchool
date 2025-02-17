@@ -1,39 +1,49 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import InputField from "../InputField";
-import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { resultSchema, ResultSchema } from "@/lib/formsValidationSchema";
-import { createResult, updateResult } from "@/lib/actions/resultAction";
+import { toast } from "react-toastify";
+import { useFormState } from "react-dom";
+import { createResult } from "@/lib/actions/resultAction";
+import { ResultSchema } from "@/lib/formsValidationSchema";
 
-const ResultForm = ({
-  type,
-  data,
-  setOpen,
-  relatedData,
-}: {
+interface ResultFormProps {
   type: "create" | "update";
   data?: any;
   setOpen: Dispatch<SetStateAction<boolean>>;
-  relatedData?: any;
-}) => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ResultSchema>({
-    resolver: zodResolver(resultSchema),
-  });
+  relatedData: {
+    exams: any[];
+    subjects: any[];
+    semesters: any[];
+    classes: any[];
+  };
+}
 
+interface ActionResult {
+  success: boolean;
+  error: boolean;
+  message: string;
+}
+
+const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
+  const [semesterSubjects, setSemesterSubjects] = useState<any[]>([]);
+  const [studentUsername, setStudentUsername] = useState("");
+  const [scores, setScores] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
 
-  const [state, formAction] = useFormState(
-    type === "create" ? createResult : updateResult,
+  const router = useRouter();
+
+  const {
+    exams = [],
+    subjects = [],
+    semesters = [],
+    classes = [],
+  } = relatedData || {};
+
+  const [state, formAction] = useFormState<ActionResult, ResultSchema>(
+    createResult,
     {
       success: false,
       error: false,
@@ -41,136 +51,182 @@ const ResultForm = ({
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    // console.log(data);
-    setLoading(true);
-    formAction(data);
-  });
-
-  const router = useRouter();
-
+  // Charger les matières quand le semestre est sélectionné
   useEffect(() => {
-    if (state.success) {
-      toast(`La moyenne a été ${type === "create" ? "créée" : "mise à jour"}!`);
-      setOpen(false);
-      setLoading(false);
-      router.refresh();
-    } else {
+    if (selectedSemester) {
+      const filteredSubjects = subjects.filter((subject: any) =>
+        subject.semesters.some(
+          (sem: any) => sem.id === parseInt(selectedSemester)
+        )
+      );
+      setSemesterSubjects(filteredSubjects);
+      setScores({});
+    }
+  }, [selectedSemester, subjects]);
+
+  const handleScoreChange = (subjectId: string, value: string) => {
+    setScores((prev) => ({
+      ...prev,
+      [subjectId]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentUsername || !selectedClass || !selectedSemester) {
+      toast.error("Veuillez remplir tous les champs requis");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      let hasError = false;
+      const promises: Promise<ActionResult>[] = [];
+
+      // Créer un tableau de promesses pour toutes les notes
+      for (const [subjectId, score] of Object.entries(scores)) {
+        if (score) {
+          const formData: ResultSchema = {
+            studentUsername,
+            subjectId: parseInt(subjectId),
+            score: parseFloat(score),
+            semesterId: parseInt(selectedSemester),
+            examId: exams[0].id,
+          };
+
+          // Ajouter chaque promesse au tableau
+          const promise = (async () => {
+            const result = await formAction(formData);
+            const actionResult = result as unknown as ActionResult;
+            if (actionResult?.error) {
+              hasError = true;
+              toast.error(
+                actionResult.message || "Erreur lors de l'enregistrement"
+              );
+            }
+            return actionResult;
+          })();
+
+          promises.push(promise);
+        }
+      }
+
+      // Attendre que toutes les notes soient enregistrées
+      await Promise.all(promises);
+
+      if (!hasError) {
+        toast.success("Toutes les notes ont été enregistrées avec succès");
+        setOpen(false);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la soumission:", error);
+      toast.error(
+        "Une erreur s'est produite lors de l'enregistrement des notes"
+      );
+    } finally {
       setLoading(false);
     }
-  }, [state, router, type, setOpen]);
-
-  const { exams, subjects,semesters } = relatedData;
-
-  
+  };
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create"
-          ? "Créer une nouvelle moyenne"
-          : "Modifier la moyenne"}
+        {type === "create" ? "Saisir les notes" : "Modifier les notes"}
       </h1>
 
-      <div className="flex justify-between flex-wrap gap-4">
-        <InputField
-          label="Note"
-          name="score"
-          defaultValue={data?.score}
-          register={register}
-          error={errors?.score}
-        />
-        <InputField
-          label="Nom du l'etudiant"
-          name="studentUsername"
-          defaultValue={data?.student.username}
-          register={register}
-          error={errors.studentUsername}
-        />
+      <div className="flex flex-col gap-4">
+        <div className="flex gap-4">
+          <div className="flex flex-col gap-2 w-full md:w-1/3">
+            <label className="text-xs text-gray-500">Classe</label>
+            <select
+              className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              required
+            >
+              <option value="">Sélectionner une classe</option>
+              {classes.map((classe: any) => (
+                <option key={classe.id} value={classe.id}>
+                  {classe.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Exam</label>
-          <select
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-            {...register("examId")}
-            defaultValue={data?.examId}
-          >
-            {exams.map((exam: { id: string; title: string }) => (
-              <option key={exam.id} value={exam.id}>
-                {exam.title}
-              </option>
-            ))}
-          </select>
-          {errors.examId?.message && (
-            <p className=" text-red-400 text-xs">
-              {errors.examId?.message.toString()}
-            </p>
-          )}
-        </div>
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sujet</label>
-          <select
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-            {...register("subjectId")}
-            defaultValue={data?.subjectId}
-          >
-            {subjects.map((subject: { id: string; name: string }) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          {errors.subjectId?.message && (
-            <p className=" text-red-400 text-xs">
-              {errors.subjectId?.message.toString()}
-            </p>
-          )}
-        </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Semestre</label>
-          <select
-            className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-            {...register("semesterId")}
-            defaultValue={data?.semesterId}
-          >
-            {semesters?.map(
-              (semester: { id: number; name: string }) => (
+          <div className="flex flex-col gap-2 w-full md:w-1/3">
+            <label className="text-xs text-gray-500">Semestre</label>
+            <select
+              className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              disabled={!selectedClass}
+              required
+            >
+              <option value="">Sélectionner un semestre</option>
+              {semesters.map((semester: any) => (
                 <option key={semester.id} value={semester.id}>
                   {semester.name}
                 </option>
-              )
-            )}
-          </select>
-          {errors.semesterId?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.semesterId?.message.toString()}
-            </p>
-          )}
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2 w-full md:w-1/3">
+            <label className="text-xs text-gray-500">
+              Nom de l&apos;étudiant
+            </label>
+            <input
+              className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+              value={studentUsername}
+              onChange={(e) => setStudentUsername(e.target.value)}
+              placeholder="Nom d'utilisateur"
+              required
+            />
+          </div>
         </div>
 
-        {data && (
-          <InputField
-            label="Identifiant"
-            name="id"
-            defaultValue={data?.id}
-            register={register}
-            error={errors?.id}
-            hidden
-          />
+        {selectedSemester && (
+          <div className="mt-4">
+            <h2 className="text-lg font-semibold mb-4">Notes par matière</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {semesterSubjects.map((subject) => (
+                <div key={subject.id} className="flex items-center gap-4">
+                  <span className="w-1/2">{subject.name}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="20"
+                    className="w-20 ring-[1.5px] ring-gray-300 rounded-md text-sm p-2"
+                    placeholder="Note"
+                    value={scores[subject.id] || ""}
+                    onChange={(e) =>
+                      handleScoreChange(subject.id, e.target.value)
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
+
       {state.error && (
         <span className="text-red-500">
-          {state.message ? state.message : "Une erreur c'est produite!"}
+          {state.message || "Une erreur s'est produite!"}
         </span>
       )}
 
       <button
-        disabled={loading}
+        disabled={
+          loading || !selectedClass || !selectedSemester || !studentUsername
+        }
         className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
         type="submit"
       >
-        {type === "create" ? "Créer" : "Modifier"}
+        {loading ? "Enregistrement..." : "Enregistrer les notes"}
       </button>
     </form>
   );
