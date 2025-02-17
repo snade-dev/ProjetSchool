@@ -73,7 +73,7 @@ export const createResult = async (
       message: "Note enregistrée avec succès",
     };
   } catch (err) {
-    console.error("Erreur détaillée:", err);
+    console.log("Erreur détaillée:", err);
     return {
       success: false,
       error: true,

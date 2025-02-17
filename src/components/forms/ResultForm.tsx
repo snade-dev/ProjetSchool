@@ -121,7 +121,7 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
         router.refresh();
       }
     } catch (error) {
-      console.error("Erreur lors de la soumission:", error);
+      console.log("Erreur lors de la soumission:", error);
       toast.error(
         "Une erreur s'est produite lors de l'enregistrement des notes"
       );
