@@ -64,7 +64,7 @@ export default async function ResultListPage({
   // Filtrer par `studentId` si défini
   if (searchParams.studentId) {
     query.student = {
-      id: searchParams.studentId
+      id: searchParams.studentId,
     };
   } else if (searchParams.classId) {
     query.student = {
@@ -127,13 +127,6 @@ export default async function ResultListPage({
   console.log("Nombre de résultats:", count);
   console.log("Premier résultat:", data[0]);
 
-  const actions = (role === "admin" || role === "teacher") && (
-    <>
-      <FormContainer table="result" type="update" data={data} />
-      <FormContainer table="result" type="delete" id={data[0]?.id} />
-    </>
-  );
-
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       <div className="flex items-center justify-between">
@@ -160,7 +153,12 @@ export default async function ResultListPage({
         </div>
       </div>
 
-      <ResultTable data={data} role={role ?? ""} actions={actions} />
+      <ResultTable
+        data={data}
+        role={role ?? ""}
+        classes={classes}
+        semesters={semesters}
+      />
 
       <Pagination page={page} count={count} />
     </div>
