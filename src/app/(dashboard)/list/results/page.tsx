@@ -1,209 +1,166 @@
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import prisma from "@/lib/prisma";
+
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
-import { Exam, Prisma, Result, Student, Subject } from '@prisma/client';
-import Image from "next/image";
-import { title } from "process";
-import FormContainer from '@/components/FormContainer';
-import BulletinButton from "@/components/BulletinButton";
+import {
+  Exam,
+  Prisma,
+  Result,
+  Student,
+  Subject,
+  Class,
+  Semester,
+} from "@prisma/client";
+import FormContainer from "@/components/FormContainer";
+import ClientFilters from "./components/ClientFilters";
+// import ClickableStudentName from "./components/ClickableStudentName";
+import ResultTable from "./components/ResultTable";
+import { renderResultActions } from "./components/actions";
+import ClickableStudentName from "./components/ClickableStudentName";
+import prisma from "@/lib/prisma";
 
-type ResultList = Result & { exam: Exam } &{student: Student} & {subject: Subject}
+type ResultList = Result & {
+  exam: Exam;
+  student: Student;
+  subject: Subject;
+};
 
-const ResultListPage = async ({
+export default async function ResultListPage({
   searchParams,
 }: {
   searchParams: { [key: string]: string | undefined };
-}) => {
+}) {
   const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const role: string | undefined = (
+    sessionClaims?.metadata as { role?: string }
+  )?.role;
 
-  const { page, ...queryParams } = searchParams;
+  const page = searchParams.page ? parseInt(searchParams.page) : 1;
+  console.log(searchParams); // Vérifie si studentId est présent et correct
 
-  const p = page ? parseInt(page) : 1;
-  // Requete vers la base de donnéés
-  let isStudent = false;
-  let grades: {subject: string, score: number}[] = [];
+  // Récupération des données initiales
+  const [classes, semesters] = await Promise.all([
+    prisma.class.findMany(),
+    prisma.semester.findMany(),
+  ]);
 
-  const columns = [
-    // {
-    //   header: "Noms",
-    //   accessor: "title",
-    // },
-    {
-      header: "Examen",
-      accessor: "exam",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Etudiants",
-      accessor: "student",
-    },
-    {
-      header: "Matière",
-      accessor: "subject",
-    },
-    {
-      header: "Note",
-      accessor: "score",
-      className: "hidden md:table-cell",
-    },
-
-    // {
-    //   header: "Classes",
-    //   accessor: "class",
-    //   className: "hidden md:table-cell",
-    // },
-  
-    ...(role === "admin" || role === "teacher"
-      ? [
-          {
-            header: "Actions",
-            accessor: "action",
-          },
-        ]
-      : []),
-  ];
-
-  const renderRow = (item: ResultList) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
-      <td className="flex items-center gap-4 p-4">{item.exam ? item.exam.title : "-"}</td>
-      <td>{item.student.name}</td>
-      <td>{item.subject.name}</td>
-      <td className="hidden md:table-cell">{item.score}</td>
-      <td>
-        <div className="flex items-center gap-2">
-          {(role === "admin" ||role === "teacher") && (
-              <>
-                <FormContainer table="result" type="update" data={item} />
-                <FormContainer table="result" type="delete" id={item.id} />
-              </>
-            )}
-        </div>
-      </td>
-    </tr>
-  );
-
-  // URL params condition
+  // Construction de la query
   const query: Prisma.ResultWhereInput = {};
 
-  if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "studentId":
-            query.studentId = value;
-            isStudent = true;
-            break;
-          case "search":
-            query.OR = [
-              { exam: { title: { contains: title, mode: "insensitive" } } },
-              { student: { name: { contains: title, mode: "insensitive" } } },
-            ];
-            break;
-          default:
-            break;
-        }
-      }
-    }
+  // Filtrer par classe si `classId` est défini
+  if (searchParams.classId) {
+    query.student = {
+      classId: parseInt(searchParams.classId),
+    };
   }
 
+  // Filtrer par semestre si `semesterId` est défini
+  if (searchParams.semesterId) {
+    query.semesterId = parseInt(searchParams.semesterId);
+  }
 
-  // // Role conditions
-  // switch (role) {
-  //   case "admin":
-  //     break;
-  //   // case "teacher":
-  //   //   query.OR = [
-  //   //     { exam: { lesson: { teacherId: currentUserId! } } },
-  //   //   ];
-  //   //   break;
+  // Filtrer par `studentId` si défini
+  if (searchParams.studentId) {
+    query.student = {
+      id: searchParams.studentId,
+    };
+  } else if (searchParams.classId) {
+    query.student = {
+      classId: parseInt(searchParams.classId),
+    };
+  }
 
-  //   // case "student":
-  //   //   query.studentId = currentUserId!;
-  //   //   break;
+  // Recherche par texte (examen ou nom de l'étudiant)
+  if (searchParams.search) {
+    query.OR = [
+      {
+        exam: {
+          title: { contains: searchParams.search, mode: "insensitive" },
+        },
+      },
+      {
+        student: {
+          name: { contains: searchParams.search, mode: "insensitive" },
+        },
+      },
+    ];
+  }
 
-  //   // case "parent":
-  //   //   query.student = {
-  //   //     parentId: currentUserId!,
-  //   //   };
-  //   //   break;
-  //   default:
-  //     break;
-  // }
+  // Pour déboguer
+  console.log("SearchParams:", searchParams);
+  console.log("Query finale:", JSON.stringify(query, null, 2));
 
+  // Récupération des résultats
   const [data, count] = await prisma.$transaction([
     prisma.result.findMany({
       where: query,
       include: {
-        exam: {
-          select: {
-            id: true,
-           title: true
-          },
-        },
+        exam: { select: { id: true, title: true } },
         student: {
           select: {
             id: true,
             name: true,
-            username: true
-          }
+            classId: true,
+            class: {
+              select: {
+                name: true,
+              },
+            },
+          },
         },
-        subject: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
+        subject: { select: { id: true, name: true } },
+      },
+      orderBy: {
+        student: {
+          name: "asc",
+        },
       },
       take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
+      skip: ITEM_PER_PAGE * (page - 1),
     }),
-    prisma.result.count({ where: query}),
+    prisma.result.count({ where: query }),
   ]);
 
-  if (queryParams["studentId"]) {
-    grades= data.map((e) => (
-      {
-        subject: e.subject.name,
-        score: e.score
-      }
-    ))
-  }
+  // Pour déboguer
+  console.log("Nombre de résultats:", count);
+  console.log("Premier résultat:", data[0]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* TOP */}
       <div className="flex items-center justify-between">
-      <h1 className="hidden md:block text-lg font-semibold">Tous les resultats</h1>
-      <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-        <TableSearch />
-        <div className="flex items-center gap-4 self-end">
-        <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-          <Image src="/filter.png" alt="" width={14} height={14} />
-        </button>
-        <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-          <Image src="/sort.png" alt="" width={14} height={14} />
-        </button>
-        {(role === "admin" || role === "teacher") && (
-          <FormContainer table="result" type="create" />
-          )}
+        <h1 className="hidden md:block text-lg font-semibold">
+          Tous les résultats
+        </h1>
+
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <ClientFilters
+            classes={classes}
+            semesters={semesters}
+            initialClassId={searchParams.classId}
+            initialSemesterId={searchParams.semesterId}
+            initialStudentId={searchParams.studentId}
+          />
+
+          <TableSearch />
+
+          <div className="flex items-center gap-4 self-end">
+            {(role === "admin" || role === "teacher") && (
+              <FormContainer table="result" type="create" />
+            )}
+          </div>
         </div>
       </div>
-      </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
-      {(isStudent && data.length > 0) && <BulletinButton studentName={data[0].student.name} grades={grades} />}
+
+      <ResultTable
+        data={data}
+        role={role ?? ""}
+        classes={classes}
+        semesters={semesters}
+      />
+
+      <Pagination page={page} count={count} />
     </div>
   );
-};
-
-export default ResultListPage;
+}

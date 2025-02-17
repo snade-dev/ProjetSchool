@@ -14,22 +14,16 @@ export type SubjectSchema = z.infer<typeof subjectSchema>;
 
 export const classSchema = z.object({
   id: z.coerce.number().optional(),
-  name: z
-    .string()
-    .min(1, {
-    message: "Le nom de la classe est requis et doit être d'au moins 3 caractères",
-    }),
-  capacity: z
-    .coerce
-    .number()
-    .min(1, {
-    message: "La capacité de la classe est requise et doit être d'au moins 3 caractères",
-    }),
-  supervisorId: z
-    .coerce
-    .string()
-    .optional(),
-  });
+  name: z.string().min(1, {
+    message:
+      "Le nom de la classe est requis et doit être d'au moins 3 caractères",
+  }),
+  capacity: z.coerce.number().min(1, {
+    message:
+      "La capacité de la classe est requise et doit être d'au moins 3 caractères",
+  }),
+  supervisorId: z.coerce.string().optional(),
+});
 
 export type ClassSchema = z.infer<typeof classSchema>;
 
@@ -98,6 +92,7 @@ export const examSchema = z.object({
   startTime: z.coerce.date({ message: "L'heure de début est requise !" }),
   endTime: z.coerce.date({ message: "L'heure de fin est requise !" }),
   lessonId: z.coerce.number({ message: "La leçon est requise !" }),
+  semesterId: z.coerce.number({ message: "Le semestre est requis !" }),
 });
 
 export type ExamSchema = z.infer<typeof examSchema>;
@@ -182,10 +177,11 @@ export type ResultMSchema = z.infer<typeof resultMSchema>;
 
 export const resultSchema = z.object({
   id: z.coerce.number().optional(),
-  score: z.coerce.number().min(1, {message: "La moyenne est requise"}),
+  score: z.coerce.number().min(1, { message: "La moyenne est requise" }),
   studentUsername: z.string().min(1, { message: "L'etudiant est requise !" }),
-  examId: z.coerce.number().min(1, { message: "L'exame est requise !" }),
-  subjectId: z.coerce.number().min(1, { message: "L'exame est requise !" }),
+  examId: z.coerce.number().min(1, { message: "L'exameen est requise !" }),
+  subjectId: z.coerce.number().min(1, { message: "Le sujet est requise !" }),
+  semesterId: z.coerce.number().min(1, { message: "Le semestre est requise !" }),
 });
 
 export type ResultSchema = z.infer<typeof resultSchema>;
@@ -276,3 +272,14 @@ export const schemas = z.object({
 })
 
 export type Schemas = z.infer<typeof schemas>;
+
+export const semesterSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z.string().min(1, { message: "Le nom du semestre est requis !" }),
+  subjects: z
+    .array(z.coerce.number()) // Assure que subjects est bien un tableau de nombres
+    .min(1, { message: "Sélectionnez au moins une matière" }),
+});
+
+
+export type SemesterSchema = z.infer<typeof semesterSchema>;

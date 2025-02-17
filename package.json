@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/elements": "^0.19.8",
     "@clerk/nextjs": "^6.5.1",
+    "@headlessui/react": "^2.2.0",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "5.22.0",
     "@react-pdf/renderer": "^4.1.6",
