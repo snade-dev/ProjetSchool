@@ -1,4 +1,10 @@
 -- CreateEnum
+CREATE TYPE "RequestStatus" AS ENUM ('En attente', 'En traitement', 'Terminé', 'Rejeté');
+
+-- CreateEnum
+CREATE TYPE "ComplaintStatus" AS ENUM ('En attente', 'En cours', 'Résolu', 'Rejeté');
+
+-- CreateEnum
 CREATE TYPE "UserSex" AS ENUM ('MALE', 'FEMALE');
 
 -- CreateEnum
@@ -69,7 +75,6 @@ CREATE TABLE "Class" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "capacity" INTEGER NOT NULL,
-    "semester" TEXT NOT NULL,
     "supervisorId" TEXT,
 
     CONSTRAINT "Class_pkey" PRIMARY KEY ("id")
@@ -88,7 +93,6 @@ CREATE TABLE "Lesson" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "day" "Day" NOT NULL,
-    "semester" TEXT NOT NULL,
     "subjectId" INTEGER NOT NULL,
     "classId" INTEGER NOT NULL,
     "teacherId" TEXT NOT NULL,
@@ -102,9 +106,8 @@ CREATE TABLE "Exam" (
     "title" TEXT NOT NULL,
     "startTime" TIMESTAMP(3) NOT NULL,
     "endTime" TIMESTAMP(3) NOT NULL,
-    "class" TEXT NOT NULL,
-    "semester" TEXT NOT NULL,
     "lessonId" INTEGER NOT NULL,
+    "semesterId" INTEGER NOT NULL,
 
     CONSTRAINT "Exam_pkey" PRIMARY KEY ("id")
 );
@@ -116,6 +119,7 @@ CREATE TABLE "Result" (
     "examId" INTEGER,
     "studentId" TEXT NOT NULL,
     "subjectId" INTEGER NOT NULL,
+    "semesterId" INTEGER NOT NULL,
 
     CONSTRAINT "Result_pkey" PRIMARY KEY ("id")
 );
@@ -172,6 +176,7 @@ CREATE TABLE "Quiz" (
     "date" TIMESTAMP(3) NOT NULL,
     "duration" INTEGER NOT NULL,
     "published" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "teacherId" TEXT NOT NULL,
     "classId" INTEGER NOT NULL,
     "subjectId" INTEGER NOT NULL,
@@ -225,9 +230,66 @@ CREATE TABLE "ExamCorrection" (
 );
 
 -- CreateTable
+CREATE TABLE "Complaint" (
+    "id" TEXT NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT NOT NULL,
+    "status" "ComplaintStatus" NOT NULL DEFAULT 'En attente',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "studentId" TEXT NOT NULL,
+    "quizId" TEXT NOT NULL,
+
+    CONSTRAINT "Complaint_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Attestation" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "status" "RequestStatus" NOT NULL DEFAULT 'En attente',
+    "requestDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedDate" TIMESTAMP(3),
+    "studentId" TEXT NOT NULL,
+
+    CONSTRAINT "Attestation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TuitionPayment" (
+    "id" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "paymentDate" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TuitionPayment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Semester" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "Semester_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "_SubjectToTeacher" (
     "A" INTEGER NOT NULL,
-    "B" TEXT NOT NULL
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_SubjectToTeacher_AB_pkey" PRIMARY KEY ("A","B")
+);
+
+-- CreateTable
+CREATE TABLE "_SemesterToSubject" (
+    "A" INTEGER NOT NULL,
+    "B" INTEGER NOT NULL,
+
+    CONSTRAINT "_SemesterToSubject_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateIndex
@@ -291,10 +353,25 @@ CREATE UNIQUE INDEX "StudentAnswer_studentId_quizId_questionId_key" ON "StudentA
 CREATE UNIQUE INDEX "QuizResult_studentId_quizId_key" ON "QuizResult"("studentId", "quizId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_SubjectToTeacher_AB_unique" ON "_SubjectToTeacher"("A", "B");
+CREATE INDEX "Complaint_studentId_idx" ON "Complaint"("studentId");
+
+-- CreateIndex
+CREATE INDEX "Complaint_quizId_idx" ON "Complaint"("quizId");
+
+-- CreateIndex
+CREATE INDEX "Attestation_studentId_idx" ON "Attestation"("studentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TuitionPayment_studentId_month_year_key" ON "TuitionPayment"("studentId", "month", "year");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Semester_name_key" ON "Semester"("name");
 
 -- CreateIndex
 CREATE INDEX "_SubjectToTeacher_B_index" ON "_SubjectToTeacher"("B");
+
+-- CreateIndex
+CREATE INDEX "_SemesterToSubject_B_index" ON "_SemesterToSubject"("B");
 
 -- AddForeignKey
 ALTER TABLE "Student" ADD CONSTRAINT "Student_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Parent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -318,6 +395,9 @@ ALTER TABLE "Lesson" ADD CONSTRAINT "Lesson_teacherId_fkey" FOREIGN KEY ("teache
 ALTER TABLE "Exam" ADD CONSTRAINT "Exam_lessonId_fkey" FOREIGN KEY ("lessonId") REFERENCES "Lesson"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Exam" ADD CONSTRAINT "Exam_semesterId_fkey" FOREIGN KEY ("semesterId") REFERENCES "Semester"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Result" ADD CONSTRAINT "Result_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -325,6 +405,9 @@ ALTER TABLE "Result" ADD CONSTRAINT "Result_studentId_fkey" FOREIGN KEY ("studen
 
 -- AddForeignKey
 ALTER TABLE "Result" ADD CONSTRAINT "Result_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Result" ADD CONSTRAINT "Result_semesterId_fkey" FOREIGN KEY ("semesterId") REFERENCES "Semester"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ExamAverage" ADD CONSTRAINT "ExamAverage_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -387,7 +470,25 @@ ALTER TABLE "ExamCorrection" ADD CONSTRAINT "ExamCorrection_quizId_fkey" FOREIGN
 ALTER TABLE "ExamCorrection" ADD CONSTRAINT "ExamCorrection_correctedBy_fkey" FOREIGN KEY ("correctedBy") REFERENCES "Teacher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Complaint" ADD CONSTRAINT "Complaint_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Complaint" ADD CONSTRAINT "Complaint_quizId_fkey" FOREIGN KEY ("quizId") REFERENCES "Quiz"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Attestation" ADD CONSTRAINT "Attestation_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TuitionPayment" ADD CONSTRAINT "TuitionPayment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "_SubjectToTeacher" ADD CONSTRAINT "_SubjectToTeacher_A_fkey" FOREIGN KEY ("A") REFERENCES "Subject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_SubjectToTeacher" ADD CONSTRAINT "_SubjectToTeacher_B_fkey" FOREIGN KEY ("B") REFERENCES "Teacher"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_SemesterToSubject" ADD CONSTRAINT "_SemesterToSubject_A_fkey" FOREIGN KEY ("A") REFERENCES "Semester"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_SemesterToSubject" ADD CONSTRAINT "_SemesterToSubject_B_fkey" FOREIGN KEY ("B") REFERENCES "Subject"("id") ON DELETE CASCADE ON UPDATE CASCADE;

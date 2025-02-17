@@ -62,6 +62,12 @@ const menuItems = [
         visible: ["admin", "teacher"],
       },
       {
+        icon: Clipboard,
+        label: "Semestres",
+        href: "/list/semester",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
         icon: BookOpen,
         label: "Lessons",
         href: "/list/lessons",
@@ -145,7 +151,6 @@ const menuItems = [
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
-    
     ],
   },
   {
