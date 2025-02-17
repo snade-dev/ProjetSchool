@@ -32,52 +32,69 @@ export default function StudentResultModal({
   initialSemesterId,
 }: StudentResultModalProps) {
   const [selectedClass, setSelectedClass] = useState(initialClassId || "");
-  const [selectedSemester, setSelectedSemester] = useState(initialSemesterId || "");
+  const [selectedSemester, setSelectedSemester] = useState(
+    initialSemesterId || ""
+  );
   const [results, setResults] = useState<ResultWithSubject[]>([]);
   const [currentClassName, setCurrentClassName] = useState<string>("");
   const [selectedSemesterName, setSelectedSemesterName] = useState("");
-  const [allSubjects, setAllSubjects] = useState<{ id: number; name: string }[]>([]);
+  const [allSubjects, setAllSubjects] = useState<
+    { id: number; name: string }[]
+  >([]);
 
   useEffect(() => {
     if (selectedClass && selectedSemester) {
-      fetch(`/api/results?studentId=${studentId}&classId=${selectedClass}&semesterId=${selectedSemester}`)
-        .then(res => res.json())
-        .then(data => {
+      fetch(
+        `/api/results?studentId=${studentId}&classId=${selectedClass}&semesterId=${selectedSemester}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
           setResults(data.results || []);
           setCurrentClassName(data.className || "");
           setAllSubjects(data.subjects || []);
-          const semester = semesters.find(s => s.id === parseInt(selectedSemester));
+          const semester = semesters.find(
+            (s) => s.id === parseInt(selectedSemester)
+          );
           setSelectedSemesterName(semester?.name || "");
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Fetch error:", error);
         });
     }
   }, [studentId, selectedClass, selectedSemester, semesters]);
 
   // Préparer les données pour le bulletin avec toutes les matières
-  const bulletinGrades = allSubjects.map(subject => ({
+  const bulletinGrades = allSubjects.map((subject) => ({
     subject: subject.name,
-    score: results.find(r => r.subjectId === subject.id)?.score ?? 0, // 0 pour les notes manquantes
-    hasScore: results.some(r => r.subjectId === subject.id)
+    score: results.find((r) => r.subjectId === subject.id)?.score ?? 0, // 0 pour les notes manquantes
+    hasScore: results.some((r) => r.subjectId === subject.id),
   }));
 
   // Préparer les données pour l'affichage dans le tableau
-  const displayResults = allSubjects.map(subject => {
-    const result = results.find(r => r.subjectId === subject.id);
+  const displayResults = allSubjects.map((subject) => {
+    const result = results.find((r) => r.subjectId === subject.id);
     return {
       subjectId: subject.id,
       subjectName: subject.name,
-      score: result?.score ?? null
+      score: result?.score ?? null,
     };
   });
+
+  // Calculer la moyenne des notes en comptant 0 pour les matières non notées
+  const average =
+    displayResults.length > 0
+      ? (
+          displayResults.reduce((sum, r) => sum + (r.score ?? 0), 0) /
+          displayResults.length
+        ).toFixed(2)
+      : "N/A";
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/30" onClick={onClose} />
-      
+
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl">
           <div className="flex justify-between items-center mb-4">
@@ -142,6 +159,11 @@ export default function StudentResultModal({
                       <td className="p-2">{result.score ?? "Non noté"}</td>
                     </tr>
                   ))}
+                  {/* Ligne pour la moyenne */}
+                  <tr className="border-b bg-gray-50 font-semibold">
+                    <td className="p-2">Moyenne générale</td>
+                    <td className="p-2">{average}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -159,4 +181,4 @@ export default function StudentResultModal({
       </div>
     </div>
   );
-} 
+}

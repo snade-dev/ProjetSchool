@@ -12,4 +12,4 @@ export async function renderResultActions(item: any, role: string) {
     );
   }
   return null;
-} 
+}
