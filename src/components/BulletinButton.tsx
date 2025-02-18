@@ -1,20 +1,21 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
-// Import dynamique de PDFDownloadLink et BulletinPDF
+// Import dynamique de PDFDownloadLink
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   {
     ssr: false,
-    loading: () => null,
+    loading: () => <p>Chargement...</p>,
   }
 );
 
+// Import dynamique de BulletinPDF
 const BulletinPDF = dynamic(() => import("./BulletinPDF"), {
   ssr: false,
-  loading: () => null,
+  loading: () => <p>Chargement du PDF...</p>,
 });
 
 // Définition des types
@@ -31,29 +32,28 @@ interface BulletinButtonProps {
   semesterName: string;
 }
 
-const BulletinButton = ({ studentName, grades, className, semesterName }: BulletinButtonProps) => {
-  const [mounted, setMounted] = useState(false);
+const BulletinButton = ({
+  studentName,
+  grades,
+  className,
+  semesterName,
+}: BulletinButtonProps) => {
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return (
-      <button className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-pointer">
-        <span className="block box-border border-2 border-black rounded-[0.75em] bg-[#e8e8e8] text-black py-3 px-6 translate-y-[-0.2em]">
-          Chargement...
-        </span>
-      </button>
-    );
+  if (!isClient) {
+    return <p>Chargement...</p>;
   }
 
   return (
     <div>
       <PDFDownloadLink
         document={
-          <BulletinPDF 
-            studentName={studentName} 
+          <BulletinPDF
+            studentName={studentName}
             grades={grades}
             className={className}
             semesterName={semesterName}
@@ -61,13 +61,21 @@ const BulletinButton = ({ studentName, grades, className, semesterName }: Bullet
         }
         fileName={`${studentName.replace(" ", "_")}_Bulletin_${semesterName}.pdf`}
       >
-        {({ loading }) => (
-          <button className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-pointer">
-            <span className="block box-border border-2 border-black rounded-[0.75em] bg-[#e8e8e8] text-black py-3 px-6 translate-y-[-0.2em] transition-transform ease-linear duration-100 group-hover:translate-y-[-0.33em] group-active:translate-y-0">
-              {loading ? "Chargement..." : "Télécharger le bulletin"}
-            </span>
-          </button>
-        )}
+        {({ loading }) =>
+          loading ? (
+            <button className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-wait opacity-50">
+              <span className="block box-border border-2 border-black rounded-[0.75em] bg-[#e8e8e8] text-black py-3 px-6">
+                Chargement...
+              </span>
+            </button>
+          ) : (
+            <button className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-pointer">
+              <span className="block box-border border-2 border-black rounded-[0.75em] bg-[#e8e8e8] text-black py-3 px-6 translate-y-[-0.2em] transition-transform ease-linear duration-100 group-hover:translate-y-[-0.33em] group-active:translate-y-0">
+                Télécharger le bulletin
+              </span>
+            </button>
+          )
+        }
       </PDFDownloadLink>
     </div>
   );

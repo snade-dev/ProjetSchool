@@ -1,6 +1,7 @@
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import dynamic from "next/dynamic";
 
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
@@ -17,7 +18,7 @@ import FormContainer from "@/components/FormContainer";
 import ClientFilters from "./components/ClientFilters";
 // import ClickableStudentName from "./components/ClickableStudentName";
 import ResultTable from "./components/ResultTable";
-import { renderResultActions } from "./components/actions";
+// import { renderResultActions } from "./components/actions";
 import ClickableStudentName from "./components/ClickableStudentName";
 import prisma from "@/lib/prisma";
 
@@ -26,6 +27,11 @@ type ResultList = Result & {
   student: Student;
   subject: Subject;
 };
+
+const BulletinPDF = dynamic(() => import("@/components/BulletinPDF"), {
+  ssr: false,
+  loading: () => <p>Chargement du PDF...</p>,
+});
 
 export default async function ResultListPage({
   searchParams,
@@ -40,10 +46,15 @@ export default async function ResultListPage({
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   console.log(searchParams); // Vérifie si studentId est présent et correct
 
-  // Récupération des données initiales
-  const [classes, semesters] = await Promise.all([
+  // Récupération des données initiales avec les relations
+  const [classes, semesters, subjects] = await Promise.all([
     prisma.class.findMany(),
     prisma.semester.findMany(),
+    prisma.subject.findMany({
+      include: {
+        semesters: true, // Inclure les semestres pour chaque matière
+      },
+    }),
   ]);
 
   // Construction de la query
@@ -97,11 +108,17 @@ export default async function ResultListPage({
     prisma.result.findMany({
       where: query,
       include: {
-        exam: { select: { id: true, title: true } },
+        exam: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         student: {
           select: {
             id: true,
             name: true,
+            username: true,
             classId: true,
             class: {
               select: {
@@ -110,7 +127,18 @@ export default async function ResultListPage({
             },
           },
         },
-        subject: { select: { id: true, name: true } },
+        subject: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        semester: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: {
         student: {
@@ -158,6 +186,7 @@ export default async function ResultListPage({
         role={role ?? ""}
         classes={classes}
         semesters={semesters}
+        subjects={subjects}
       />
 
       <Pagination page={page} count={count} />

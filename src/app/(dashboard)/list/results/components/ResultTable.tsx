@@ -4,21 +4,22 @@ import Table from "@/components/Table";
 import { useState } from "react";
 import StudentResultModal from "./StudentResultModal";
 import { Class, Semester } from "@prisma/client";
+import ResultActions from "./ResultActions";
 
 interface ResultTableProps {
   data: any[];
   role: string;
-  actions?: React.ReactNode;
   classes: Class[];
   semesters: Semester[];
+  subjects: any[];
 }
 
 export default function ResultTable({
   data,
   role,
-  actions,
   classes,
   semesters,
+  subjects,
 }: ResultTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: string;
@@ -42,7 +43,7 @@ export default function ResultTable({
             className: "hidden md:table-cell",
           },
           ...(role === "admin" || role === "teacher"
-            ? [{ header: "Actions", accessor: "action" }]
+            ? [{ header: "Actions", accessor: "actions" }]
             : []),
         ]}
         renderRow={(item: any) => (
@@ -68,9 +69,15 @@ export default function ResultTable({
             </td>
             <td>{item.subject.name}</td>
             <td className="hidden md:table-cell">{item.score}</td>
-            {actions && (
+            {(role === "admin" || role === "teacher") && (
               <td>
-                <div className="flex items-center gap-2">{actions}</div>
+                <ResultActions
+                  item={item}
+                  role={role}
+                  subjects={subjects}
+                  semesters={semesters}
+                  classes={classes}
+                />
               </td>
             )}
           </tr>
