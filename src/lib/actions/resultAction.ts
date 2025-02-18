@@ -1,17 +1,8 @@
 "use server";
 
-import { ResultMSchema, ResultSchema } from "../formsValidationSchema";
+import { Prisma } from "@prisma/client";
+import { ResultSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
-
-type CurrentState = {
-  success: boolean;
-  error: boolean;
-};
-type CurrentState2 = {
-  success: boolean;
-  error: boolean;
-  message: string;
-};
 
 interface ActionResult {
   success: boolean;
@@ -20,12 +11,9 @@ interface ActionResult {
 }
 
 export const createResult = async (
-  currentState: ActionResult,
+  prevState: ActionResult,
   data: ResultSchema
 ): Promise<ActionResult> => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername },
@@ -35,25 +23,24 @@ export const createResult = async (
       return {
         success: false,
         error: true,
-        message: "L'étudiant n'existe pas",
+        message: `L'étudiant avec le nom d'utilisateur "${data.studentUsername}" n'existe pas`,
       };
     }
 
-    const result = await prisma.result.findUnique({
+    // Vérifier si un résultat existe déjà
+    const existingResult = await prisma.result.findFirst({
       where: {
-        examId_studentId_subjectId: {
-          studentId: student.id,
-          examId: data.examId,
-          subjectId: data.subjectId,
-        },
+        studentId: student.id,
+        subjectId: data.subjectId,
+        semesterId: data.semesterId,
       },
     });
 
-    if (result) {
+    if (existingResult) {
       return {
         success: false,
         error: true,
-        message: "Ce résultat existe déjà",
+        message: `Une note existe déjà pour cet étudiant dans cette matière pour ce semestre`,
       };
     }
 
@@ -77,38 +64,26 @@ export const createResult = async (
     return {
       success: false,
       error: true,
-      message: "Erreur lors de la création de la note",
+      message: "Erreur lors de la création des notes",
     };
   }
 };
 
 export const updateResult = async (
-  currentState: CurrentState2,
+  prevState: ActionResult,
   data: ResultSchema
-) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
+): Promise<ActionResult> => {
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername },
     });
 
     if (!student) {
-      return { success: false, error: true, message: "" };
+      return {
+        success: false,
+        error: true,
+        message: "L'étudiant n'existe pas",
+      };
     }
 
     await prisma.result.update({
@@ -120,38 +95,56 @@ export const updateResult = async (
         score: data.score,
         examId: data.examId,
         studentId: student.id,
+        semesterId: data.semesterId,
       },
     });
 
-    // revalidatePath("/list/subjects");
-    return { success: true, error: false, message: "" };
+    return {
+      success: true,
+      error: false,
+      message: "Note modifiée avec succès",
+    };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true, message: "" };
+    console.error("Erreur lors de la modification:", err);
+    return {
+      success: false,
+      error: true,
+      message: "Erreur lors de la modification de la note",
+    };
   }
 };
 
 export const deleteResult = async (
-  currentState: CurrentState,
+  prevState: ActionResult,
   data: FormData
-) => {
-  const id = data.get("id") as string;
-
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
+): Promise<ActionResult> => {
   try {
+    const id = data.get("id");
+    if (!id) {
+      return {
+        success: false,
+        error: true,
+        message: "ID de la note manquant",
+      };
+    }
+
     await prisma.result.delete({
       where: {
-        id: parseInt(id),
-        // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
+        id: parseInt(id as string),
       },
     });
 
-    // revalidatePath("/list/subjects");
-    return { success: true, error: false };
+    return {
+      success: true,
+      error: false,
+      message: "Note supprimée avec succès",
+    };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.error("Erreur lors de la suppression:", err);
+    return {
+      success: false,
+      error: true,
+      message: "Erreur lors de la suppression de la note",
+    };
   }
 };
