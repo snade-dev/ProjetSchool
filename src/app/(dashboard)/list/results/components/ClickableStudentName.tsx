@@ -18,7 +18,9 @@ export default function ClickableStudentName({
 
   return (
     <button
-      onClick={() => handleFilterChange("studentId", isActive ? "" : studentId.toString())}
+      onClick={() =>
+        handleFilterChange("studentId", isActive ? "" : studentId.toString())
+      }
       className={`text-left ${
         isActive
           ? "text-blue-800 font-semibold underline"

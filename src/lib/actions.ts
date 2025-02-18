@@ -602,3 +602,28 @@ export const deleteExam = async (
     return { success: false, error: true };
   }
 };
+
+export async function searchParents(query: string) {
+  'use server'
+  
+  if (!query || query.length < 2) {
+    return [];
+  }
+
+  const parents = await prisma.parent.findMany({
+    where: {
+      OR: [
+        { username: { contains: query, mode: "insensitive" } },
+        { email: { contains: query, mode: "insensitive" } }
+      ],
+    },
+    select: {
+      id: true,
+      username: true,
+      email: true
+    },
+    take: 5
+  });
+
+  return parents;
+}

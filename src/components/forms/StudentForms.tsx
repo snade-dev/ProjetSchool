@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
 import { studentSchema, StudentSchema } from "@/lib/formsValidationSchema";
-import { createStudent, updateStudent } from "@/lib/actions";
+import { createStudent, updateStudent, searchParents } from "@/lib/actions";
 
 const StudentForm = ({
   type,
@@ -33,6 +33,8 @@ const StudentForm = ({
 
   const [img, setImg] = useState<any>();
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
+  const [parentSuggestions, setParentSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [state, formAction] = useFormState(
     type === "create" ? createStudent : updateStudent,
@@ -165,13 +167,65 @@ const StudentForm = ({
           error={errors.birthday}
           type="date"
         />
-        <InputField
-          label="Nom du parent"
-          name="parentUsername"
-          defaultValue={data?.parentUsername}
-          register={register}
-          error={errors.parentUsername}
-        />
+        <div className="relative flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Nom du parent</label>
+          <input
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-200"
+            {...register("parentUsername")}
+            defaultValue={data?.parentUsername}
+            onChange={async (e) => {
+              register("parentUsername").onChange(e);
+              if (e.target.value.length > 2) {
+                const results = await searchParents(e.target.value);
+                setParentSuggestions(results);
+                setShowSuggestions(true);
+              } else {
+                setParentSuggestions([]);
+                setShowSuggestions(false);
+              }
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => {
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
+          />
+
+          {showSuggestions && parentSuggestions.length > 0 && (
+            <div className="absolute bottom-full left-0 w-full bg-white border border-gray-200 rounded-md shadow-lg mb-1 z-50 max-h-48 overflow-y-auto">
+              {parentSuggestions.map((parent) => (
+                <div
+                  key={parent.id}
+                  className="p-3 hover:bg-blue-50 cursor-pointer transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                  onClick={() => {
+                    const input = document.querySelector(
+                      'input[name="parentUsername"]'
+                    ) as HTMLInputElement;
+                    if (input) {
+                      input.value = parent.username;
+                      register("parentUsername").onChange({
+                        target: {
+                          value: parent.username,
+                          name: "parentUsername",
+                        },
+                      });
+                    }
+                    setShowSuggestions(false);
+                  }}
+                >
+                  <div className="font-medium text-gray-700">
+                    {parent.username}
+                  </div>
+                  <div className="text-xs text-gray-500">{parent.email}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {errors.parentUsername?.message && (
+            <p className="text-xs text-red-400">
+              {errors.parentUsername.message.toString()}
+            </p>
+          )}
+        </div>
         {data && (
           <InputField
             label="Identifiant"
