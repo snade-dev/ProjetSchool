@@ -283,3 +283,12 @@ export const semesterSchema = z.object({
 
 
 export type SemesterSchema = z.infer<typeof semesterSchema>;
+
+export const resultFormSchema = z.object({
+  results: z.array(z.object({
+    id: z.number(),
+    score: z.number(),
+  })),
+});
+
+export type ResultFormSchema = z.infer<typeof resultFormSchema>;

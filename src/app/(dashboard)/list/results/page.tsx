@@ -15,11 +15,9 @@ import {
 } from "@prisma/client";
 import FormContainer from "@/components/FormContainer";
 import ClientFilters from "./components/ClientFilters";
-// import ClickableStudentName from "./components/ClickableStudentName";
 import ResultTable from "./components/ResultTable";
-import { renderResultActions } from "./components/actions";
-import ClickableStudentName from "./components/ClickableStudentName";
 import prisma from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
 type ResultList = Result & {
   exam: Exam;
@@ -98,6 +96,7 @@ export default async function ResultListPage({
       where: query,
       include: {
         exam: { select: { id: true, title: true } },
+        semester: { select: { id: true, name: true } },
         student: {
           select: {
             id: true,
@@ -110,18 +109,30 @@ export default async function ResultListPage({
             },
           },
         },
-        subject: { select: { id: true, name: true } },
       },
       orderBy: {
         student: {
           name: "asc",
         },
       },
+      distinct: ["studentId"],
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (page - 1),
     }),
     prisma.result.count({ where: query }),
   ]);
+
+  if (!data) {
+    return notFound();
+  }
+
+  const aggregateResult = await prisma.result.aggregate({
+    _avg: { score: true },
+    where: { studentId: data[0]?.studentId },
+  });
+
+  const moyenne = aggregateResult._avg.score ?? 0;
+  console.log("La moyenne des résultats est :", moyenne);
 
   // Pour déboguer
   console.log("Nombre de résultats:", count);
@@ -155,9 +166,8 @@ export default async function ResultListPage({
 
       <ResultTable
         data={data}
+        moyenne={moyenne}
         role={role ?? ""}
-        classes={classes}
-        semesters={semesters}
       />
 
       <Pagination page={page} count={count} />

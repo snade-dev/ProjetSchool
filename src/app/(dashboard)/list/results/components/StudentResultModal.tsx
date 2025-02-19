@@ -1,18 +1,28 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { Subject, Result, Class, Semester } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import BulletinButton from "@/components/BulletinButton";
+import { ResultForm } from "./ResultForm";
+import { useState } from "react";
+
+type ResultWithDetails = Prisma.ResultGetPayload<{
+  include: {
+    exam: { select: { id: true; title: true } };
+    semester: { select: { id: true; name: true } };
+    subject: { select: { id: true; name: true } };
+    student: {
+      select: {
+        id: true;
+        name: true;
+        classId: true;
+        class: { select: { name: true } };
+      };
+    };
+  };
+}>;
 
 interface StudentResultModalProps {
   isOpen: boolean;
   onClose: () => void;
-  studentId: string;
-  studentName: string;
-  classes: Class[];
-  semesters: Semester[];
-  initialClassId?: string;
-  initialSemesterId?: string;
+  results: ResultWithDetails[];
 }
 
 interface ResultWithSubject {
@@ -24,110 +34,51 @@ interface ResultWithSubject {
 export default function StudentResultModal({
   isOpen,
   onClose,
-  studentId,
-  studentName,
-  classes,
-  semesters,
-  initialClassId,
-  initialSemesterId,
+  results,
 }: StudentResultModalProps) {
-  const [selectedClass, setSelectedClass] = useState(initialClassId || "");
-  const [selectedSemester, setSelectedSemester] = useState(initialSemesterId || "");
-  const [results, setResults] = useState<ResultWithSubject[]>([]);
-  const [currentClassName, setCurrentClassName] = useState<string>("");
-  const [selectedSemesterName, setSelectedSemesterName] = useState("");
-  const [allSubjects, setAllSubjects] = useState<{ id: number; name: string }[]>([]);
-
-  useEffect(() => {
-    if (selectedClass && selectedSemester) {
-      fetch(`/api/results?studentId=${studentId}&classId=${selectedClass}&semesterId=${selectedSemester}`)
-        .then(res => res.json())
-        .then(data => {
-          setResults(data.results || []);
-          setCurrentClassName(data.className || "");
-          setAllSubjects(data.subjects || []);
-          const semester = semesters.find(s => s.id === parseInt(selectedSemester));
-          setSelectedSemesterName(semester?.name || "");
-        })
-        .catch(error => {
-          console.error("Fetch error:", error);
-        });
-    }
-  }, [studentId, selectedClass, selectedSemester, semesters]);
-
-  // Préparer les données pour le bulletin avec toutes les matières
-  const bulletinGrades = allSubjects.map(subject => ({
-    subject: subject.name,
-    score: results.find(r => r.subjectId === subject.id)?.score ?? 0, // 0 pour les notes manquantes
-    hasScore: results.some(r => r.subjectId === subject.id)
-  }));
-
-  // Préparer les données pour l'affichage dans le tableau
-  const displayResults = allSubjects.map(subject => {
-    const result = results.find(r => r.subjectId === subject.id);
-    return {
-      subjectId: subject.id,
-      subjectName: subject.name,
-      score: result?.score ?? null
-    };
-  });
+  const [isEditing, setIsEditing] = useState(false);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/30" onClick={onClose} />
-      
+
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">
-              Résultats de {studentName}
+              Résultats de {results[0].student.name}
             </h2>
-            {currentClassName && (
+            {results[0].student.class.name && (
               <span className="text-sm text-gray-600">
-                Classe: {currentClassName}
+                Classe: {results[0].student.class.name}
               </span>
             )}
           </div>
 
           <div className="flex gap-4 mb-6">
-            <select
-              className="p-2 border rounded"
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-            >
-              <option value="">Sélectionner une classe</option>
-              {classes.map((classe) => (
-                <option key={classe.id} value={classe.id}>
-                  {classe.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="p-2 border rounded"
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-            >
-              <option value="">Sélectionner un semestre</option>
-              {semesters.map((semester) => (
-                <option key={semester.id} value={semester.id}>
-                  {semester.name}
-                </option>
-              ))}
-            </select>
-
             <BulletinButton
-              studentName={studentName}
-              grades={bulletinGrades}
-              className={currentClassName}
-              semesterName={selectedSemesterName}
+              studentName={results[0].student.name}
+              grades={results.map((r) => ({
+                subject: r.subject.name,
+                score: r.score,
+              }))}
+              className={results[0].student.class.name}
+              semesterName={results[0].semester.name}
             />
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              {isEditing ? "Voir les notes" : "Modifier les notes"}
+            </button>
           </div>
 
-          {selectedClass && selectedSemester && (
-            <div className="mt-4">
+          <div className="mt-4">
+            {isEditing ? (
+              <ResultForm results={results} />
+            ) : (
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-100">
@@ -136,16 +87,16 @@ export default function StudentResultModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {displayResults.map((result) => (
+                  {results.map((result) => (
                     <tr key={result.subjectId} className="border-b">
-                      <td className="p-2">{result.subjectName}</td>
+                      <td className="p-2">{result.subject.name}</td>
                       <td className="p-2">{result.score ?? "Non noté"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="mt-6 flex justify-end">
             <button
@@ -159,4 +110,4 @@ export default function StudentResultModal({
       </div>
     </div>
   );
-} 
+}

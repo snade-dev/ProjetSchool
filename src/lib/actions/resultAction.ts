@@ -1,6 +1,6 @@
 "use server";
 
-import { ResultMSchema, ResultSchema } from "../formsValidationSchema";
+import { ResultFormSchema, ResultMSchema, ResultSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 
 type CurrentState = {
@@ -130,6 +130,30 @@ export const updateResult = async (
     return { success: false, error: true, message: "" };
   }
 };
+
+
+export async function updateResults(currentState: CurrentState2, resultsData: ResultFormSchema) {
+  // Validation des données
+  try {
+    
+
+  // Mise à jour en transaction de tous les résultats
+  await prisma.$transaction(
+    resultsData.results.map(({ id, score }) =>
+      prisma.result.update({
+        where: { id },
+        data: { score },
+      })
+    )
+  );
+
+    return { success: true, error: false, message: "Notes mises à jour avec succès" };  
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: true, message: "Erreur lors de la mise à jour des notes" };
+  }
+}
+
 
 export const deleteResult = async (
   currentState: CurrentState,

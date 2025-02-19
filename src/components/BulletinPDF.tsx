@@ -12,7 +12,6 @@ import {
 interface Grade {
   subject: string;
   score: number;
-  hasScore: boolean; // Nouveau champ pour indiquer si la note existe
 }
 
 interface BulletinPDFProps {
@@ -29,13 +28,14 @@ const BulletinPDF = ({
   className,
   semesterName,
 }: BulletinPDFProps) => {
-  // Calculer la moyenne uniquement avec les notes existantes
-  const validGrades = grades.filter((g) => g.hasScore);
+  // Calculer la moyenne en comptant toutes les matières
   const average =
-    validGrades.length > 0
+    grades.length > 0
       ? (
-          validGrades.reduce((sum, grade) => sum + grade.score, 0) /
-          validGrades.length
+          grades.reduce(
+            (sum, grade) => sum + grade.score,
+            0
+          ) / grades.length
         ).toFixed(2)
       : "N/A";
 
@@ -45,10 +45,10 @@ const BulletinPDF = ({
         {/* En-tête avec logo et informations de l'école */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Image
+            {/* <Image
               style={styles.logo}
-              src="/logo.png" // Assurez-vous que le chemin est correct
-            />
+              src={LOGO}
+            /> */}
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.schoolName}>École Lama Academy</Text>
@@ -81,10 +81,9 @@ const BulletinPDF = ({
                 <Text
                   style={{
                     ...styles.tableCell,
-                    ...(grade.hasScore ? {} : styles.missingGrade),
                   }}
                 >
-                  {grade.hasScore ? grade.score : "Non noté"}
+                  {grade.score}
                 </Text>
               </View>
             ))}
@@ -109,18 +108,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 20,
     paddingBottom: 10,
+    alignItems: "center", // Centrer verticalement le logo et le texte
   },
   headerLeft: {
     width: 100,
-    marginRight: 20,
   },
   headerRight: {
     flex: 1,
-    justifyContent: "center",
+    marginLeft: 20,
   },
   logo: {
     width: 80,
     height: 80,
+    marginRight: 20,
   },
   schoolName: {
     fontSize: 18,
@@ -185,4 +185,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BulletinPDF;
+export default BulletinPDF;

@@ -42,6 +42,8 @@ model Student {
   Attestation Attestation[]
 
   TuitionPayment TuitionPayment[]
+
+  ResultAverage ResultAverage[]
 }
 
 model Teacher {
@@ -98,13 +100,13 @@ model Class {
 }
 
 model Subject {
-  id       Int       @id @default(autoincrement())
-  name     String    @unique
-  teachers Teacher[]
-  lessons  Lesson[]
-  results  Result[]
-  semesters Semester[] 
-  Quiz Quiz[]
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  teachers  Teacher[]
+  lessons   Lesson[]
+  results   Result[]
+  semesters Semester[]
+  Quiz      Quiz[]
 
   Attendance Attendance[]
 }
@@ -130,11 +132,11 @@ model Exam {
   endTime   DateTime
 
   lessonId Int
-  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-    
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  results  Result[]
+  results    Result[]
 
   ExamAverage ExamAverage[]
 }
@@ -143,16 +145,27 @@ model Result {
   id    Int @id @default(autoincrement())
   score Int
 
-  examId    Int?
-  exam      Exam?   @relation(fields: [examId], references: [id], onDelete: SetNull)
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subjectId Int
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  examId     Int?
+  exam       Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subjectId  Int
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
   @@unique([examId, studentId, subjectId]) // Contrainte pour éviter les doublons
+}
+
+model ResultAverage {
+  id        Int     @id @default(autoincrement())
+  average   Float
+  semesterId Int
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([semesterId, studentId]) // Contrainte pour éviter les doublons
 }
 
 model ExamAverage {
@@ -201,20 +214,20 @@ model Announcement {
 }
 
 model Quiz {
-  id          String     @id @default(uuid())
-  title       String     @unique
-  date        DateTime
-  duration    Int        // Durée de l'examen en minutes
-  published   Boolean    @default(false)  // Contrôle de la publication des résultats
-  createdAt   DateTime   @default(now())
-  teacherId   String
-  teacher     Teacher    @relation(fields: [teacherId], references: [id])
-  classId     Int
-  class       Class      @relation(fields: [classId], references: [id])
-  subjectId   Int
-  subject     Subject    @relation(fields: [subjectId], references: [id])
+  id        String   @id @default(uuid())
+  title     String   @unique
+  date      DateTime
+  duration  Int // Durée de l'examen en minutes
+  published Boolean  @default(false) // Contrôle de la publication des résultats
+  createdAt DateTime @default(now())
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id])
+  classId   Int
+  class     Class    @relation(fields: [classId], references: [id])
+  subjectId Int
+  subject   Subject  @relation(fields: [subjectId], references: [id])
 
-  questions   Question[]
+  questions     Question[]
   StudentAnswer StudentAnswer[]
   QuizResult    QuizResult[] // Relation avec QuizResult
 
@@ -224,44 +237,44 @@ model Quiz {
 }
 
 model Question {
-  id            String    @id @default(uuid())
-  questionText  String
-  createdBy     String
-  teacher       Teacher   @relation(fields: [createdBy], references: [id])
-  quizId        String
-  quiz          Quiz      @relation(fields: [quizId], references: [id])
+  id           String  @id @default(uuid())
+  questionText String
+  createdBy    String
+  teacher      Teacher @relation(fields: [createdBy], references: [id])
+  quizId       String
+  quiz         Quiz    @relation(fields: [quizId], references: [id])
 
   StudentAnswer StudentAnswer[]
 }
 
 model StudentAnswer {
-  id          String      @id @default(uuid())
+  id          String   @id @default(uuid())
   studentId   String
-  student     Student     @relation(fields: [studentId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id])
   quizId      String
-  quiz        Quiz        @relation(fields: [quizId], references: [id])
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
   questionId  String
-  question    Question    @relation(fields: [questionId], references: [id])
+  question    Question @relation(fields: [questionId], references: [id])
   answerText  String
-  score       Float?      // Note attribuée par l'enseignant pour cette réponse
-  submittedAt DateTime    @default(now())
+  score       Float? // Note attribuée par l'enseignant pour cette réponse
+  submittedAt DateTime @default(now())
 
-  quizResultId String?    // Clé étrangère vers QuizResult
+  quizResultId String? // Clé étrangère vers QuizResult
   quizResult   QuizResult? @relation(fields: [quizResultId], references: [id]) // Relation avec QuizResult
 
+  @@unique([studentId, quizId, questionId]) // Contrainte pour éviter les doublons
   @@index([studentId])
   @@index([quizId])
   @@index([questionId])
-  @@unique([studentId, quizId, questionId]) // Contrainte pour éviter les doublons
 }
 
 model QuizResult {
-  id          String    @id @default(uuid())
-  studentId   String
-  student     Student   @relation(fields: [studentId], references: [id])
-  quizId      String
-  quiz        Quiz      @relation(fields: [quizId], references: [id])
-  totalScore  Float     // Note totale sur 20 pour l'étudiant
+  id         String  @id @default(uuid())
+  studentId  String
+  student    Student @relation(fields: [studentId], references: [id])
+  quizId     String
+  quiz       Quiz    @relation(fields: [quizId], references: [id])
+  totalScore Float // Note totale sur 20 pour l'étudiant
 
   studentAnswers StudentAnswer[] // Relation avec StudentAnswer
 
@@ -269,13 +282,13 @@ model QuizResult {
 }
 
 model ExamCorrection {
-  id              String    @id @default(uuid())
+  id              String   @id @default(uuid())
   quizId          String
-  quiz            Quiz      @relation(fields: [quizId], references: [id])
+  quiz            Quiz     @relation(fields: [quizId], references: [id])
   correctedBy     String
-  teacher         Teacher   @relation(fields: [correctedBy], references: [id])
-  anonymousReview Boolean   @default(true)
-  correctionDate  DateTime  @default(now())
+  teacher         Teacher  @relation(fields: [correctedBy], references: [id])
+  anonymousReview Boolean  @default(true)
+  correctionDate  DateTime @default(now())
 }
 
 model Complaint {
@@ -284,49 +297,45 @@ model Complaint {
   description String
   status      ComplaintStatus @default(PENDING)
   createdAt   DateTime        @default(now())
-  
-  // Auteur obligatoire (étudiant uniquement)
-  studentId   String
-  student     Student         @relation(fields: [studentId], references: [id])
-  
-  // Cible obligatoire (quiz concerné)
-  quizId      String
-  quiz        Quiz            @relation(fields: [quizId], references: [id])
 
+  // Auteur obligatoire (étudiant uniquement)
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  // Cible obligatoire (quiz concerné)
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id])
 
   @@index([studentId])
   @@index([quizId])
 }
 
 model Attestation {
-  id           String         @id @default(uuid())
+  id           String        @id @default(uuid())
   title        String
-  description   String
-  status       RequestStatus  @default(PENDING)
-  requestDate  DateTime       @default(now())
+  description  String
+  status       RequestStatus @default(PENDING)
+  requestDate  DateTime      @default(now())
   resolvedDate DateTime?
   studentId    String
-  student      Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
 }
-
 
 model TuitionPayment {
   id          String   @id @default(uuid())
   studentId   String
   student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  month       Int      // Représente le mois (1 = janvier, 12 = décembre)
-  year        Int      // Année du paiement
-  amount      Float    // Montant payé pour la scolarité
+  month       Int // Représente le mois (1 = janvier, 12 = décembre)
+  year        Int // Année du paiement
+  amount      Float // Montant payé pour la scolarité
   paymentDate DateTime // Date à laquelle le paiement a été effectué
   createdAt   DateTime @default(now())
 
   // Pour éviter que le même étudiant ne paie deux fois pour le même mois/année
   @@unique([studentId, month, year])
 }
-
 
 enum RequestStatus {
   PENDING    @map("En attente")
@@ -336,19 +345,21 @@ enum RequestStatus {
 }
 
 enum ComplaintStatus {
-  PENDING     @map("En attente")
+  PENDING      @map("En attente")
   UNDER_REVIEW @map("En cours")
-  RESOLVED    @map("Résolu")
-  REJECTED    @map("Rejeté")
+  RESOLVED     @map("Résolu")
+  REJECTED     @map("Rejeté")
 }
+
 model Semester {
-  id     Int    @id @default(autoincrement())
-  name   String @unique
-  results Result[]
-  exams  Exam[]
-  subjects  Subject[] 
- 
- }
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  results  Result[]
+  exams    Exam[]
+  subjects Subject[]
+
+  ResultAverage ResultAverage[]
+}
 
 enum UserSex {
   MALE
@@ -362,4 +373,3 @@ enum Day {
   THURSDAY
   FRIDAY
 }
-

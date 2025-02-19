@@ -7,15 +7,20 @@ import { useFormState } from "react-dom";
 import { createResult } from "@/lib/actions/resultAction";
 import { ResultSchema } from "@/lib/formsValidationSchema";
 
+/**
+ * Composant de formulaire pour la gestion des notes des étudiants
+ * Permet la création et la modification de notes pour plusieurs matières en même temps
+ */
+
 interface ResultFormProps {
-  type: "create" | "update";
-  data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  type: "create" | "update"; // Type d'opération : création ou modification
+  data?: any; // Données existantes pour la modification
+  setOpen: Dispatch<SetStateAction<boolean>>; // Fonction pour fermer le modal
   relatedData: {
-    exams: any[];
-    subjects: any[];
-    semesters: any[];
-    classes: any[];
+    exams: any[]; // Liste des examens disponibles
+    subjects: any[]; // Liste des matières disponibles
+    semesters: any[]; // Liste des semestres disponibles
+    classes: any[]; // Liste des classes disponibles
   };
 }
 
@@ -26,12 +31,13 @@ interface ActionResult {
 }
 
 const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState("");
-  const [semesterSubjects, setSemesterSubjects] = useState<any[]>([]);
-  const [studentUsername, setStudentUsername] = useState("");
-  const [scores, setScores] = useState<{ [key: string]: string }>({});
-  const [loading, setLoading] = useState(false);
+  // États locaux pour gérer le formulaire
+  const [selectedClass, setSelectedClass] = useState(""); // Classe sélectionnée
+  const [selectedSemester, setSelectedSemester] = useState(""); // Semestre sélectionné
+  const [semesterSubjects, setSemesterSubjects] = useState<any[]>([]); // Matières du semestre
+  const [studentUsername, setStudentUsername] = useState(""); // Nom d'utilisateur de l'étudiant
+  const [scores, setScores] = useState<{ [key: string]: string }>({}); // Notes par matière
+  const [loading, setLoading] = useState(false); // État de chargement
 
   const router = useRouter();
 
@@ -51,7 +57,10 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
     }
   );
 
-  // Charger les matières quand le semestre est sélectionné
+  /**
+   * Filtre les matières en fonction du semestre sélectionné
+   * Réinitialise les notes quand le semestre change
+   */
   useEffect(() => {
     if (selectedSemester) {
       const filteredSubjects = subjects.filter((subject: any) =>
@@ -64,6 +73,11 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
     }
   }, [selectedSemester, subjects]);
 
+  /**
+   * Met à jour la note pour une matière spécifique
+   * @param subjectId - ID de la matière
+   * @param value - Nouvelle note
+   */
   const handleScoreChange = (subjectId: string, value: string) => {
     setScores((prev) => ({
       ...prev,
@@ -71,8 +85,14 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
     }));
   };
 
+  /**
+   * Gère la soumission du formulaire
+   * Enregistre toutes les notes en parallèle
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation des champs requis
     if (!studentUsername || !selectedClass || !selectedSemester) {
       toast.error("Veuillez remplir tous les champs requis");
       return;
@@ -84,7 +104,7 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
       let hasError = false;
       const promises: Promise<ActionResult>[] = [];
 
-      // Créer un tableau de promesses pour toutes les notes
+      // Traitement de chaque note
       for (const [subjectId, score] of Object.entries(scores)) {
         if (score) {
           const formData: ResultSchema = {
@@ -95,24 +115,24 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
             examId: exams[0].id,
           };
 
-          // Ajouter chaque promesse au tableau
-          const promise = (async () => {
-            const result = await formAction(formData);
-            const actionResult = result as unknown as ActionResult;
-            if (actionResult?.error) {
-              hasError = true;
-              toast.error(
-                actionResult.message || "Erreur lors de l'enregistrement"
-              );
-            }
-            return actionResult;
-          })();
-
-          promises.push(promise);
+          // Création d'une promesse pour chaque note
+          promises.push(
+            (async () => {
+              const result = await formAction(formData);
+              const actionResult = result as unknown as ActionResult;
+              if (actionResult?.error) {
+                hasError = true;
+                toast.error(
+                  actionResult.message || "Erreur lors de l'enregistrement"
+                );
+              }
+              return actionResult;
+            })()
+          );
         }
       }
 
-      // Attendre que toutes les notes soient enregistrées
+      // Attente de l'enregistrement de toutes les notes
       await Promise.all(promises);
 
       if (!hasError) {
