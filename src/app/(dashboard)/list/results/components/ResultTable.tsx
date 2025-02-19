@@ -135,6 +135,7 @@ export default function ResultTable({
           isOpen={!!selectedStudent}
           onClose={() => setSelectedStudent(null)}
           results={selectedStudent.results}
+          role={role}
         />
       )}
     </>

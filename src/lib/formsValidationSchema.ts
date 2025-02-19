@@ -218,6 +218,16 @@ export const quizSchema = z.object({
 
 export type QuizSchema = z.infer<typeof quizSchema>;
 
+export const makeupSessionSchema = z.object({
+  id: z.coerce.string().optional(),
+  title: z.string().min(1, "Le titre est oblicatoire"),
+  startTime: z.coerce.date({ message: "La date est requise !" }),
+  endTime: z.coerce.date({ message: "La date est requise !" }),
+  semesterId: z.string().min(1, "le semestre doit etre entrer"),
+});
+
+export type MakeupSessionSchema = z.infer<typeof makeupSessionSchema>;
+
 
 export const attendanceSchema = z.object({
   id: z.coerce.number().optional(),

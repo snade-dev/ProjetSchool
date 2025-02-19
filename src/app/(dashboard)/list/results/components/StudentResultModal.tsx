@@ -1,7 +1,11 @@
 import { Prisma } from "@prisma/client";
-import BulletinButton from "@/components/BulletinButton";
+import dynamic from "next/dynamic";
 import { ResultForm } from "./ResultForm";
 import { useState } from "react";
+
+const BulletinButton = dynamic(() => import("@/components/BulletinButton"), {
+  ssr: false,
+});
 
 type ResultWithDetails = Prisma.ResultGetPayload<{
   include: {
@@ -23,6 +27,7 @@ interface StudentResultModalProps {
   isOpen: boolean;
   onClose: () => void;
   results: ResultWithDetails[];
+  role: string;
 }
 
 interface ResultWithSubject {
@@ -35,6 +40,7 @@ export default function StudentResultModal({
   isOpen,
   onClose,
   results,
+  role,
 }: StudentResultModalProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -58,21 +64,25 @@ export default function StudentResultModal({
           </div>
 
           <div className="flex gap-4 mb-6">
-            <BulletinButton
-              studentName={results[0].student.name}
-              grades={results.map((r) => ({
-                subject: r.subject.name,
-                score: r.score,
-              }))}
-              className={results[0].student.class.name}
-              semesterName={results[0].semester.name}
-            />
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              {isEditing ? "Voir les notes" : "Modifier les notes"}
-            </button>
+            {typeof window !== "undefined" && (
+              <BulletinButton
+                studentName={results[0].student.name}
+                grades={results.map((r) => ({
+                  subject: r.subject.name,
+                  score: r.score,
+                }))}
+                className={results[0].student.class.name}
+                semesterName={results[0].semester.name}
+              />
+            )}
+            {role === "admin" && (
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                {isEditing ? "Voir les notes" : "Modifier les notes"}
+              </button>
+            )}
           </div>
 
           <div className="mt-4">

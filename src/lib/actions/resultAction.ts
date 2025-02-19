@@ -82,54 +82,6 @@ export const createResult = async (
   }
 };
 
-export const updateResult = async (
-  currentState: CurrentState2,
-  data: ResultSchema
-) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-  try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
-    const student = await prisma.student.findUnique({
-      where: { username: data.studentUsername },
-    });
-
-    if (!student) {
-      return { success: false, error: true, message: "" };
-    }
-
-    await prisma.result.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        subjectId: data.subjectId,
-        score: data.score,
-        examId: data.examId,
-        studentId: student.id,
-      },
-    });
-
-    // revalidatePath("/list/subjects");
-    return { success: true, error: false, message: "" };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true, message: "" };
-  }
-};
 
 
 export async function updateResults(currentState: CurrentState2, resultsData: ResultFormSchema) {

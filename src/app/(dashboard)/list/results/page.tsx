@@ -30,8 +30,8 @@ export default async function ResultListPage({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) {
-  const { userId, sessionClaims } = await auth();
-  const role: string | undefined = (
+  const { sessionClaims } = await auth();
+  const role = (
     sessionClaims?.metadata as { role?: string }
   )?.role;
 
@@ -122,7 +122,7 @@ export default async function ResultListPage({
     prisma.result.count({ where: query }),
   ]);
 
-  if (!data) {
+  if (!data || !role) {
     return notFound();
   }
 
@@ -167,7 +167,7 @@ export default async function ResultListPage({
       <ResultTable
         data={data}
         moyenne={moyenne}
-        role={role ?? ""}
+        role={role}
       />
 
       <Pagination page={page} count={count} />

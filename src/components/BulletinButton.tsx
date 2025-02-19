@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 
+// Import dynamique de react-pdf
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   {

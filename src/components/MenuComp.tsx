@@ -18,6 +18,7 @@ import {
   File,
   FilePlus,
   FileText as FileTextIcon,
+  Repeat,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
 
@@ -132,6 +133,18 @@ const menuItems = [
         label: "Reclamation",
         href: "/list/reclamation",
         visible: ["admin", "teacher", "student"],
+      },
+      {
+        icon: Repeat,
+        label: "Rattrapage",
+        href: "/list/makeupExam", 
+        visible: ["admin", "teacher", "student"],
+      },
+      {
+        icon: Repeat,
+        label: "Session Rattrapage",
+        href: "/list/makeupSession", 
+        visible: ["admin"],
       },
       {
         icon: File,

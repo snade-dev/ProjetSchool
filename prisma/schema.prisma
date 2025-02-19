@@ -10,6 +10,10 @@ datasource db {
 model Admin {
   id       String @id
   username String @unique
+
+  MakeupExam MakeupExam[]
+
+  MakeupSession MakeupSession[]
 }
 
 model Student {
@@ -44,6 +48,8 @@ model Student {
   TuitionPayment TuitionPayment[]
 
   ResultAverage ResultAverage[]
+
+  MakeupExam MakeupExam[]
 }
 
 model Teacher {
@@ -158,12 +164,12 @@ model Result {
 }
 
 model ResultAverage {
-  id        Int     @id @default(autoincrement())
-  average   Float
+  id         Int      @id @default(autoincrement())
+  average    Float
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([semesterId, studentId]) // Contrainte pour éviter les doublons
 }
@@ -359,6 +365,52 @@ model Semester {
   subjects Subject[]
 
   ResultAverage ResultAverage[]
+
+  MakeupSession MakeupSession[]
+}
+
+model MakeupSession {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+
+  // La session concerne une matière et un semestre donnés
+  semesterId Int
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  // L'admin qui crée la session
+  createdById String
+  createdBy   Admin    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  // Inscriptions des étudiants à cette session
+  registrations MakeupExam[]
+
+  // (Optionnel) Contrainte pour éviter des sessions en doublon pour la même matière/semestre au même créneau
+  @@unique([semesterId, startTime])
+}
+
+model MakeupExam {
+  id        String  @id @default(uuid())
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // L'inscription se fait pour une session de rattrapage donnée
+  sessionId String
+  session   MakeupSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  enrollmentDate DateTime @default(now())
+
+  // Note de rattrapage (renseignée par l'admin ultérieurement)
+  score      Float?
+  gradedById String?
+  gradedBy   Admin?    @relation(fields: [gradedById], references: [id])
+  gradedAt   DateTime?
+
+  // Contrainte : un étudiant ne peut s'inscrire qu'une seule fois pour une même session
+  @@unique([studentId, sessionId])
 }
 
 enum UserSex {
