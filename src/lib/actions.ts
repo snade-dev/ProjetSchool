@@ -191,8 +191,8 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 
 
         } catch (clerkError) {
-          console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
-          return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
+          console.warn(`Une erreur c'est prouite Clerk. ${clerkError}`);
+          return {success: false, error: true, message: "Une erreur c'est produite"};
         }
 
         
@@ -525,6 +525,7 @@ export const createExam = async (
         startTime: data.startTime,
         endTime: data.endTime,
         lessonId: data.lessonId,
+        semesterId: data.semesterId,
       },
     });
 

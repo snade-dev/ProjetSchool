@@ -20,6 +20,8 @@ const ReclamationListPage = async ({
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role: string })?.role;
 
+  console.log("role", role);
+
   const columns = [
     {
       header: "Title",
@@ -58,6 +60,7 @@ const ReclamationListPage = async ({
         ]
       : []),
   ];
+
 
   const renderRow = (item: ComplainList) => {
     // Traduction des statuts
@@ -205,7 +208,9 @@ const ReclamationListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormContainer table="quiz" type="create" />}
+            {(role === "student" || role === "admin") && (
+              <FormContainer table="quiz" type="create" />
+            )}
           </div>
         </div>
       </div>

@@ -22,24 +22,41 @@ interface Grade {
 interface BulletinButtonProps {
   studentName: string;
   grades: Grade[];
+  className: string;
+  semesterName: string;
 }
 
-const BulletinButton = ({ studentName, grades }: BulletinButtonProps) => {
-  const [isClient, seIsClient] = useState(false);
-  console.log(studentName);
+const BulletinButton = ({
+  studentName,
+  grades,
+  className,
+  semesterName,
+}: BulletinButtonProps) => {
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    seIsClient(true);
-  }, [isClient]);
+    setIsClient(true);
+  }, []);
+
   return isClient ? (
     <div>
       <PDFDownloadLink
-        document={<BulletinPDF studentName={studentName} grades={grades} />}
-        fileName={`${studentName.replace(" ", "_")}_Bulletin.pdf`}
+        document={
+          <BulletinPDF
+            studentName={studentName}
+            grades={grades}
+            className={className}
+            semesterName={semesterName}
+          />
+        }
+        fileName={`${studentName.replace(
+          " ",
+          "_"
+        )}_Bulletin_${semesterName}.pdf`}
       >
         <button className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-pointer">
           <span className="block box-border border-2 border-black rounded-[0.75em] bg-[#e8e8e8] text-black py-3 px-6 translate-y-[-0.2em] transition-transform ease-linear duration-100 group-hover:translate-y-[-0.33em] group-active:translate-y-0">
-            Telecharger le bulletin
+            Télécharger le bulletin
           </span>
         </button>
       </PDFDownloadLink>
