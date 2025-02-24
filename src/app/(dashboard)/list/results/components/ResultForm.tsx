@@ -1,7 +1,7 @@
 "use client";
 
 import { Prisma } from "@prisma/client";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import React, { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -12,7 +12,7 @@ import { useFormState } from "react-dom";
 import { updateResults } from "@/lib/actions/resultAction";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-// On récupère le type des résultats étendus généré par Prisma
+
 type ResultWithDetails = Prisma.ResultGetPayload<{
   include: {
     exam: { select: { id: true; title: true } };
@@ -29,11 +29,11 @@ type ResultWithDetails = Prisma.ResultGetPayload<{
   };
 }>;
 
-// Les valeurs du formulaire ne contiennent que les champs à modifier (ici l'id et le score)
 interface FormValues {
   results: {
     id: number;
     score: number;
+    classscore: number; // Ajout du classscore
   }[];
 }
 
@@ -42,8 +42,6 @@ interface ResultFormProps {
 }
 
 export const ResultForm = ({ results }: ResultFormProps) => {
-  console.log(results);
-
   const router = useRouter();
   const {
     register,
@@ -53,10 +51,10 @@ export const ResultForm = ({ results }: ResultFormProps) => {
   } = useForm<ResultFormSchema>({
     resolver: zodResolver(resultFormSchema),
     defaultValues: {
-      // On initialise le formulaire avec l'id et le score de chaque résultat
       results: results.map((result) => ({
         id: result.id,
         score: result.score,
+        classscore: result.classScore ?? undefined, // Initialisation du classscore
       })),
     },
   });
@@ -69,7 +67,7 @@ export const ResultForm = ({ results }: ResultFormProps) => {
 
   useEffect(() => {
     if (state.success) {
-      toast.success("Reponses enregistrer avec success");
+      toast.success("Réponses enregistrées avec succès");
       router.push(`/list/results`);
       router.refresh();
     } else if (state.error) {
@@ -77,7 +75,6 @@ export const ResultForm = ({ results }: ResultFormProps) => {
     }
   }, [state, router]);
 
-  // Fonction de soumission du formulaire
   const onSubmit = async (data: ResultFormSchema) => {
     try {
       formAction(data);
@@ -102,23 +99,24 @@ export const ResultForm = ({ results }: ResultFormProps) => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        {/* En-tête du tableau */}
-        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 border-b">
+        {/* Modification de l'en-tête pour ajouter Class Score */}
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 border-b">
           <div className="font-semibold text-gray-700">Matière</div>
-          <div className="font-semibold text-gray-700">Score</div>
+          <div className="font-semibold text-gray-700">Note d&apos;examen</div>
+          <div className="font-semibold text-gray-700">Note de Classe</div>
         </div>
 
-        {/* Corps du tableau */}
         <div className="divide-y divide-gray-200">
           {results.map((result: ResultWithDetails, index) => (
             <div
               key={result.id}
-              className="grid grid-cols-2 gap-4 p-4 items-center hover:bg-gray-50 transition-colors"
+              className="grid grid-cols-3 gap-4 p-4 items-center hover:bg-gray-50 transition-colors"
             >
               <input type="hidden" {...register(`results.${index}.id`)} />
 
               <div className="text-gray-700">{result.subject.name}</div>
 
+              {/* Champ Score */}
               <div>
                 <input
                   id={`results.${index}.score`}
@@ -130,9 +128,28 @@ export const ResultForm = ({ results }: ResultFormProps) => {
                     valueAsNumber: true,
                   })}
                 />
-                {errors.results && errors.results[index]?.score && (
+                {errors.results?.[index]?.score && (
                   <span className="text-red-500 text-sm mt-1 block">
-                    {errors.results[index]?.score?.message as string}
+                    {errors.results[index]?.score?.message}
+                  </span>
+                )}
+              </div>
+
+              {/* Nouveau champ Class Score */}
+              <div>
+                <input
+                  id={`results.${index}.classscore`}
+                  type="number"
+                  step="1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  {...register(`results.${index}.classscore`, {
+                    required: "Le class score est obligatoire",
+                    valueAsNumber: true,
+                  })}
+                />
+                {errors.results?.[index]?.classscore && (
+                  <span className="text-red-500 text-sm mt-1 block">
+                    {errors.results[index]?.classscore?.message}
                   </span>
                 )}
               </div>

@@ -49,6 +49,7 @@ export async function renderResultActions(item: any, role: string) {
           select: {
             id: true,
             name: true,
+            surname: true,
             classId: true,
             class: { select: { name: true } },
           },

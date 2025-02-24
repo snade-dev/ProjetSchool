@@ -15,6 +15,7 @@ type ResultWithDetails2 = Prisma.ResultGetPayload<{
       select: {
         id: true;
         name: true;
+        surname: true;
         classId: true;
         class: { select: { name: true } };
       };
@@ -33,6 +34,7 @@ type ResultWithDetails = Prisma.ResultGetPayload<{
       select: {
         id: true;
         name: true;
+        surname: true;
         classId: true;
         class: { select: { name: true } };
       };
@@ -110,7 +112,9 @@ export default function ResultTable({
             </td>
             <td className="hidden md:table-cell">{item.student.name}</td>
             <td>{item.semester.name}</td>
-            <td className="hidden md:table-cell">{item.moyenne}</td>
+            <td className={`hidden md:table-cell font-semibold ${(item.moyenne < 10) ? "text-red-500" : "text-green-500"}`}>
+              {item.moyenne.toFixed(3)}
+            </td>
             <td className="hidden md:table-cell">{item.student.class.name}</td>
             <td className="hidden md:table-cell">
               <button

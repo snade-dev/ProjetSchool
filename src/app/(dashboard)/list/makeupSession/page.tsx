@@ -10,7 +10,10 @@ import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-type MakeupSessionList = MakeupSession & { subject: Subject; semester: Semester };
+type MakeupSessionList = MakeupSession & {
+  subject: Subject;
+  semester: Semester;
+};
 
 const MakeupSessionListPage = async ({
   searchParams,
@@ -57,19 +60,13 @@ const MakeupSessionListPage = async ({
   ];
 
   const renderRow = (item: MakeupSessionList) => {
-    
-
     return (
       <tr
         key={item.id}
         className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
       >
-        <td className="flex items-center gap-4 p-4">
-          {item.title}
-        </td>
-        <td className="hidden md:table-cell">
-          {item.semester?.name || "-"}
-        </td>
+        <td className="flex items-center gap-4 p-4">{item.title}</td>
+        <td className="hidden md:table-cell">{item.semester?.name || "-"}</td>
         <td className="hidden md:table-cell">
           {new Intl.DateTimeFormat("fr-FR", {
             dateStyle: "medium",
@@ -82,9 +79,15 @@ const MakeupSessionListPage = async ({
             timeStyle: "short",
           }).format(new Date(item.endTime))}
         </td>
-        <td className="hidden md:table-cell"> 
-          <Link href={`/list/makeupSession/${item.id}${role === 'admin' || role === 'teacher' ? '/up' : ''}`}>
-            <Eye className="w-5 h-5 text-gray-500 hover:text-lamaPurple hover:scale-110 transition-all duration-200 ease-in-out cursor-pointer" />
+        <td className="hidden md:table-cell">
+          <Link
+            href={`/list/makeupSession/${item.id}${
+              role === "admin" || role === "teacher" ? "/up" : ""
+            }`}
+          >
+            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+              <Eye className="w-4 h-4 text-white" />
+            </button>
           </Link>
         </td>
         {role === "admin" && (
@@ -172,7 +175,9 @@ const MakeupSessionListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role== "admin" && <FormContainer table="makeupSession" type="create" />}
+            {role == "admin" && (
+              <FormContainer table="makeupSession" type="create" />
+            )}
           </div>
         </div>
       </div>

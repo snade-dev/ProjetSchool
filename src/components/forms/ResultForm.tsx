@@ -12,7 +12,7 @@ interface ResultFormProps {
   data?: any;
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData: {
-    exams: any[];
+    exams: any[]; // Inutile, mais peut être conservé pour d'autres usages
     subjects: any[];
     semesters: any[];
     classes: any[];
@@ -28,20 +28,18 @@ interface ActionResult {
 const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("");
-  const [selectedExam, setSelectedExam] = useState(""); // ✅ Ajout du champ d'examen
+  // Suppression de selectedExam puisque le filtre examen n'est plus nécessaire
   const [semesterSubjects, setSemesterSubjects] = useState<any[]>([]);
   const [studentUsername, setStudentUsername] = useState("");
-  const [scores, setScores] = useState<{ [key: string]: string }>({});
+  // Modification de "scores" pour gérer deux valeurs par matière : score d'examen et note de classe
+  const [scores, setScores] = useState<{
+    [key: string]: { score: string; classScore: string };
+  }>({});
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
-  const {
-    exams = [],
-    subjects = [],
-    semesters = [],
-    classes = [],
-  } = relatedData || {};
+  const { exams = [], subjects = [], semesters = [], classes = [] } = relatedData || {};
 
   const [state, formAction] = useFormState<ActionResult, ResultSchema>(
     createResult,
@@ -55,26 +53,44 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
   useEffect(() => {
     if (selectedSemester) {
       const filteredSubjects = subjects.filter((subject: any) =>
-        subject.semesters.some(
-          (sem: any) => sem.id === parseInt(selectedSemester)
-        )
+        subject.semesters.some((sem: any) => sem.id === parseInt(selectedSemester))
       );
       setSemesterSubjects(filteredSubjects);
       setScores({});
     }
-  }, [selectedSemester, subjects]);
 
-  const handleScoreChange = (subjectId: string, value: string) => {
+    if (state.success) {
+      toast.success("Toutes les notes ont été enregistrées avec succès");
+      setOpen(false);
+      router.refresh();
+    }
+
+    if (state.error) {
+      console.log("Erreur lors de la soumission:", state.message);
+      toast.error(state.message || "Erreur lors de l'enregistrement");
+    }
+
+  }, [router, selectedSemester, setOpen, state.error, state.message, state.success, subjects]);
+
+  // Mise à jour de la fonction pour gérer les deux champs
+  const handleScoreChange = (
+    subjectId: string,
+    field: "score" | "classScore",
+    value: string
+  ) => {
     setScores((prev) => ({
       ...prev,
-      [subjectId]: value,
+      [subjectId]: {
+        score: field === "score" ? value : prev[subjectId]?.score || "",
+        classScore: field === "classScore" ? value : prev[subjectId]?.classScore || "",
+      },
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!studentUsername || !selectedClass || !selectedSemester || !selectedExam) {
+    if (!studentUsername || !selectedClass || !selectedSemester) {
       toast.error("Veuillez remplir tous les champs requis");
       return;
     }
@@ -85,14 +101,17 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
       let hasError = false;
       const promises: Promise<ActionResult>[] = [];
 
-      for (const [subjectId, score] of Object.entries(scores)) {
-        if (score) {
+      // Pour chaque matière pour laquelle on a saisi des notes
+      for (const [subjectId, scoreObj] of Object.entries(scores)) {
+        if (scoreObj.score || scoreObj.classScore) {
+          // On construit les données du formulaire en incluant la note d'examen et la note de classe
           const formData: ResultSchema = {
             studentUsername,
             subjectId: parseInt(subjectId),
-            score: parseFloat(score),
+            score: scoreObj.score ? parseFloat(scoreObj.score) : 0,
+            classScore: scoreObj.classScore ? parseFloat(scoreObj.classScore) : 0,
             semesterId: parseInt(selectedSemester),
-            examId: parseInt(selectedExam), // ✅ Utilisation de l'examen sélectionné
+            // L'examen n'est plus concerné, donc examId n'est pas envoyé
           };
 
           promises.push(
@@ -113,11 +132,7 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
 
       await Promise.all(promises);
 
-      if (!hasError) {
-        toast.success("Toutes les notes ont été enregistrées avec succès");
-        setOpen(false);
-        router.refresh();
-      }
+   
     } catch (error) {
       console.error("Erreur lors de la soumission:", error);
       toast.error(
@@ -173,24 +188,7 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
             </select>
           </div>
 
-          {/* Sélection de l'examen ✅ */}
-          <div className="flex flex-col gap-2 w-full md:w-1/4">
-            <label className="text-xs text-gray-500">Examen</label>
-            <select
-              className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-              value={selectedExam}
-              onChange={(e) => setSelectedExam(e.target.value)}
-              disabled={!selectedSemester}
-              required
-            >
-              <option value="">Sélectionner un examen</option>
-              {exams.map((exam: any) => (
-                <option key={exam.id} value={exam.id}>
-                  {exam.title}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Suppression du filtre examen */}
 
           {/* Nom de l'étudiant */}
           <div className="flex flex-col gap-2 w-full md:w-1/4">
@@ -207,24 +205,36 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
           </div>
         </div>
 
-        {/* Notes par matière */}
+        {/* Saisie des notes par matière */}
         {selectedSemester && (
           <div className="mt-4">
             <h2 className="text-lg font-semibold mb-4">Notes par matière</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {semesterSubjects.map((subject) => (
+            <div className="flex flex-col gap-3">
+              {semesterSubjects.map((subject: any) => (
                 <div key={subject.id} className="flex items-center gap-4">
-                  <span className="w-1/2">{subject.name}</span>
+                  <span className="w-1/3">{subject.name}</span>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     max="20"
                     className="w-20 ring-[1.5px] ring-gray-300 rounded-md text-sm p-2"
-                    placeholder="Note"
-                    value={scores[subject.id] || ""}
+                    placeholder="Note d'examen"
+                    value={scores[subject.id]?.score || ""}
                     onChange={(e) =>
-                      handleScoreChange(subject.id, e.target.value)
+                      handleScoreChange(subject.id, "score", e.target.value)
+                    }
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="20"
+                    className="w-20 ring-[1.5px] ring-gray-300 rounded-md text-sm p-2"
+                    placeholder="Note de classe"
+                    value={scores[subject.id]?.classScore || ""}
+                    onChange={(e) =>
+                      handleScoreChange(subject.id, "classScore", e.target.value)
                     }
                   />
                 </div>

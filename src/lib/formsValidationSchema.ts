@@ -179,9 +179,9 @@ export const resultSchema = z.object({
   id: z.coerce.number().optional(),
   score: z.coerce.number().min(1, { message: "La moyenne est requise" }),
   studentUsername: z.string().min(1, { message: "L'etudiant est requise !" }),
-  examId: z.coerce.number().min(1, { message: "L'exameen est requise !" }),
   subjectId: z.coerce.number().min(1, { message: "Le sujet est requise !" }),
   semesterId: z.coerce.number().min(1, { message: "Le semestre est requise !" }),
+  classScore: z.coerce.number().optional()
 });
 
 export type ResultSchema = z.infer<typeof resultSchema>;
@@ -302,13 +302,17 @@ export const semesterSchema = z.object({
 export type SemesterSchema = z.infer<typeof semesterSchema>;
 
 export const resultFormSchema = z.object({
-  results: z.array(z.object({
-    id: z.number(),
-    score: z.number(),
-  })),
+  results: z.array(
+    z.object({
+      id: z.number(),
+      score: z.number().min(0).max(20),
+      classscore: z.number().min(0).max(20) // Ajouté ici
+    })
+  )
 });
 
 export type ResultFormSchema = z.infer<typeof resultFormSchema>;
+
 
 export const makeupExamFormSchema = z.object({
   results: z.array(z.object({

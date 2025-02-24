@@ -50,8 +50,6 @@ model Student {
   ResultAverage ResultAverage[]
 
   MakeupExam MakeupExam[]
-
-  ClassScore ClassScore[]
 }
 
 model Teacher {
@@ -76,8 +74,6 @@ model Teacher {
   ExamCorrection ExamCorrection[]
 
   Quiz Quiz[]
-
-  ClassScore ClassScore[]
 }
 
 model Parent {
@@ -121,8 +117,6 @@ model Subject {
   Attendance Attendance[]
 
   MakeupExam MakeupExam[]
-
-  ClassScore ClassScore[]
 }
 
 model Lesson {
@@ -158,6 +152,7 @@ model Exam {
 model Result {
   id    Int @id @default(autoincrement())
   score Int
+  classScore Float?  // Note de classe ajoutée
 
 
   examId     Int?
@@ -173,24 +168,6 @@ model Result {
   @@unique([semesterId, studentId, subjectId]) // Contrainte pour éviter les doublons
 }
 
-model ClassScore {
-  id         Int      @id @default(autoincrement())
-  score      Float
-  date       DateTime @default(now())
-  comment    String?
-
-  studentId  String
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  subjectId  Int
-  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  
-  semesterId Int
-  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  
-  teacherId  String?
-  teacher    Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-}
 
 
 model ResultAverage {
@@ -397,8 +374,6 @@ model Semester {
   ResultAverage ResultAverage[]
 
   MakeupSession MakeupSession[]
-
-  ClassScore ClassScore[]
 }
 
 model MakeupSession {
