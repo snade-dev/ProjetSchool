@@ -50,6 +50,8 @@ model Student {
   ResultAverage ResultAverage[]
 
   MakeupExam MakeupExam[]
+
+  ClassScore ClassScore[]
 }
 
 model Teacher {
@@ -74,6 +76,8 @@ model Teacher {
   ExamCorrection ExamCorrection[]
 
   Quiz Quiz[]
+
+  ClassScore ClassScore[]
 }
 
 model Parent {
@@ -115,6 +119,10 @@ model Subject {
   Quiz      Quiz[]
 
   Attendance Attendance[]
+
+  MakeupExam MakeupExam[]
+
+  ClassScore ClassScore[]
 }
 
 model Lesson {
@@ -151,6 +159,7 @@ model Result {
   id    Int @id @default(autoincrement())
   score Int
 
+
   examId     Int?
   exam       Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
   studentId  String
@@ -160,8 +169,29 @@ model Result {
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
-  @@unique([examId, studentId, subjectId]) // Contrainte pour éviter les doublons
+  makeupExam MakeupExam? // Relation optionnelle : s'il existe, on affichera makeupExam.score
+  @@unique([semesterId, studentId, subjectId]) // Contrainte pour éviter les doublons
 }
+
+model ClassScore {
+  id         Int      @id @default(autoincrement())
+  score      Float
+  date       DateTime @default(now())
+  comment    String?
+
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  subjectId  Int
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  semesterId Int
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  
+  teacherId  String?
+  teacher    Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+}
+
 
 model ResultAverage {
   id         Int      @id @default(autoincrement())
@@ -367,6 +397,8 @@ model Semester {
   ResultAverage ResultAverage[]
 
   MakeupSession MakeupSession[]
+
+  ClassScore ClassScore[]
 }
 
 model MakeupSession {
@@ -393,25 +425,32 @@ model MakeupSession {
 }
 
 model MakeupExam {
-  id        String  @id @default(uuid())
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id             String         @id @default(uuid())
+  studentId      String
+  student        Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  // L'inscription se fait pour une session de rattrapage donnée
-  sessionId String
-  session   MakeupSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId      String
+  session        MakeupSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  enrollmentDate DateTime @default(now())
+  subjectId      Int
+  subject        Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  // Note de rattrapage (renseignée par l'admin ultérieurement)
-  score      Float?
-  gradedById String?
-  gradedBy   Admin?    @relation(fields: [gradedById], references: [id])
-  gradedAt   DateTime?
+  enrollmentDate DateTime       @default(now())
 
-  // Contrainte : un étudiant ne peut s'inscrire qu'une seule fois pour une même session
-  @@unique([studentId, sessionId])
+  score          Float?
+  gradedById     String?
+  gradedBy       Admin?         @relation(fields: [gradedById], references: [id])
+  gradedAt       DateTime?
+
+  // Lien vers le résultat concerné par la note de rattrapage
+  resultId       Int?           @unique
+  result         Result?        @relation(fields: [resultId], references: [id])
+
+  // Contrainte : un étudiant ne peut s'inscrire qu'une seule fois pour une même session et la même matière.
+  @@unique([studentId, sessionId, subjectId])
 }
+
+
 
 enum UserSex {
   MALE

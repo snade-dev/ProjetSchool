@@ -41,6 +41,11 @@ const MakeupSessionListPage = async ({
       accessor: "endTime",
       className: "hidden md:table-cell",
     },
+    {
+      header: "Description",
+      accessor: "description",
+      className: "hidden md:table-cell",
+    },
     ...(role === "admin"
       ? [
           {
@@ -77,11 +82,11 @@ const MakeupSessionListPage = async ({
             timeStyle: "short",
           }).format(new Date(item.endTime))}
         </td>
-        {/* <td className="hidden md:table-cell"> 
-          <Link href={`/list/reclamation/${item.id}`}>
-            <Eye className="w-4 h-4 text-white" />
+        <td className="hidden md:table-cell"> 
+          <Link href={`/list/makeupSession/${item.id}${role === 'admin' || role === 'teacher' ? '/up' : ''}`}>
+            <Eye className="w-5 h-5 text-gray-500 hover:text-lamaPurple hover:scale-110 transition-all duration-200 ease-in-out cursor-pointer" />
           </Link>
-        </td> */}
+        </td>
         {role === "admin" && (
           <td>
             <div className="flex items-center gap-2">
@@ -167,7 +172,7 @@ const MakeupSessionListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            <FormContainer table="makeupSession" type="create" />
+            {role== "admin" && <FormContainer table="makeupSession" type="create" />}
           </div>
         </div>
       </div>

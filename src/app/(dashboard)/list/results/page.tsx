@@ -1,29 +1,30 @@
 import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
-import {
-  Exam,
-  Prisma,
-  Result,
-  Student,
-  Subject,
-  Class,
-  Semester,
-} from "@prisma/client";
+import { Exam, Prisma, Result, Student, Subject } from "@prisma/client";
 import FormContainer from "@/components/FormContainer";
 import ClientFilters from "./components/ClientFilters";
 import ResultTable from "./components/ResultTable";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-type ResultList = Result & {
-  exam: Exam;
-  student: Student;
-  subject: Subject;
-};
+// On utilise une intersection type pour ajouter "moyenne" au payload de Result.
+type ResultList = Prisma.ResultGetPayload<{
+  include: {
+    exam: { select: { id: true; title: true } };
+    semester: { select: { id: true; name: true } };
+    subject: { select: { id: true; name: true } };
+    student: {
+      select: {
+        id: true;
+        name: true;
+        classId: true;
+        class: { select: { name: true } };
+      };
+    };
+  };
+}> & { moyenne: number };
 
 export default async function ResultListPage({
   searchParams,
@@ -31,35 +32,30 @@ export default async function ResultListPage({
   searchParams: { [key: string]: string | undefined };
 }) {
   const { sessionClaims } = await auth();
-  const role = (
-    sessionClaims?.metadata as { role?: string }
-  )?.role;
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  console.log(searchParams); // Vérifie si studentId est présent et correct
 
-  // Récupération des données initiales
-  const [classes, semesters] = await Promise.all([
+  // Récupération des données initiales pour les filtres
+  const [classes, semesters, exams] = await Promise.all([
     prisma.class.findMany(),
     prisma.semester.findMany(),
+    prisma.exam.findMany(),
   ]);
 
-  // Construction de la query
+  // Construction de la query de base
   const query: Prisma.ResultWhereInput = {};
 
-  // Filtrer par classe si `classId` est défini
   if (searchParams.classId) {
     query.student = {
       classId: parseInt(searchParams.classId),
     };
   }
 
-  // Filtrer par semestre si `semesterId` est défini
   if (searchParams.semesterId) {
     query.semesterId = parseInt(searchParams.semesterId);
   }
 
-  // Filtrer par `studentId` si défini
   if (searchParams.studentId) {
     query.student = {
       id: searchParams.studentId,
@@ -70,7 +66,6 @@ export default async function ResultListPage({
     };
   }
 
-  // Recherche par texte (examen ou nom de l'étudiant)
   if (searchParams.search) {
     query.OR = [
       {
@@ -86,57 +81,63 @@ export default async function ResultListPage({
     ];
   }
 
-  // Pour déboguer
-  console.log("SearchParams:", searchParams);
-  console.log("Query finale:", JSON.stringify(query, null, 2));
+  // Pour le calcul des moyennes, on clone la query et on exclut le filtre sur l'examen
+  const averagesQuery = { ...query };
+  delete averagesQuery.examId;
 
-  // Récupération des résultats
-  const [data, count] = await prisma.$transaction([
+  // Récupération des données, du count et des moyennes dans une transaction
+  const [data, count, averages] = await prisma.$transaction([
     prisma.result.findMany({
-      where: query,
+      where: {
+        ...query,
+        examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
+      },
       include: {
         exam: { select: { id: true, title: true } },
         semester: { select: { id: true, name: true } },
+        subject: { select: { id: true, name: true } },
         student: {
           select: {
             id: true,
             name: true,
             classId: true,
-            class: {
-              select: {
-                name: true,
-              },
-            },
+            class: { select: { name: true } },
           },
         },
       },
-      orderBy: {
-        student: {
-          name: "asc",
-        },
-      },
-      distinct: ["studentId"],
+      distinct: ["studentId", "semesterId"],
+      orderBy: { student: { name: "asc" } },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (page - 1),
     }),
-    prisma.result.count({ where: query }),
+    prisma.result.count({
+      where: {
+        ...query,
+        examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
+      },
+    }),
+    prisma.result.groupBy({
+      by: ["studentId", "semesterId"],
+      _avg: { score: true },
+      where: averagesQuery,
+      orderBy: { studentId: "asc" },
+    }),
   ]);
 
-  if (!data || !role) {
-    return notFound();
-  }
+  if (!data || !role) return notFound();
 
-  const aggregateResult = await prisma.result.aggregate({
-    _avg: { score: true },
-    where: { studentId: data[0]?.studentId },
+  // Association de la moyenne calculée à chaque résultat
+  const processedData: ResultList[] = data.map((result) => {
+    const avgEntry = averages.find(
+      (a) =>
+        a.studentId === result.studentId &&
+        a.semesterId === result.semesterId
+    );
+    return {
+      ...result,
+      moyenne: avgEntry?._avg?.score ?? 0,
+    };
   });
-
-  const moyenne = aggregateResult._avg.score ?? 0;
-  console.log("La moyenne des résultats est :", moyenne);
-
-  // Pour déboguer
-  console.log("Nombre de résultats:", count);
-  console.log("Premier résultat:", data[0]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -152,6 +153,7 @@ export default async function ResultListPage({
             initialClassId={searchParams.classId}
             initialSemesterId={searchParams.semesterId}
             initialStudentId={searchParams.studentId}
+            initialExamId={searchParams.examId}
           />
 
           <TableSearch />
@@ -164,11 +166,7 @@ export default async function ResultListPage({
         </div>
       </div>
 
-      <ResultTable
-        data={data}
-        moyenne={moyenne}
-        role={role}
-      />
+      <ResultTable data={processedData} role={role} />
 
       <Pagination page={page} count={count} />
     </div>

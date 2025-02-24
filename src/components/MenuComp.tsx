@@ -136,15 +136,9 @@ const menuItems = [
       },
       {
         icon: Repeat,
-        label: "Rattrapage",
-        href: "/list/makeupExam", 
-        visible: ["admin", "teacher", "student"],
-      },
-      {
-        icon: Repeat,
         label: "Session Rattrapage",
         href: "/list/makeupSession", 
-        visible: ["admin"],
+        visible: ["admin", "teacher", "student"],
       },
       {
         icon: File,

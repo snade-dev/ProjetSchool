@@ -7,20 +7,15 @@ import { useFormState } from "react-dom";
 import { createResult } from "@/lib/actions/resultAction";
 import { ResultSchema } from "@/lib/formsValidationSchema";
 
-/**
- * Composant de formulaire pour la gestion des notes des étudiants
- * Permet la création et la modification de notes pour plusieurs matières en même temps
- */
-
 interface ResultFormProps {
-  type: "create" | "update"; // Type d'opération : création ou modification
-  data?: any; // Données existantes pour la modification
-  setOpen: Dispatch<SetStateAction<boolean>>; // Fonction pour fermer le modal
+  type: "create" | "update";
+  data?: any;
+  setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData: {
-    exams: any[]; // Liste des examens disponibles
-    subjects: any[]; // Liste des matières disponibles
-    semesters: any[]; // Liste des semestres disponibles
-    classes: any[]; // Liste des classes disponibles
+    exams: any[];
+    subjects: any[];
+    semesters: any[];
+    classes: any[];
   };
 }
 
@@ -31,13 +26,13 @@ interface ActionResult {
 }
 
 const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
-  // États locaux pour gérer le formulaire
-  const [selectedClass, setSelectedClass] = useState(""); // Classe sélectionnée
-  const [selectedSemester, setSelectedSemester] = useState(""); // Semestre sélectionné
-  const [semesterSubjects, setSemesterSubjects] = useState<any[]>([]); // Matières du semestre
-  const [studentUsername, setStudentUsername] = useState(""); // Nom d'utilisateur de l'étudiant
-  const [scores, setScores] = useState<{ [key: string]: string }>({}); // Notes par matière
-  const [loading, setLoading] = useState(false); // État de chargement
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
+  const [selectedExam, setSelectedExam] = useState(""); // ✅ Ajout du champ d'examen
+  const [semesterSubjects, setSemesterSubjects] = useState<any[]>([]);
+  const [studentUsername, setStudentUsername] = useState("");
+  const [scores, setScores] = useState<{ [key: string]: string }>({});
+  const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
@@ -57,10 +52,6 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
     }
   );
 
-  /**
-   * Filtre les matières en fonction du semestre sélectionné
-   * Réinitialise les notes quand le semestre change
-   */
   useEffect(() => {
     if (selectedSemester) {
       const filteredSubjects = subjects.filter((subject: any) =>
@@ -73,11 +64,6 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
     }
   }, [selectedSemester, subjects]);
 
-  /**
-   * Met à jour la note pour une matière spécifique
-   * @param subjectId - ID de la matière
-   * @param value - Nouvelle note
-   */
   const handleScoreChange = (subjectId: string, value: string) => {
     setScores((prev) => ({
       ...prev,
@@ -85,15 +71,10 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
     }));
   };
 
-  /**
-   * Gère la soumission du formulaire
-   * Enregistre toutes les notes en parallèle
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation des champs requis
-    if (!studentUsername || !selectedClass || !selectedSemester) {
+    if (!studentUsername || !selectedClass || !selectedSemester || !selectedExam) {
       toast.error("Veuillez remplir tous les champs requis");
       return;
     }
@@ -104,7 +85,6 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
       let hasError = false;
       const promises: Promise<ActionResult>[] = [];
 
-      // Traitement de chaque note
       for (const [subjectId, score] of Object.entries(scores)) {
         if (score) {
           const formData: ResultSchema = {
@@ -112,10 +92,9 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
             subjectId: parseInt(subjectId),
             score: parseFloat(score),
             semesterId: parseInt(selectedSemester),
-            examId: exams[0].id,
+            examId: parseInt(selectedExam), // ✅ Utilisation de l'examen sélectionné
           };
 
-          // Création d'une promesse pour chaque note
           promises.push(
             (async () => {
               const result = await formAction(formData);
@@ -132,7 +111,6 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
         }
       }
 
-      // Attente de l'enregistrement de toutes les notes
       await Promise.all(promises);
 
       if (!hasError) {
@@ -158,7 +136,8 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
 
       <div className="flex flex-col gap-4">
         <div className="flex gap-4">
-          <div className="flex flex-col gap-2 w-full md:w-1/3">
+          {/* Sélection de la classe */}
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
             <label className="text-xs text-gray-500">Classe</label>
             <select
               className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
@@ -175,7 +154,8 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
             </select>
           </div>
 
-          <div className="flex flex-col gap-2 w-full md:w-1/3">
+          {/* Sélection du semestre */}
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
             <label className="text-xs text-gray-500">Semestre</label>
             <select
               className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
@@ -193,7 +173,27 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
             </select>
           </div>
 
-          <div className="flex flex-col gap-2 w-full md:w-1/3">
+          {/* Sélection de l'examen ✅ */}
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
+            <label className="text-xs text-gray-500">Examen</label>
+            <select
+              className="ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+              value={selectedExam}
+              onChange={(e) => setSelectedExam(e.target.value)}
+              disabled={!selectedSemester}
+              required
+            >
+              <option value="">Sélectionner un examen</option>
+              {exams.map((exam: any) => (
+                <option key={exam.id} value={exam.id}>
+                  {exam.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Nom de l'étudiant */}
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
             <label className="text-xs text-gray-500">
               Nom de l&apos;étudiant
             </label>
@@ -207,6 +207,7 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
           </div>
         </div>
 
+        {/* Notes par matière */}
         {selectedSemester && (
           <div className="mt-4">
             <h2 className="text-lg font-semibold mb-4">Notes par matière</h2>
@@ -233,16 +234,8 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
         )}
       </div>
 
-      {state.error && (
-        <span className="text-red-500">
-          {state.message || "Une erreur s'est produite!"}
-        </span>
-      )}
-
       <button
-        disabled={
-          loading || !selectedClass || !selectedSemester || !studentUsername
-        }
+        disabled={loading}
         className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
         type="submit"
       >

@@ -228,6 +228,13 @@ export const makeupSessionSchema = z.object({
 
 export type MakeupSessionSchema = z.infer<typeof makeupSessionSchema>;
 
+export const makeupExamSchema = z.object({
+  id: z.coerce.string().optional(),
+  subjectId: z.coerce.number().min(1, { message: "La matière est requise !" }),
+});
+
+export type MakeupExamSchema = z.infer<typeof makeupExamSchema>;
+
 
 export const attendanceSchema = z.object({
   id: z.coerce.number().optional(),
@@ -302,3 +309,12 @@ export const resultFormSchema = z.object({
 });
 
 export type ResultFormSchema = z.infer<typeof resultFormSchema>;
+
+export const makeupExamFormSchema = z.object({
+  results: z.array(z.object({
+    id: z.string(),
+    score: z.coerce.number(),
+  })),
+});
+
+export type MakeupExamFormSchema = z.infer<typeof makeupExamFormSchema>;
