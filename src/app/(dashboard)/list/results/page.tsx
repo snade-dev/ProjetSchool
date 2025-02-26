@@ -32,8 +32,12 @@ export default async function ResultListPage({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) {
-  const { sessionClaims } = await auth();
+  const { userId ,sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+  if (!userId) {
+    notFound();
+  }
 
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
 
@@ -52,6 +56,11 @@ export default async function ResultListPage({
       classId: parseInt(searchParams.classId),
     };
   }
+
+  if (role === "student") {
+    query.student = { id:  userId};
+  }
+
 
   if (searchParams.semesterId) {
     query.semesterId = parseInt(searchParams.semesterId);
@@ -117,6 +126,8 @@ const [data, count, averages] = await prisma.$transaction([
       ...query,
       examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
     },
+    
+    
   }),
   prisma.result.groupBy({
     by: ["studentId", "semesterId"],
@@ -144,6 +155,8 @@ const processedData: ResultList[] = data.map((result) => {
     moyenne: moyenne,
   };
 });
+
+const count2 =averages.length;
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -174,7 +187,7 @@ const processedData: ResultList[] = data.map((result) => {
 
       <ResultTable data={processedData} role={role} />
 
-      <Pagination page={page} count={count} />
+      <Pagination page={page} count={count2} />
     </div>
   );
 }
