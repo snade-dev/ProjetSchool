@@ -1,6 +1,6 @@
 "use client";
 
-import { Class, Semester, Exam } from "@prisma/client";
+import { Class, Semester } from "@prisma/client";
 import { useHandleFilterChange } from "./FonctionOnchange";
 
 export default function ClientFilters({
@@ -9,20 +9,17 @@ export default function ClientFilters({
   initialClassId,
   initialSemesterId,
   initialStudentId,
-  initialExamId, // Ajout de l'examen sélectionné
 }: {
   classes: Class[];
   semesters: Semester[];
   initialClassId?: string;
   initialSemesterId?: string;
   initialStudentId?: string;
-  initialExamId?: string; // Ajout de l'ID d'examen initial
 }) {
   const handleFilterChange = useHandleFilterChange();
 
   return (
     <div className="flex gap-4">
-      {/* Filtre par Classe */}
       <select
         name="classId"
         className="p-2 border border-gray-300 rounded-md"
@@ -42,7 +39,6 @@ export default function ClientFilters({
         ))}
       </select>
 
-      {/* Filtre par Semestre */}
       <select
         name="semesterId"
         className="p-2 border border-gray-300 rounded-md"
@@ -57,9 +53,6 @@ export default function ClientFilters({
         ))}
       </select>
 
-    
-
-      {/* Bouton pour Effacer le filtre Étudiant */}
       {initialStudentId && (
         <button
           onClick={() => handleFilterChange("studentId", "")}

@@ -84,7 +84,7 @@ const Adminpage = async ({
       {/* Sections principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Gestion des bulletins */}
-        <div className="bg-white p-6 rounded-xl shadow-sm">
+        <div className=" p-6 rounded-xl shadow-sm bg-white">
           <div className="flex items-center gap-3 mb-6">
             <FileText className="w-6 h-6 text-blue-500" />
             <h2 className="text-lg font-semibold">Gestion des bulletins</h2>

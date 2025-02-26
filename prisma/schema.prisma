@@ -10,6 +10,10 @@ datasource db {
 model Admin {
   id       String @id
   username String @unique
+
+  MakeupExam MakeupExam[]
+
+  MakeupSession MakeupSession[]
 }
 
 model Student {
@@ -44,6 +48,8 @@ model Student {
   TuitionPayment TuitionPayment[]
 
   ResultAverage ResultAverage[]
+
+  MakeupExam MakeupExam[]
 }
 
 model Teacher {
@@ -109,6 +115,8 @@ model Subject {
   Quiz      Quiz[]
 
   Attendance Attendance[]
+
+  MakeupExam MakeupExam[]
 }
 
 model Lesson {
@@ -144,6 +152,8 @@ model Exam {
 model Result {
   id    Int @id @default(autoincrement())
   score Int
+  classScore Float?  // Note de classe ajoutée
+
 
   examId     Int?
   exam       Exam?    @relation(fields: [examId], references: [id], onDelete: SetNull)
@@ -154,16 +164,19 @@ model Result {
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
-  @@unique([examId, studentId, subjectId]) // Contrainte pour éviter les doublons
+  makeupExam MakeupExam? // Relation optionnelle : s'il existe, on affichera makeupExam.score
+  @@unique([semesterId, studentId, subjectId]) // Contrainte pour éviter les doublons
 }
 
+
+
 model ResultAverage {
-  id        Int     @id @default(autoincrement())
-  average   Float
+  id         Int      @id @default(autoincrement())
+  average    Float
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([semesterId, studentId]) // Contrainte pour éviter les doublons
 }
@@ -359,7 +372,60 @@ model Semester {
   subjects Subject[]
 
   ResultAverage ResultAverage[]
+
+  MakeupSession MakeupSession[]
 }
+
+model MakeupSession {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+
+  // La session concerne une matière et un semestre donnés
+  semesterId Int
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  // L'admin qui crée la session
+  createdById String
+  createdBy   Admin    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  // Inscriptions des étudiants à cette session
+  registrations MakeupExam[]
+
+  // (Optionnel) Contrainte pour éviter des sessions en doublon pour la même matière/semestre au même créneau
+  @@unique([semesterId, startTime])
+}
+
+model MakeupExam {
+  id             String         @id @default(uuid())
+  studentId      String
+  student        Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  sessionId      String
+  session        MakeupSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  subjectId      Int
+  subject        Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  enrollmentDate DateTime       @default(now())
+
+  score          Float?
+  gradedById     String?
+  gradedBy       Admin?         @relation(fields: [gradedById], references: [id])
+  gradedAt       DateTime?
+
+  // Lien vers le résultat concerné par la note de rattrapage
+  resultId       Int?           @unique
+  result         Result?        @relation(fields: [resultId], references: [id])
+
+  // Contrainte : un étudiant ne peut s'inscrire qu'une seule fois pour une même session et la même matière.
+  @@unique([studentId, sessionId, subjectId])
+}
+
+
 
 enum UserSex {
   MALE

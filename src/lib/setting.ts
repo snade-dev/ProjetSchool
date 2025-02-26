@@ -27,4 +27,5 @@ type RouteAccessMap = {
     "/list/events": ["admin", "teacher", "student", "parent"],
     "/list/announcements": ["admin", "teacher", "student", "parent"],
     "/list/semester": ["admin", "teacher", "student", "parent"],
+    "/list/makeupSession": ["admin", "teacher", "student"],
   };

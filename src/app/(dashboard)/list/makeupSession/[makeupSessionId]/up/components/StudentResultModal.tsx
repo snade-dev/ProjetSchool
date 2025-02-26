@@ -7,16 +7,13 @@ const BulletinButton = dynamic(() => import("@/components/BulletinButton"), {
   ssr: false,
 });
 
-type ResultWithDetails = Prisma.ResultGetPayload<{
+type ResultWithDetails = Prisma.MakeupExamGetPayload<{
   include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
     subject: { select: { id: true; name: true } };
     student: {
       select: {
         id: true;
         name: true;
-        surname: true;
         classId: true;
         class: { select: { name: true } };
       };
@@ -35,7 +32,6 @@ interface ResultWithSubject {
   subjectId: number;
   subjectName: string;
   score: number | null;
-  classscore: number | null; // Ajout du classscore
 }
 
 export default function StudentResultModal({
@@ -45,6 +41,8 @@ export default function StudentResultModal({
   role,
 }: StudentResultModalProps) {
   const [isEditing, setIsEditing] = useState(false);
+  console.log("modal", results);
+  
 
   if (!isOpen) return null;
 
@@ -66,19 +64,17 @@ export default function StudentResultModal({
           </div>
 
           <div className="flex gap-4 mb-6">
-            {typeof window !== "undefined" && (
+            {/* {typeof window !== "undefined" && (
               <BulletinButton
                 studentName={results[0].student.name}
-                studentUSurName={results[0].student.surname}
                 grades={results.map((r) => ({
                   subject: r.subject.name,
                   score: r.score,
-                  classscore: r.classScore ?? 0, // Ajout au bulletin
                 }))}
                 className={results[0].student.class.name}
                 semesterName={results[0].semester.name}
               />
-            )}
+            )} */}
             {role === "admin" && (
               <button
                 onClick={() => setIsEditing(!isEditing)}
@@ -97,16 +93,14 @@ export default function StudentResultModal({
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="p-2 text-left">Matière</th>
-                    <th className="p-2 text-left">Note d&apos;examen</th>
-                    <th className="p-2 text-left">Note de classe</th> {/* Nouvelle colonne */}
+                    <th className="p-2 text-left">Note</th>
                   </tr>
                 </thead>
                 <tbody>
                   {results.map((result) => (
-                    <tr key={result.subjectId} className="border-b">
+                    <tr key={result.id} className="border-b">
                       <td className="p-2">{result.subject.name}</td>
                       <td className="p-2">{result.score ?? "Non noté"}</td>
-                      <td className="p-2">{result.classScore ?? "Non noté"}</td> {/* Nouvelle cellule */}
                     </tr>
                   ))}
                 </tbody>

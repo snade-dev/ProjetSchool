@@ -31,6 +31,9 @@ export const createResult = async (
       where: { username: data.studentUsername },
     });
 
+    console.log("Etudiant trouvé:", student);
+    
+
     if (!student) {
       return {
         success: false,
@@ -41,13 +44,16 @@ export const createResult = async (
 
     const result = await prisma.result.findUnique({
       where: {
-        examId_studentId_subjectId: {
+        semesterId_studentId_subjectId: {
           studentId: student.id,
-          examId: data.examId,
+          semesterId: data.semesterId,      
           subjectId: data.subjectId,
         },
       },
     });
+
+    console.log("Résultat trouvé:", result);
+    
 
     if (result) {
       return {
@@ -61,11 +67,15 @@ export const createResult = async (
       data: {
         subjectId: data.subjectId,
         score: data.score,
-        examId: data.examId,
+        classScore: data.classScore,
+        examId: 2,
         studentId: student.id,
         semesterId: data.semesterId,
       },
     });
+
+    console.log("Note enregistrée avec succès");
+    
 
     return {
       success: true,
@@ -82,54 +92,6 @@ export const createResult = async (
   }
 };
 
-export const updateResult = async (
-  currentState: CurrentState2,
-  data: ResultSchema
-) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-  try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
-
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
-
-    const student = await prisma.student.findUnique({
-      where: { username: data.studentUsername },
-    });
-
-    if (!student) {
-      return { success: false, error: true, message: "" };
-    }
-
-    await prisma.result.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        subjectId: data.subjectId,
-        score: data.score,
-        examId: data.examId,
-        studentId: student.id,
-      },
-    });
-
-    // revalidatePath("/list/subjects");
-    return { success: true, error: false, message: "" };
-  } catch (err) {
-    console.log(err);
-    return { success: false, error: true, message: "" };
-  }
-};
 
 
 export async function updateResults(currentState: CurrentState2, resultsData: ResultFormSchema) {
@@ -139,10 +101,10 @@ export async function updateResults(currentState: CurrentState2, resultsData: Re
 
   // Mise à jour en transaction de tous les résultats
   await prisma.$transaction(
-    resultsData.results.map(({ id, score }) =>
+    resultsData.results.map(({ id, score, classscore }) =>
       prisma.result.update({
         where: { id },
-        data: { score },
+        data: { score, classScore:classscore },
       })
     )
   );

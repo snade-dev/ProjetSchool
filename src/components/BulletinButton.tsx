@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 
+// Import dynamique de react-pdf
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   {
@@ -17,10 +18,12 @@ import BulletinPDF from "./BulletinPDF";
 interface Grade {
   subject: string;
   score: number;
+  classscore: number;
 }
 
 interface BulletinButtonProps {
   studentName: string;
+  studentUSurName: string;
   grades: Grade[];
   className: string;
   semesterName: string;
@@ -31,6 +34,7 @@ const BulletinButton = ({
   grades,
   className,
   semesterName,
+  studentUSurName
 }: BulletinButtonProps) => {
   const [isClient, setIsClient] = useState(false);
 
@@ -43,6 +47,7 @@ const BulletinButton = ({
       <PDFDownloadLink
         document={
           <BulletinPDF
+          studentUserName={studentUSurName}
             studentName={studentName}
             grades={grades}
             className={className}

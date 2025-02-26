@@ -29,6 +29,8 @@ import { deleteParent } from "@/lib/actions/parentAction";
 import AttestationForm from "./forms/AttestationForm";
 import { Edit, Plus, Trash } from "lucide-react";
 import { deleteSemester } from "@/lib/actions/semesterActions";
+import MakeupSessionForm from "./forms/MakeupSessionForm";
+import { deleteMakeupSession } from "@/lib/actions/makeupSessionAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -203,6 +205,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  makeupSession: (type, data, setOpen, relatedData) => (
+    <MakeupSessionForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -252,7 +262,8 @@ const FormModal = ({
       attendance: deleteAttendance,
       quiz: deleteQuiz,
       attestation: deleteQuiz,
-      semester:deleteSemester
+      semester:deleteSemester,
+      makeupSession:deleteMakeupSession
     };
     // si c'est un formulaire de suppression
     const [state, formAction] = useFormState(deleteActionMap[table], {

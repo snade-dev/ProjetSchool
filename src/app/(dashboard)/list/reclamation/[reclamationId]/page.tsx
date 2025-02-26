@@ -55,8 +55,6 @@ export default async function ReclamationDetailsPage({
     }),
   ]);
 
-  const isTeacher = true;
-
   if (!questionsWithAnswers || !result) notFound();
 
   return (
@@ -85,7 +83,6 @@ export default async function ReclamationDetailsPage({
                     {complaint.title}
                   </p>
                 </div>
-
 
                 {/* La description de la reclamation */}
                 <div className="pb-6 border-b border-gray-100">
@@ -168,18 +165,18 @@ export default async function ReclamationDetailsPage({
                 </span>
 
                 {/* Boutons d'action pour les enseignants */}
-                {isTeacher && (
+                {(role === "admin" || role === "teacher") && (
                   <div className="flex gap-4">
                     <form
-                    action={async () => {
-                      "use server";
-                      await prisma.complaint.update({
-                        where: { id: reclamationId },
-                        data: { status: "RESOLVED" },
-                      });
-                      console.log("reclamation modifier avec success");
-                      redirect(`/app/reclamations/${reclamationId}`);
-                    }}
+                      action={async () => {
+                        "use server";
+                        await prisma.complaint.update({
+                          where: { id: reclamationId },
+                          data: { status: "RESOLVED" },
+                        });
+                        console.log("reclamation modifier avec success");
+                        redirect(`/app/reclamations/${reclamationId}`);
+                      }}
                     >
                       <button
                         type="submit"
@@ -195,15 +192,15 @@ export default async function ReclamationDetailsPage({
                     </form>
 
                     <form
-                    action={async () => {
-                      "use server";
+                      action={async () => {
+                        "use server";
 
-                      await prisma.complaint.update({
-                        where: { id: reclamationId },
-                        data: { status: "REJECTED" },
-                      });
-                      redirect(`/app/reclamations/${reclamationId}`);
-                    }}
+                        await prisma.complaint.update({
+                          where: { id: reclamationId },
+                          data: { status: "REJECTED" },
+                        });
+                        redirect(`/app/reclamations/${reclamationId}`);
+                      }}
                     >
                       <button
                         type="submit"
@@ -229,8 +226,18 @@ export default async function ReclamationDetailsPage({
 
       {/* Copie de l'étudiant */}
       <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
-        {/* <Result questions={questionsWithAnswers} score={result.totalScore} /> */}
-        {complaint.status === "REJECTED" ? <p>Cette reclamation à été rejetéé </p> : <UpdateCorrect questions={questionsWithAnswers} quizId={complaint.quizId} studentId={complaint.studentId} role={role} />}
+        {complaint.status === "REJECTED" ? (
+          <p>Cette reclamation à été rejetée</p>
+        ) : complaint.status === "RESOLVED" ? (
+          <UpdateCorrect
+            questions={questionsWithAnswers}
+            quizId={complaint.quizId}
+            studentId={complaint.studentId}
+            role={role}
+          />
+        ) : (
+          <p>En attente de traitement</p>
+        )}
       </div>
     </div>
   );

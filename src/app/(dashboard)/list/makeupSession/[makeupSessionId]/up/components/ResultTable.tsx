@@ -6,35 +6,14 @@ import StudentResultModal from "./StudentResultModal";
 import { Prisma } from "@prisma/client";
 import { getResults } from "./actions";
 
-
-type ResultWithDetails2 = Prisma.ResultGetPayload<{
+type ResultWithDetails = Prisma.MakeupExamGetPayload<{
   include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        surname: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
 
-  };
-}> & {moyenne: number};
-
-
-type ResultWithDetails = Prisma.ResultGetPayload<{
-  include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
     subject: { select: { id: true; name: true } };
     student: {
       select: {
         id: true;
         name: true;
-        surname: true;
         classId: true;
         class: { select: { name: true } };
       };
@@ -42,16 +21,36 @@ type ResultWithDetails = Prisma.ResultGetPayload<{
   };
 }>;
 
+type ResultWithDetails2 = Prisma.MakeupExamGetPayload<{
+  include: {
+    student: {
+      select: {
+        id: true;
+        name: true;
+        classId: true;
+        class: { select: { name: true } };
+      };
+    };
+    session: {
+      select: {
+        semester: true
+      }
+    }
+  };
+}>;
+
 interface ResultTableProps {
   data: ResultWithDetails2[];
   role: string;
   actions?: React.ReactNode;
+  moyenne: number;
 }
 
 export default function ResultTable({
   data,
   role,
   actions,
+  moyenne,
 }: ResultTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: string;
@@ -59,8 +58,8 @@ export default function ResultTable({
     results: ResultWithDetails[];
   } | null>(null);
 
-  const handleStudentClick = async (studentId: string, semesterId: number) => {
-    const results = await getResults(studentId, semesterId);
+  const handleStudentClick = async (studentId: string, sessionId: string) => {
+    const results = await getResults(studentId, sessionId);
     setSelectedStudent({
       id: studentId,
       name:
@@ -74,22 +73,12 @@ export default function ResultTable({
     <>
       <Table
         columns={[
-          {
-            header: "Examen",
-            accessor: "exam",
-            className: "hidden md:table-cell",
-          },
           { header: "Etudiants", accessor: "student" },
-          {
-            header: "Semsestre",
-            accessor: "semestre",
-            className: "hidden md:table-cell",
-          },
-          {
-            header: "Moyenne",
-            accessor: "moyenne",
-            className: "hidden md:table-cell",
-          },
+          // {
+          //   header: "Moyenne",
+          //   accessor: "moyenne",
+          //   className: "hidden md:table-cell",
+          // },
           {
             header: "Classe",
             accessor: "class",
@@ -100,7 +89,9 @@ export default function ResultTable({
             accessor: "preview",
             className: "hidden md:table-cell",
           },
-          
+          // ...(role === "admin" || role === "teacher"
+          //   ? [{ header: "Actions", accessor: "action" }]
+          //   : []),
         ]}
         renderRow={(item: ResultWithDetails2) => (
           <tr
@@ -108,17 +99,13 @@ export default function ResultTable({
             className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
           >
             <td className="flex items-center gap-4 p-4">
-              {item.exam?.title || "-"}
+            {item.student.name}
             </td>
-            <td className="hidden md:table-cell">{item.student.name}</td>
-            <td>{item.semester.name}</td>
-            <td className={`hidden md:table-cell font-semibold ${(item.moyenne < 10) ? "text-red-500" : "text-green-500"}`}>
-              {item.moyenne.toFixed(3)}
-            </td>
+            {/* <td className="hidden md:table-cell">{moyenne}</td> */}
             <td className="hidden md:table-cell">{item.student.class.name}</td>
             <td className="hidden md:table-cell">
               <button
-                onClick={() => handleStudentClick(item.student.id, item.semester.id)}
+                onClick={() => handleStudentClick(item.student.id, item.sessionId)}
                 className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
               >
                 Voir détails

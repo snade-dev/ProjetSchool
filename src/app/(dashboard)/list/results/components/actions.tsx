@@ -37,33 +37,40 @@ export async function renderResultActions(item: any, role: string) {
 
 
 
-  export const getResults = async (studentId: string) => {
-
-  const results = await prisma.result.findMany({
-    where: { studentId },
-    include: {
-      exam: { select: { id: true, title: true } },
-      semester: { select: { id: true, name: true } },
-      subject: { select: { id: true, name: true } },
-      student: {
-        select: {
-          id: true,
-          name: true,
-          classId: true,
-          class: {
-            select: {
-              name: true,
-            },
+  export const getResults = async (studentId: string, semesterId: number) => {
+    const results = await prisma.result.findMany({
+      where: { studentId, semesterId },
+      include: {
+        makeupExam: { select: { score: true } },
+        exam: { select: { id: true, title: true } },
+        semester: { select: { id: true, name: true } },
+        subject: { select: { id: true, name: true } },
+        student: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            classId: true,
+            class: { select: { name: true } },
           },
         },
       },
-    },
-    orderBy: {
-      student: {
-        name: "asc",
+      orderBy: {
+        student: { name: "asc" },
       },
-    },
-  });
-
-  return results;
+    });
+    
+    const processedResults = results.map(result => {
+      // Récupère le score du makeupExam s'il existe
+      const makeupScore = result.makeupExam?.score;
+      return {
+        ...result,
+        score: (makeupScore != null && makeupScore > result.score)
+          ? makeupScore
+          : result.score,
+      };
+    });
+    
+    return processedResults;
+    
 };
