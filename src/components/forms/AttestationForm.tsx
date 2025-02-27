@@ -70,13 +70,13 @@ const AttestationForm = ({
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
         {type === "create"
-          ? "Créer un nouvel examen en ligne"
-          : "Modifier un examen en ligne"}
+          ? "Effectuer une demande d'attestation"
+          : "Modifier une demande d'attestation"}
       </h1>
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Titre de l'examen"
+          label="Titre de la demande"
           name="title"
           defaultValue={data?.title}
           register={register}

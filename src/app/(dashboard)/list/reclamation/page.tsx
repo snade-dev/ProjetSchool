@@ -45,14 +45,14 @@ const ReclamationListPage = async ({
       accessor: "status",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
-      ? [
-          {
-            header: "Actions",
-            accessor: "action",
-          },
-        ]
-      : []),
+    // ...(role === "admin"
+    //   ? [
+    //       {
+    //         header: "Actions",
+    //         accessor: "action",
+    //       },
+    //     ]
+    //   : []),
   ];
 
   const renderRow = (item: ComplainList) => {
@@ -118,7 +118,9 @@ const ReclamationListPage = async ({
         </td>
         <td>
           <Link href={`/list/reclamation/${item.id}`}>
-            <Eye className="w-4 h-4 text-white" />
+            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+              <Eye className="w-4 h-4 text-white" />
+            </button>
           </Link>
         </td>
         {role === "admin" && (
@@ -206,7 +208,6 @@ const ReclamationListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-
           </div>
         </div>
       </div>

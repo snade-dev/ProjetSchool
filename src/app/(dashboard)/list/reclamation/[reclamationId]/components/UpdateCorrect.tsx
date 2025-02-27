@@ -27,9 +27,14 @@ type CorrectProps = {
   role: string;
 };
 
-export const UpdateCorrect = ({ questions, quizId, studentId, role }: CorrectProps) => {
+export const UpdateCorrect = ({
+  questions,
+  quizId,
+  studentId,
+  role,
+}: CorrectProps) => {
   // console.log(questions[0].StudentAnswer);
-  
+
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
 
@@ -55,9 +60,9 @@ export const UpdateCorrect = ({ questions, quizId, studentId, role }: CorrectPro
     } else if (state.error) {
       toast.error("Erreur lors de l'enregistrement des réponses");
     }
-  }, [state, router,quizId]);
+  }, [state, router, quizId]);
 
-  const onSubmit = handleSubmit((data: TeacherResponsschema) => {    
+  const onSubmit = handleSubmit((data: TeacherResponsschema) => {
     try {
       // Ajouter studentId et quizId à chaque réponse
       const answersWithIds = data.answers.map((answer, index) => ({
@@ -74,8 +79,6 @@ export const UpdateCorrect = ({ questions, quizId, studentId, role }: CorrectPro
     }
   });
 
-
-
   return (
     <div className="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6">Répondez aux questions :</h2>
@@ -91,18 +94,23 @@ export const UpdateCorrect = ({ questions, quizId, studentId, role }: CorrectPro
                 <div>
                   <label>{question.questionText}</label>
                   <div className=" bg-slate-100 p-2 rounded-lg">
-                    {question.StudentAnswer.length !==0 ? question.StudentAnswer[0].answerText : "pas de reponse" }
+                    {question.StudentAnswer.length !== 0
+                      ? question.StudentAnswer[0].answerText
+                      : "pas de reponse"}
                   </div>
                 </div>
-                <input
-                  type="number"
-                  placeholder="Entrez la note"
-                  defaultValue={question.StudentAnswer[0].score}
-                  className="border border-gray-300 p-2 rounded-lg"
-                  {...register(`answers.${index}.score`, {
-                    valueAsNumber: true,
-                  })}
-                />
+                <div className="flex flex-col">
+                  <label htmlFor="">Notes :</label>
+                  <input
+                    type="number"
+                    placeholder="Entrez la note"
+                    defaultValue={question.StudentAnswer[0].score}
+                    className="border border-gray-300 p-2 rounded-lg"
+                    {...register(`answers.${index}.score`, {
+                      valueAsNumber: true,
+                    })}
+                  />
+                </div>
                 {errors.answers?.[index]?.score && (
                   <span className="text-red-500 text-sm">
                     {errors.answers[index]?.score?.message}
@@ -112,12 +120,14 @@ export const UpdateCorrect = ({ questions, quizId, studentId, role }: CorrectPro
             </div>
           ))}
           {state.error && state.message}
-          {(role === "student") && <button
-            type="submit"
-            className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
-          >
-            Envoyer les réponses
-          </button>}
+          {role === "student" && (
+            <button
+              type="submit"
+              className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
+            >
+              Envoyer les réponses
+            </button>
+          )}
         </form>
       )}
     </div>
