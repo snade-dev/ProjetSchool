@@ -62,7 +62,7 @@ const Tuition = async ({ params }: { params: { id: string } }) => {
                   })}
                 </td>
                 <td className="border border-gray-200 p-2 flex items-center justify-center gap-2">
-                  {payment ? `${payment.amount} €` : "Non payé"}
+                  {payment ? `${payment.amount} FCFA` : "Non payé"}
                   <EditButton TuitionId={payment?.id} studentId={student.id} month={month} />
                 </td>
                 <td className="border border-gray-200 p-2">

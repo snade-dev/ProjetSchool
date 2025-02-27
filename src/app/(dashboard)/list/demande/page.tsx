@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
 import { Attestation, Prisma, Quiz } from "@prisma/client";
+import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -112,7 +113,9 @@ const ReclamationListPage = async ({
         </td>
         <td>
           <Link href={`/list/demande/${item.id}`}>
-          <Image src="/view.png" alt="" width={20} height={20} />
+            <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
+              <Eye className="w-4 h-4 text-white" />
+            </button>
           </Link>
         </td>
         {role === "admin" && (
@@ -126,7 +129,6 @@ const ReclamationListPage = async ({
       </tr>
     );
   };
-
 
   const { page, ...queryParams } = searchParams;
 
@@ -187,7 +189,7 @@ const ReclamationListPage = async ({
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Touts les reclamation effectuer
+          Touts les demandes effectuer
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
@@ -199,7 +201,9 @@ const ReclamationListPage = async ({
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {/* seul les etudiant doive pouvoir créer une demande */}
-            {(role === "admin" || role === "student") && <FormContainer table="attestation" type="create" />}
+            {(role === "admin" || role === "student") && (
+              <FormContainer table="attestation" type="create" />
+            )}
           </div>
         </div>
       </div>
