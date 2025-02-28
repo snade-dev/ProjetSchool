@@ -10,11 +10,12 @@ import Image from "next/image";
 
 type ParentList = Parent & { students: Student[] };
 
-const ParentListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const ParentListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;

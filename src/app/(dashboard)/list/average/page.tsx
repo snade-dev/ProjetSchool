@@ -12,11 +12,12 @@ import FormContainer from '@/components/FormContainer';
 
 type ResultList = ExamAverage & { exam: Exam } &{student: Student}
 
-const AverageListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const AverageListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -25,7 +26,7 @@ const AverageListPage = async ({
 
   const p = page ? parseInt(page) : 1;
   // Requete vers la base de donnéés
-  
+
 
   const columns = [
     // {

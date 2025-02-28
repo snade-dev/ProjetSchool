@@ -3,8 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useFormState } from "react-dom";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { lessonSchema, LessonSchema } from "@/lib/formsValidationSchema";
@@ -30,7 +29,7 @@ const LessonForm = ({
     defaultValues: data, // Initialisation des valeurs par défaut pour le mode "update"
   });
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createLesson : updateLesson,
     {
       success: false,

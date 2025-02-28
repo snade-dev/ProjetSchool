@@ -3,8 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useFormState } from "react-dom";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { eventSchema, EventSchema } from "@/lib/formsValidationSchema";
@@ -31,7 +30,7 @@ const EventForm = ({
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createEvent : updateEvent,
     {
       success: false,

@@ -3,11 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { attendanceSchema, Attendancechema } from "@/lib/formsValidationSchema";
-import { useFormState } from "react-dom";
 import {
   createAttendance,
   updateAttendance,
@@ -34,7 +33,7 @@ const AttendanceForm = ({
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createAttendance : updateAttendance,
     {
       success: false,

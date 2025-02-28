@@ -11,13 +11,14 @@ import { notFound } from "next/navigation";
 
 type StudentAnswerList = StudentAnswer & { student: Student };
 // modifier ça pou recuperer
-const QuizListPage = async ({
-  searchParams,
-  params,
-}: {
-  searchParams: { [key: string]: string | undefined };
-  params: { quizId: string };
-}) => {
+const QuizListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+    params: Promise<{ quizId: string }>;
+  }
+) => {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;

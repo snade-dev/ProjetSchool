@@ -3,11 +3,10 @@
 import { updateTuition } from "@/lib/actions/textAction";
 import { schemas, Schemas } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormState } from "react-dom";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useEffect } from "react";
+import { useEffect, useActionState } from "react";
 
 const EditInput = ({
   TuitionId,
@@ -29,7 +28,7 @@ const EditInput = ({
     resolver: zodResolver(schemas),
   });
 
-  const [state, formAction] = useFormState(updateTuition, {
+  const [state, formAction] = useActionState(updateTuition, {
     success: false,
     error: false,
     message: "",

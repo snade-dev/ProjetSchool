@@ -2,7 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { useForm, useFieldArray } from "react-hook-form";
-import React, { useEffect } from "react";
+import React, { useEffect, useActionState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   MakeupExamFormSchema,
@@ -12,7 +12,6 @@ import {
   ResultFormSchema,
   resultFormSchema,
 } from "@/lib/formsValidationSchema";
-import { useFormState } from "react-dom";
 import { updateResults } from "@/lib/actions/resultAction";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
@@ -64,7 +63,7 @@ export const ResultForm = ({ results }: ResultFormProps) => {
     },
   });
 
-  const [state, formAction] = useFormState(updateMakeupExam, {
+  const [state, formAction] = useActionState(updateMakeupExam, {
     success: false,
     error: false,
     message: "",

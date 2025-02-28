@@ -15,11 +15,12 @@ type MakeupSessionList = MakeupSession & {
   semester: Semester;
 };
 
-const MakeupSessionListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const MakeupSessionListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { sessionClaims, userId } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role: string })?.role;

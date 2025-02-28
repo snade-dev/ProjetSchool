@@ -12,11 +12,12 @@ import Link from "next/link";
 
 type ComplainList = Complaint & { quiz: Quiz };
 
-const ReclamationListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const ReclamationListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { sessionClaims, userId } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role: string })?.role;

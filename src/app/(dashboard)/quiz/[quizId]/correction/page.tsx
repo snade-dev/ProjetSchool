@@ -11,13 +11,13 @@ import { notFound } from "next/navigation";
 
 type StudentAnswerList = StudentAnswer & { student: Student };
 
-const QuizListPage = async ({
-  searchParams,
-  params,
-}: {
-  searchParams: { [key: string]: string | undefined };
-  params: { quizId: string };
-}) => {
+const QuizListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+    params: Promise<{ quizId: string }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -58,38 +58,38 @@ const QuizListPage = async ({
     );
   };
 
-    // Initialisation de la condition de requête
-    const query: Prisma.StudentAnswerWhereInput = {
-      quizId: quizId,
-      score: null, // Filtrer uniquement les réponses sans score
-    };
-  
-    // Filtrage basé sur les paramètres de recherche
-    if (queryParams.search) {
-      query.OR = [
-        {
-          student: {
-            name: { contains: queryParams.search, mode: "insensitive" },
-          },
+  // Initialisation de la condition de requête
+  const query: Prisma.StudentAnswerWhereInput = {
+    quizId: quizId,
+    score: null, // Filtrer uniquement les réponses sans score
+  };
+
+  // Filtrage basé sur les paramètres de recherche
+  if (queryParams.search) {
+    query.OR = [
+      {
+        student: {
+          name: { contains: queryParams.search, mode: "insensitive" },
         },
-      ];
-    }
-  
-    // Requête vers la base de données Prisma avec filtrage conditionnel
-    const [data, count] = await prisma.$transaction([
-      prisma.studentAnswer.findMany({
-        where: query,
-        include: {
-          student: { select: { id: true, name: true } },
-          question: { select: { questionText: true } }, // Inclure la question associée
-        },
-        distinct: ["studentId"], // Éviter les doublons (un étudiant peut avoir plusieurs réponses)
-        take: ITEM_PER_PAGE,
-        skip: ITEM_PER_PAGE * (p - 1),
-      }),
-      prisma.studentAnswer.count({ where: query }),
-    ]);
-  
+      },
+    ];
+  }
+
+  // Requête vers la base de données Prisma avec filtrage conditionnel
+  const [data, count] = await prisma.$transaction([
+    prisma.studentAnswer.findMany({
+      where: query,
+      include: {
+        student: { select: { id: true, name: true } },
+        question: { select: { questionText: true } }, // Inclure la question associée
+      },
+      distinct: ["studentId"], // Éviter les doublons (un étudiant peut avoir plusieurs réponses)
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (p - 1),
+    }),
+    prisma.studentAnswer.count({ where: query }),
+  ]);
+
 
   return (
     <div className=" bg-white p-4 rounded-md m-4 mt-0 flex-1">

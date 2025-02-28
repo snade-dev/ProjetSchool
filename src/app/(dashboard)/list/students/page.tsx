@@ -13,19 +13,20 @@ import Link from "next/link";
 type StudentList = Student & { class: Class };
 
 
-const StudentListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const StudentListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const { page, ...queryParams } = searchParams;
-  
+
   const p = page ? parseInt(page) : 1;
-  
+
   const columns = [
     {
       header: "Informations",
@@ -60,7 +61,7 @@ const StudentListPage = async ({
         ]
       : []),
   ];
-  
+
   const RenderRow = (item: StudentList) => (
     <tr
       key={item.id}
@@ -95,7 +96,7 @@ const StudentListPage = async ({
             //   {/* <Image src={"/delete.png"} alt="" width={16} height={16} /> */}
   
             // </button>
-            <FormContainer table="student" type="delete" id={item.id} />
+            (<FormContainer table="student" type="delete" id={item.id} />)
           )}
         </div>
       </td>

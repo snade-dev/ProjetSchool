@@ -11,11 +11,12 @@ type ComplaintDetails = Complaint & {
   teacher?: { name: string; username: string };
 };
 
-export default async function ReclamationDetailsPage({
-  params,
-}: {
-  params: { reclamationId: string };
-}) {
+export default async function ReclamationDetailsPage(
+  props: {
+    params: Promise<{ reclamationId: string }>;
+  }
+) {
+  const params = await props.params;
   const { reclamationId } = params;
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;

@@ -11,18 +11,19 @@ import Image from "next/image";
 type SubjectList = Subject & { teachers: Teacher[] }
 
 
-const SubjectListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const SubjectListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
   const { page, ...queryParams } = searchParams;
-  
+
   const p = page ? parseInt(page) : 1;
-  
+
   const columns = [
     {
       header: "Nom de la Matière",
@@ -42,7 +43,7 @@ const SubjectListPage = async ({
         ]
       : []),
   ];
-  
+
   const RenderRow = (item: SubjectList) => (
     <tr
       key={item.id}
@@ -94,7 +95,7 @@ const SubjectListPage = async ({
     }),
     prisma.subject.count({ where: query }),
   ]);
-  
+
 
   return (
     <div className=" bg-white p-4 rounded-md m-4 mt-0 flex-1">

@@ -9,7 +9,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-const SingleTeacherPage = async ({ params }: { params: { id: string } }) => {
+const SingleTeacherPage = async (props: { params: Promise<{ id: string }> }) => {
+  const params = await props.params;
   const { id } = params;
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;

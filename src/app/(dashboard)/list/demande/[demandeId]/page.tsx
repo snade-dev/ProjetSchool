@@ -6,11 +6,12 @@ import UpdateDate  from "./components/UpdateDate";
 
 type AttestationDetail = Attestation & { student: Student };
 
-export default async function DemandeDetailsPage({
-  params,
-}: {
-  params: { demandeId: string };
-}) {
+export default async function DemandeDetailsPage(
+  props: {
+    params: Promise<{ demandeId: string }>;
+  }
+) {
+  const params = await props.params;
   const { demandeId } = params;
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -24,7 +25,7 @@ export default async function DemandeDetailsPage({
   });
 
   if (!attestation) notFound();
-  
+
 
   if (!role) {
     notFound();
@@ -34,7 +35,7 @@ export default async function DemandeDetailsPage({
   //   ? !!(await prisma.teacher.findUnique({ where: { userId } }))
   //   : false;
 
-  const isTeacher = (role === "teacher");
+  const isTeacher = (role === "admin");
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 space-y-8">

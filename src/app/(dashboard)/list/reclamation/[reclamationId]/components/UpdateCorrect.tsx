@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
@@ -8,7 +8,6 @@ import {
   TeacherResponsschema,
 } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormState } from "react-dom";
 import { toast } from "react-toastify";
 
 import { Prisma } from "@prisma/client";
@@ -46,7 +45,7 @@ export const UpdateCorrect = ({
     resolver: zodResolver(teacherResponsSchema),
   });
 
-  const [state, formAction] = useFormState(teacherReponseAction, {
+  const [state, formAction] = useActionState(teacherReponseAction, {
     success: false,
     error: false,
     message: "",

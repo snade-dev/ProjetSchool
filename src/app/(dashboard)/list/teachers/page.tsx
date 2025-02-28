@@ -13,11 +13,12 @@ import Link from "next/link";
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 // Genere les lignes de la table
 
-const TeacherListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const TeacherListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -173,7 +174,7 @@ const TeacherListPage = async ({
             </button>
             {role === "admin" && (
               // Le formulaire de creation de teacher
-              <FormContainer table="teacher" type="create" />
+              (<FormContainer table="teacher" type="create" />)
             )}
           </div>
         </div>

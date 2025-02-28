@@ -4,8 +4,7 @@ import { createQuestion } from "@/lib/actions/quizAction";
 import { questionSchema, QuestionSchema } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 
@@ -21,7 +20,7 @@ const QuizForm = ({ quizId, teacherId }: { quizId: string, teacherId: string }) 
   });
   const router = useRouter();
 
-  const [state, formAction] = useFormState(createQuestion, {
+  const [state, formAction] = useActionState(createQuestion, {
     success: false,
     error: false,
     message: "",

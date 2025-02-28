@@ -5,8 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formsValidationSchema";
 import { createSubject, updateSubject } from "@/lib/actions";
-import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -33,7 +32,7 @@ const SubjectForms = ({
     const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createSubject : updateSubject,
     {
       success: false,

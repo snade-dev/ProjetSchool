@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { Question } from "@prisma/client";
 import { submitStudentAnswers } from "@/lib/actions/submitStudentAnswer";
@@ -10,7 +10,6 @@ import {
   studentAnswerSchema,
 } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormState } from "react-dom";
 import { toast } from "react-toastify";
 
 type StudentAnswerProps = {
@@ -42,7 +41,7 @@ export const StudentAnswer = ({
 
   
 
-  const [state, formAction] = useFormState(submitStudentAnswers, {
+  const [state, formAction] = useActionState(submitStudentAnswers, {
     success: false,
     error: false,
     message: "",

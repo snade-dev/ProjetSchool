@@ -11,11 +11,12 @@ import Image from "next/image";
 type ClassList = Class & { supervisor: Teacher}
 
 
-const ClassListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const ClassListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
 
   const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -44,7 +45,7 @@ const ClassListPage = async ({
         ]
       : []), 
   ];
-  
+
   const RenderRow = (item: ClassList) => (
     <tr
       key={item.id}

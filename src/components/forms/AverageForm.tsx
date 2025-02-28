@@ -4,8 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 
-import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { resultMSchema, ResultMSchema } from "@/lib/formsValidationSchema";
@@ -33,7 +32,7 @@ const AverageForm = ({
   const [loading, setLoading] = useState(false);
   // AFTER REACT 19 IT'LL BE USEACTIONSTATE
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createAverage : updateAverage,
     {
       success: false,

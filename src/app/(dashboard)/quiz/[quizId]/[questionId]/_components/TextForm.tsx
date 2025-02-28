@@ -5,8 +5,7 @@ import { questionSchema, QuestionSchema } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Question } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 
@@ -22,7 +21,7 @@ const TextForm = ({ data }: { data: Question }) => {
     defaultValues: {},
   });
 
-  const [state, formAction] = useFormState(updateQuestion, {
+  const [state, formAction] = useActionState(updateQuestion, {
     success: false,
     error: false,
     message: "",

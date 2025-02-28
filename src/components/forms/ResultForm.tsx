@@ -1,9 +1,8 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useFormState } from "react-dom";
 import { createResult } from "@/lib/actions/resultAction";
 import { ResultSchema } from "@/lib/formsValidationSchema";
 
@@ -41,7 +40,7 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
 
   const { exams = [], subjects = [], semesters = [], classes = [] } = relatedData || {};
 
-  const [state, formAction] = useFormState<ActionResult, ResultSchema>(
+  const [state, formAction] = useActionState<ActionResult, ResultSchema>(
     createResult,
     {
       success: false,

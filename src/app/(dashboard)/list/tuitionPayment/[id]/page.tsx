@@ -7,7 +7,8 @@ import { notFound } from "next/navigation";
 import React from "react";
 import {EditButton} from "./components/EditButton";
 
-const Tuition = async ({ params }: { params: { id: string } }) => {
+const Tuition = async (props: { params: Promise<{ id: string }> }) => {
+  const params = await props.params;
   const year = new Date().getFullYear();
 
   const student = await prisma.student.findUnique({

@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState, type JSX } from "react";
 
 // USE LAZY LOADING
 
 // import TeacherForm from "./forms/TeacherForm";
 // import StudentForm from "./forms/StudentForm";
 import dynamic from "next/dynamic";
-import { useFormState } from "react-dom";
 import {
   deleteClass,
   deleteExam,
@@ -266,7 +265,7 @@ const FormModal = ({
       makeupSession:deleteMakeupSession
     };
     // si c'est un formulaire de suppression
-    const [state, formAction] = useFormState(deleteActionMap[table], {
+    const [state, formAction] = useActionState(deleteActionMap[table], {
       success: false,
       error: false,
     });
@@ -300,7 +299,7 @@ const FormModal = ({
       </form>
     ) : type === "create" || type === "update" ? (
       // si c'est un formulaire de creation ou de modification
-      forms[table](type, data, setOpen, relatedData)
+      (forms[table](type, data, setOpen, relatedData))
     ) : (
       "Form not found"
     );

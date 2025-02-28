@@ -4,11 +4,12 @@ import { Result } from "./components/ResultPrint";
 import Link from "next/link";
 import ResultPdfButton from "@/components/ResultPdfButton";
 
-const page = async ({
-  params,
-}: {
-  params: { quizId: string; resultId: string };
-}) => {
+const page = async (
+  props: {
+    params: Promise<{ quizId: string; resultId: string }>;
+  }
+) => {
+  const params = await props.params;
   const { resultId, quizId } = params;
 
   const questionsWithAnswers = await prisma.question.findMany({

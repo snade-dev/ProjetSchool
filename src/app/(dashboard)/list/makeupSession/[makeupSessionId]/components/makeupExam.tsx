@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import {
   makeupExamSchema,
   MakeupExamSchema,
@@ -11,7 +11,6 @@ import {
 } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { useFormState } from "react-dom";
 import InputField from "@/components/InputField";
 import {
   createMakeupExam,
@@ -43,7 +42,7 @@ const MakeupExamForm = ({
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   const [img, setImg] = useState<any>();
 
-  const [state, formAction] = useFormState(createMakeupExam, {
+  const [state, formAction] = useActionState(createMakeupExam, {
     success: false,
     error: false,
     message: "",

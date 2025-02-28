@@ -3,11 +3,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
 import { makeupSessionSchema, MakeupSessionSchema  } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { useFormState } from "react-dom";
 import { createMakeupSession, updateMakeupSession } from "@/lib/actions/makeupSessionAction";
 
 const MakeupSessionForm  = ({
@@ -32,7 +31,7 @@ const MakeupSessionForm  = ({
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   const [img, setImg] = useState<any>();
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createMakeupSession : updateMakeupSession,
     {
       success: false,

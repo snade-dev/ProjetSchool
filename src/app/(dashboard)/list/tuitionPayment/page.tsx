@@ -14,11 +14,12 @@ type TuitionPaymentList = Student & { class: Class } & {
   TuitionPayment: TuitionPayment[];
 };
 
-const TuitionListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const TuitionListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { sessionClaims, userId } = await auth();
   const role = (sessionClaims?.metadata as { role: string })?.role;
 

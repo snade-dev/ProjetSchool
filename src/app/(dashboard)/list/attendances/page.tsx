@@ -13,11 +13,12 @@ type AttendanceList = Attendance & { class: Class } & { student: Student } & {
   subject: Subject;
 };
 
-const AttendanceListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const AttendanceListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { sessionClaims, userId } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role: string })?.role;

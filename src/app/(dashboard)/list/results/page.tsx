@@ -27,11 +27,12 @@ type ResultList = Prisma.ResultGetPayload<{
   };
 }> & { moyenne: number };
 
-export default async function ResultListPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) {
+export default async function ResultListPage(
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const { userId ,sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
@@ -95,68 +96,68 @@ export default async function ResultListPage({
   const averagesQuery = { ...query };
   delete averagesQuery.examId;
 
-// Modifier la requête pour inclure classScore
-const [data, count, averages] = await prisma.$transaction([
-  prisma.result.findMany({
-    where: {
-      ...query,
-      examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
-    },
-    include: {
-      exam: { select: { id: true, title: true } },
-      semester: { select: { id: true, name: true } },
-      subject: { select: { id: true, name: true } },
-      student: {
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          classId: true,
-          class: { select: { name: true } }, // Inclure classScore
+  // Modifier la requête pour inclure classScore
+  const [data, count, averages] = await prisma.$transaction([
+    prisma.result.findMany({
+      where: {
+        ...query,
+        examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
+      },
+      include: {
+        exam: { select: { id: true, title: true } },
+        semester: { select: { id: true, name: true } },
+        subject: { select: { id: true, name: true } },
+        student: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            classId: true,
+            class: { select: { name: true } }, // Inclure classScore
+          },
         },
       },
-    },
-    distinct: ["studentId", "semesterId"],
-    orderBy: { student: { name: "asc" } },
-    take: ITEM_PER_PAGE,
-    skip: ITEM_PER_PAGE * (page - 1),
-  }),
-  prisma.result.count({
-    where: {
-      ...query,
-      examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
-    },
-    
-    
-  }),
-  prisma.result.groupBy({
-    by: ["studentId", "semesterId"],
-    _avg: { score: true },
-    where: averagesQuery,
-    orderBy: { studentId: "asc" },
-  }),
-]);
+      distinct: ["studentId", "semesterId"],
+      orderBy: { student: { name: "asc" } },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (page - 1),
+    }),
+    prisma.result.count({
+      where: {
+        ...query,
+        examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
+      },
+      
+      
+    }),
+    prisma.result.groupBy({
+      by: ["studentId", "semesterId"],
+      _avg: { score: true },
+      where: averagesQuery,
+      orderBy: { studentId: "asc" },
+    }),
+  ]);
 
-if (!data || !role) return notFound();
+  if (!data || !role) return notFound();
 
-// Association de la moyenne calculée à chaque résultat
-const processedData: ResultList[] = data.map((result) => {
-  const avgEntry = averages.find(
-    (a) =>
-      a.studentId === result.studentId &&
-      a.semesterId === result.semesterId
-  );
-  const classScore = result.classScore ?? 0; // Récupérer classScore
-  const score = result.score ?? 0; // Récupérer score
-  const moyenne = (classScore * 0.4) + (score * 0.6); // Calculer la nouvelle moyenne
+  // Association de la moyenne calculée à chaque résultat
+  const processedData: ResultList[] = data.map((result) => {
+    const avgEntry = averages.find(
+      (a) =>
+        a.studentId === result.studentId &&
+        a.semesterId === result.semesterId
+    );
+    const classScore = result.classScore ?? 0; // Récupérer classScore
+    const score = result.score ?? 0; // Récupérer score
+    const moyenne = (classScore * 0.4) + (score * 0.6); // Calculer la nouvelle moyenne
 
-  return {
-    ...result,
-    moyenne: moyenne,
-  };
-});
+    return {
+      ...result,
+      moyenne: moyenne,
+    };
+  });
 
-const count2 =averages.length;
+  const count2 =averages.length;
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

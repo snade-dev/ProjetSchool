@@ -3,8 +3,7 @@
 import { createComplain } from "@/lib/actions/complainAction";
 import { ComplainSchema, complainSchema } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useActionState } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useRouter } from 'next/navigation';
@@ -21,7 +20,7 @@ const ReclamationForm = ({quizId, studentId}: {quizId: string, studentId: string
     resolver: zodResolver(complainSchema),
   });
 
-    const [state, formAction] = useFormState(createComplain, {
+    const [state, formAction] = useActionState(createComplain, {
     success: false,
     error: false,
     message: "",

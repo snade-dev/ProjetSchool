@@ -11,11 +11,12 @@ import { Suspense } from "react";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
 
-const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
+const SingleStudentPage = async (props: { params: Promise<{ id: string }> }) => {
+  const params = await props.params;
   const { id } = params;
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
 
   const student:
     | (Student & {

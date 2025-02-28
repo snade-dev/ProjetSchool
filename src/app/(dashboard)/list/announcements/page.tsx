@@ -12,15 +12,16 @@ import Image from "next/image";
 type AnnouncementList = Announcement & { class: Class };
 
 
-const AnnouncementsListPage = async ({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) => {
+const AnnouncementsListPage = async (
+  props: {
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) => {
+  const searchParams = await props.searchParams;
   const { sessionClaims, userId } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role: string })?.role;
-  
+
   const columns = [
     {
       header: "Title",
@@ -90,24 +91,24 @@ const AnnouncementsListPage = async ({
     }
   }
 
-    // Role condition
-    const roleConditions = {
-      teacher: { lessons: { some: { teacherId: currentUserId! } } },
-      student: { students: { some: { id: currentUserId! } } },
-      parent: { students: { some: { parentId: currentUserId! } } },
-    };
+  // Role condition
+  const roleConditions = {
+    teacher: { lessons: { some: { teacherId: currentUserId! } } },
+    student: { students: { some: { id: currentUserId! } } },
+    parent: { students: { some: { parentId: currentUserId! } } },
+  };
+
+  if (role === "admin") {
+    // L'admin peut tout voir, pas besoin de filtrer par classe
   
-    if (role === "admin") {
-      // L'admin peut tout voir, pas besoin de filtrer par classe
-    
-    } else {
-      // Pour les autres rôles, appliquer des conditions spécifiques
-      query.OR = [
-        { classId: null },
-        { class: roleConditions[role as keyof typeof roleConditions] || {} },
-      ];
-    }
-    
+  } else {
+    // Pour les autres rôles, appliquer des conditions spécifiques
+    query.OR = [
+      { classId: null },
+      { class: roleConditions[role as keyof typeof roleConditions] || {} },
+    ];
+  }
+
 
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
@@ -123,7 +124,7 @@ const AnnouncementsListPage = async ({
   ]);
 
   console.log(data);
-  
+
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

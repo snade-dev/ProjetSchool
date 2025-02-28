@@ -22,13 +22,14 @@ type ResultList = Result & {
   subject: Subject;
 };
 
-export default async function ResultListPage({
-  params,
-  searchParams,
-}: {
-  params: { makeupSessionId: string };
-  searchParams: { [key: string]: string | undefined };
-}) {
+export default async function ResultListPage(
+  props: {
+    params: Promise<{ makeupSessionId: string }>;
+    searchParams: Promise<{ [key: string]: string | undefined }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
