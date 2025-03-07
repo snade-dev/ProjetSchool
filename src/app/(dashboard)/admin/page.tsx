@@ -75,7 +75,7 @@ const Adminpage = async ({
     <div className="p-6 space-y-8">
       {/* En-tête avec statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <UserCard type="admin" />
+        {/* <UserCard type="admin" /> */}
         <UserCard type="enseignant" />
         <UserCard type="élève" />
         <UserCard type="parent" />

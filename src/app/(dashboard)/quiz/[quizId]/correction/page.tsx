@@ -21,7 +21,7 @@ const QuizListPage = async (
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
   const role = (sessionClaims?.metadata as { role?: string })?.role;
-  const { quizId } = await params;
+  const { quizId } = await props.params;
   const { page, ...queryParams } = searchParams;
 
   if (!currentUserId) {

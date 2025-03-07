@@ -63,7 +63,7 @@ const ParentListPage = async (
       accessor: "nom",
     },
     {
-      header: "Etudiants",
+      header: "Enfants",
       accessor: "students",
       className: "hidden md:table-cell",
     },

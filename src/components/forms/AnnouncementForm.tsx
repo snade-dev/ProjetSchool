@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { announceSchema, AnnounceSchema } from "@/lib/formsValidationSchema";
@@ -28,6 +28,8 @@ const AnnouncementForm = ({
     resolver: zodResolver(announceSchema),
   });
 
+    const [isPending, startTransition] = useTransition();
+  
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
 
   const [state, formAction] = useActionState(
@@ -42,7 +44,10 @@ const AnnouncementForm = ({
     // console.log("hello");
     // console.log(data);
     setLoading(true);
-    formAction(data);
+
+    startTransition(() => {
+      formAction(data);
+    });
   });
 
   const router = useRouter();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState, useActionState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import {
@@ -26,11 +26,17 @@ type CorrectProps = {
   role: string;
 };
 
-export const Correct = ({ questions, quizId, studentId, role }: CorrectProps) => {
+export const Correct = ({
+  questions,
+  quizId,
+  studentId,
+  role,
+}: CorrectProps) => {
   // console.log(questions[0].StudentAnswer);
-  
+
   const [submitted, setSubmitted] = useState(false);
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const {
     register,
@@ -54,9 +60,9 @@ export const Correct = ({ questions, quizId, studentId, role }: CorrectProps) =>
     } else if (state.error) {
       toast.error("Erreur lors de l'enregistrement des réponses");
     }
-  }, [state, router,quizId]);
+  }, [state, router, quizId]);
 
-  const onSubmit = handleSubmit((data: TeacherResponsschema) => {    
+  const onSubmit = handleSubmit((data: TeacherResponsschema) => {
     try {
       // Ajouter studentId et quizId à chaque réponse
       const answersWithIds = data.answers.map((answer, index) => ({
@@ -67,13 +73,13 @@ export const Correct = ({ questions, quizId, studentId, role }: CorrectProps) =>
       }));
 
       // Appeler la Server Action
-      const result = formAction(answersWithIds);
+      startTransition(() => {
+        const result = formAction(answersWithIds);
+      });
     } catch (error) {
       console.error("Erreur lors de l'envoi des réponses", error);
     }
   });
-
-
 
   return (
     <div className="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
@@ -90,7 +96,9 @@ export const Correct = ({ questions, quizId, studentId, role }: CorrectProps) =>
                 <div>
                   <label>{question.questionText}</label>
                   <div className=" bg-slate-100 p-2 rounded-lg">
-                    {question.StudentAnswer.length !==0 ? question.StudentAnswer[0].answerText : "pas de reponse" }
+                    {question.StudentAnswer.length !== 0
+                      ? question.StudentAnswer[0].answerText
+                      : "pas de reponse"}
                   </div>
                 </div>
                 <input
@@ -110,12 +118,14 @@ export const Correct = ({ questions, quizId, studentId, role }: CorrectProps) =>
             </div>
           ))}
           {state.error && state.message}
-          {(role === "teacher") && <button
-            type="submit"
-            className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
-          >
-            Envoyer les réponses
-          </button>}
+          {(role === "teacher" || role === "admin") && (
+            <button
+              type="submit"
+              className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"
+            >
+              Envoyer les réponses
+            </button>
+          )}
         </form>
       )}
     </div>

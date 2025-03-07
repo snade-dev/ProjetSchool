@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState, startTransition } from "react";
 import { parentSchema, ParentSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,10 @@ const ParentForms = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     // console.log(data);
-    formAction(data);
+    startTransition(() => {
+
+      formAction(data);
+    });
   });
 
   const router = useRouter();

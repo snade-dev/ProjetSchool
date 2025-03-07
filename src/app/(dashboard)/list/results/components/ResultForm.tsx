@@ -105,7 +105,7 @@ export const ResultForm = ({ results }: ResultFormProps) => {
           <div className="font-semibold text-gray-700">Note de Classe</div>
         </div>
 
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-200 flex flex-col">
           {results.map((result: ResultWithDetails, index) => (
             <div
               key={result.id}
@@ -117,6 +117,7 @@ export const ResultForm = ({ results }: ResultFormProps) => {
 
               {/* Champ Score */}
               <div>
+                <label htmlFor={`results.${index}.score`}>Note de classe</label>
                 <input
                   id={`results.${index}.score`}
                   type="number"
@@ -136,6 +137,8 @@ export const ResultForm = ({ results }: ResultFormProps) => {
 
               {/* Nouveau champ Class Score */}
               <div>
+              <label htmlFor={`results.${index}.score`}>Note d'examen</label>
+
                 <input
                   id={`results.${index}.classscore`}
                   type="number"

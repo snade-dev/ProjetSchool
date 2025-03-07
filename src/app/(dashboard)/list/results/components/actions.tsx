@@ -14,6 +14,8 @@ type ResultWithDetails = Prisma.ResultGetPayload<{
       select: {
         id: true;
         name: true;
+        username: true;
+        surname: true;
         classId: true;
         class: { select: { name: true } };
       };
@@ -49,6 +51,7 @@ export async function renderResultActions(item: any, role: string) {
           select: {
             id: true,
             name: true,
+            username: true,
             surname: true,
             classId: true,
             class: { select: { name: true } },

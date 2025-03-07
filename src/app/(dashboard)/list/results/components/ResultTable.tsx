@@ -15,6 +15,7 @@ type ResultWithDetails2 = Prisma.ResultGetPayload<{
       select: {
         id: true;
         name: true;
+        username: true;
         surname: true;
         classId: true;
         class: { select: { name: true } };
@@ -34,6 +35,7 @@ type ResultWithDetails = Prisma.ResultGetPayload<{
       select: {
         id: true;
         name: true;
+        username: true;
         surname: true;
         classId: true;
         class: { select: { name: true } };
@@ -74,11 +76,6 @@ export default function ResultTable({
     <>
       <Table
         columns={[
-          {
-            header: "Examen",
-            accessor: "exam",
-            className: "hidden md:table-cell",
-          },
           { header: "Etudiants", accessor: "student" },
           {
             header: "Semsestre",
@@ -107,10 +104,7 @@ export default function ResultTable({
             key={item.id}
             className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
           >
-            <td className="flex items-center gap-4 p-4">
-              {item.exam?.title || "-"}
-            </td>
-            <td className="hidden md:table-cell">{item.student.name}</td>
+            <td className="hidden md:table-cell">{item.student.username}</td>
             <td>{item.semester.name}</td>
             <td className={`hidden md:table-cell font-semibold ${(item.moyenne < 10) ? "text-red-500" : "text-green-500"}`}>
               {item.moyenne.toFixed(3)}
@@ -126,7 +120,7 @@ export default function ResultTable({
             </td>
             {actions && (
               <td>
-                <div className="flex items-center gap-2">{actions}</div>
+                <span className="flex items-center gap-2">{actions}</span>
               </td>
             )}
           </tr>

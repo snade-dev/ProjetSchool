@@ -25,13 +25,15 @@ const AttendanceListPage = async (
 
   // Colonnes du tableau
   const columns = [
-    { header: "Date", accessor: "date" , className: "hidden md:table-cell"},
+    { header: "Date", accessor: "date", className: "hidden md:table-cell" },
     { header: "Présent", accessor: "present" },
+    { header: "Session", accessor: "session", className: "hidden md:table-cell" }, // Nouvelle colonne
     { header: "Étudiant", accessor: "student.name", className: "hidden md:table-cell" },
-    { header: "class", accessor: "class.name" , className: "hidden md:table-cell"},
-    { header: "Matiere", accessor: "subject.title" , className: "hidden md:table-cell"},
+    { header: "class", accessor: "class.name", className: "hidden md:table-cell" },
+    { header: "Matiere", accessor: "subject.name", className: "hidden md:table-cell" },
     ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
   ];
+  
 
   // Génération des lignes
   const renderRow = (item: AttendanceList) => (
@@ -39,19 +41,27 @@ const AttendanceListPage = async (
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-
-      <td className=" hidden md:table-cell">{new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))}</td>
+      <td className="hidden md:table-cell">
+        {new Intl.DateTimeFormat("fr-FR").format(new Date(item.date))}
+      </td>
       <td
-        className={clsx ("flex items-center gap-4 p-4", {
+        className={clsx("flex items-center gap-4 p-4", {
           "text-green-500 font-bold": item.present,
           "font-bold text-red-600": !item.present,
         })}
       >
         {item.present ? "Présent" : "Absent"}
       </td>
-      <td className=" hidden md:table-cell">{item.student?.name || "N/A"}</td>
-      <td className=" hidden md:table-cell">{item.class?.name || "N/A"}</td>
-      <td className=" hidden md:table-cell">{item.subject?.name || "N/A"}</td>
+      <td className="hidden md:table-cell">
+        {item.session === "MORNING"
+          ? "Matin"
+          : item.session === "EVENING"
+          ? "Soir"
+          : "N/A"}
+      </td>
+      <td className="hidden md:table-cell">{item.student?.name || "N/A"}</td>
+      <td className="hidden md:table-cell">{item.class?.name || "N/A"}</td>
+      <td className="hidden md:table-cell">{item.subject?.name || "N/A"}</td>
       {role === "admin" && (
         <td>
           <div className="flex items-center gap-2">
@@ -62,6 +72,7 @@ const AttendanceListPage = async (
       )}
     </tr>
   );
+  
 
   // Gestion des paramètres de recherche
   const { page, ...queryParams } = searchParams;

@@ -3,14 +3,24 @@
 import { createComplain } from "@/lib/actions/complainAction";
 import { ComplainSchema, complainSchema } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useActionState } from "react";
+import {
+  useEffect,
+  useActionState,
+  useTransition,
+  startTransition,
+} from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "react-toastify";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
-const ReclamationForm = ({quizId, studentId}: {quizId: string, studentId: string}) => {
-
-  const router =useRouter();
+const ReclamationForm = ({
+  quizId,
+  studentId,
+}: {
+  quizId: string;
+  studentId: string;
+}) => {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -20,29 +30,33 @@ const ReclamationForm = ({quizId, studentId}: {quizId: string, studentId: string
     resolver: zodResolver(complainSchema),
   });
 
-    const [state, formAction] = useActionState(createComplain, {
+  const [isPending,startTransition] = useTransition();
+
+  const [state, formAction] = useActionState(createComplain, {
     success: false,
     error: false,
     message: "",
   });
 
   const onSubmit = (data: ComplainSchema) => {
-    formAction({...data, quizId: quizId,studentId})
-  }
+    startTransition(() => {
+      formAction({ ...data, quizId: quizId, studentId });
+    });
+  };
 
   const onError = (errors: FieldErrors<ComplainSchema>) => {
-    console.error('Erreurs:', errors);
-    console.log('Valeurs actuelles:', getValues());
+    console.error("Erreurs:", errors);
+    console.log("Valeurs actuelles:", getValues());
   };
 
   useEffect(() => {
     if (state.success) {
       toast.success("Reclamation ajouter avec success");
-      router.push(`/`);
+      router.push(`/list/reclamation`);
     } else if (state.error) {
-      toast.error("une erreur c'est produite")
+      toast.error("une erreur c'est produite");
     }
-  }, [router, state])
+  }, [router, state]);
 
   return (
     <div>

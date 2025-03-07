@@ -13,11 +13,9 @@ type QuizList = Quiz & { subject: Subject } & { class: Class } & {
   StudentAnswer: { id: string }[];
 };
 
-const QuizListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const QuizListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
   const { userId, sessionClaims } = await auth();
   const currentUserId = userId;
@@ -47,12 +45,12 @@ const QuizListPage = async (
       ? [
           {
             header: "Faire l'examen",
-            accessor: "subject",
+            accessor: "actions",
           },
         ]
       : []),
     {
-      header: "Note de l'examen",
+      header: "Copie à corriger",
       accessor: "score",
     },
   ];
@@ -74,12 +72,20 @@ const QuizListPage = async (
           {hasAnswered ? (
             <span className="text-gray-500">Déjà répondu</span>
           ) : (
-            <Link href={`/quiz/${item.id}/appQuiz`}>allons-y 👨🏾‍🎓</Link>
+            <Link href={`/quiz/${item.id}/appQuiz`}>
+              <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Faire l'examen 👨🏾‍🎓
+              </button>
+            </Link>
           )}
         </td>
         <td className="hidden md:table-cell">
           {role !== "student" && (
-            <Link href={`/quiz/${item.id}/correction`}>corriger</Link>
+            <Link href={`/quiz/${item.id}/correction`}>
+              <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                A corriger
+              </button>
+            </Link>
           )}
         </td>
       </tr>

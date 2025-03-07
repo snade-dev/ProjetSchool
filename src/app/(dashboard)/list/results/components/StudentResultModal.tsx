@@ -98,7 +98,7 @@ export default function StudentResultModal({
                   <tr className="bg-gray-100">
                     <th className="p-2 text-left">Matière</th>
                     <th className="p-2 text-left">Note d&apos;examen</th>
-                    <th className="p-2 text-left">Note de classe</th> {/* Nouvelle colonne */}
+                    <th className="p-2 text-left">Note de classe</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -106,7 +106,7 @@ export default function StudentResultModal({
                     <tr key={result.subjectId} className="border-b">
                       <td className="p-2">{result.subject.name}</td>
                       <td className="p-2">{result.score ?? "Non noté"}</td>
-                      <td className="p-2">{result.classScore ?? "Non noté"}</td> {/* Nouvelle cellule */}
+                      <td className="p-2">{result.classScore ?? "Non noté"}</td>
                     </tr>
                   ))}
                 </tbody>

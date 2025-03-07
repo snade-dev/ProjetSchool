@@ -4,7 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
 
-import { Dispatch, SetStateAction, useEffect, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useActionState,
+  useTransition,
+} from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { ClassSchema, classSchema } from "@/lib/formsValidationSchema";
@@ -21,7 +27,6 @@ const ClassForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
-
   const {
     register,
     handleSubmit,
@@ -37,13 +42,16 @@ const ClassForm = ({
     {
       success: false,
       error: false,
-      message: ""
+      message: "",
     }
   );
 
+  const [isPending, startTransition] = useTransition();
+
   const onSubmit = handleSubmit((data) => {
-    // console.log(data);
-    formAction(data);
+    startTransition(() => {
+      formAction(data);
+    });
   });
 
   const router = useRouter();
@@ -114,12 +122,13 @@ const ClassForm = ({
             </p>
           )}
         </div>
-          
       </div>
       {state.error && (
-        <span className="text-red-500">{state.message ? state.message : "Une erreur c&apos;est produite!"}</span>
+        <span className="text-red-500">
+          {state.message ? state.message : "Une erreur c&apos;est produite!"}
+        </span>
       )}
-      
+
       <button className="bg-blue-400 text-white p-2 rounded-md" type="submit">
         {type === "create" ? "Créer" : "Modifier"}
       </button>

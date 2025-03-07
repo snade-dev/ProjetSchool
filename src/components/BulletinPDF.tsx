@@ -85,7 +85,7 @@ const BulletinPDF = ({
 
         <View style={styles.signatureSection}>
           <Text style={styles.signatureText}>Le Directeur Pédagogique,</Text>
-          <Text style={styles.signatureText}>Dr. Lamine Dembele</Text>
+          {/* <Text style={styles.signatureText}>Dr. Lamine Dembele</Text> */}
           <View style={styles.signatureLine} />
         </View>
       </Page>

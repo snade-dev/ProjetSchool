@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formsValidationSchema";
 import { createSubject, updateSubject } from "@/lib/actions";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState, useActionState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -29,6 +29,9 @@ const SubjectForms = ({
     resolver: zodResolver(subjectSchema),
   });
 
+    const [isPending, startTransition] = useTransition();
+  
+
     const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   
 
@@ -43,7 +46,10 @@ const SubjectForms = ({
   const onSubmit = handleSubmit((data) => {
     console.log(data);
     setLoading(true);
-    formAction(data);
+    startTransition(() => {
+
+      formAction(data);
+    })
   });
 
   const router = useRouter();

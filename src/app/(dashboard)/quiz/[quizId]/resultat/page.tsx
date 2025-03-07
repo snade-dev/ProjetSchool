@@ -42,7 +42,7 @@ const QuizListPage = async (
     },
     {
       header: "Detail du resultat",
-      accessor: "score",
+      accessor: "detail",
       className: "md:table-cell hidden",
     },
   ];

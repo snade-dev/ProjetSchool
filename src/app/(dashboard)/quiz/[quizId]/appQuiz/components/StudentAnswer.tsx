@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback, useActionState } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useActionState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Question } from "@prisma/client";
 import { submitStudentAnswers } from "@/lib/actions/submitStudentAnswer";
@@ -39,8 +45,6 @@ export const StudentAnswer = ({
     resolver: zodResolver(studentAnswerSchema),
   });
 
-  
-
   const [state, formAction] = useActionState(submitStudentAnswers, {
     success: false,
     error: false,
@@ -73,7 +77,7 @@ export const StudentAnswer = ({
     }
   }, [timeLeft, submitted, handleAutoSubmit, role, router]);
 
-
+  const [isPending, startTransition] = useTransition();
 
   // Soumission du formulaire
   const onSubmit = handleSubmit(async (data: StudentAnswerschema) => {
@@ -84,7 +88,9 @@ export const StudentAnswer = ({
         studentId,
         quizId,
       }));
-      await formAction(answersWithIds);
+      startTransition(() => {
+        formAction(answersWithIds);
+      });
     } catch (error) {
       console.error("Erreur lors de l'envoi des réponses", error);
       setSubmitted(false);
@@ -96,7 +102,7 @@ export const StudentAnswer = ({
   useEffect(() => {
     if (state.success) {
       toast.success("Réponses enregistrées avec succès");
-      router.push("/");
+      router.push("/list/resultExam");
       router.refresh();
     }
     if (state.error) {
@@ -116,7 +122,10 @@ export const StudentAnswer = ({
     <div className="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold mb-6">Répondez aux questions :</h2>
       <div className="text-right mb-4 text-xl font-semibold">
-        Temps restant : <span className={`${timeLeft < (duration*60 /2) && "text-red-400"}`}>{formatTime(timeLeft)}</span> 
+        Temps restant :{" "}
+        <span className={`${timeLeft < (duration * 60) / 2 && "text-red-400"}`}>
+          {formatTime(timeLeft)}
+        </span>
       </div>
 
       {submitted ? (
@@ -147,7 +156,7 @@ export const StudentAnswer = ({
               )}
             </div>
           ))}
-          
+
           {state.error && (
             <p className="text-red-500 text-center">{state.message}</p>
           )}

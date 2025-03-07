@@ -52,7 +52,7 @@ const QuizListPage = async (
     },
     {
       header: "Note de l'examen",
-      accessor: "score",
+      accessor: "scoreExam",
     },
   ];
 
@@ -78,7 +78,12 @@ const QuizListPage = async (
       
         <td className="">
           {hasCorrection ? (
-            <Link href={`/quiz/${item.id}/resultat`}>Voir les resultats</Link>
+            <Link
+              href={`/quiz/${item.id}/resultat`}
+              className="inline-block px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+            >
+              Voir les resultats
+            </Link>
           ) : (
             <span className="text-gray-500">En attente de correction</span>
           )}

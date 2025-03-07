@@ -3,13 +3,26 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
-import { makeupSessionSchema, MakeupSessionSchema  } from "@/lib/formsValidationSchema";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useActionState,
+  useTransition,
+} from "react";
+import {
+  makeupSessionSchema,
+  MakeupSessionSchema,
+} from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { createMakeupSession, updateMakeupSession } from "@/lib/actions/makeupSessionAction";
+import {
+  createMakeupSession,
+  updateMakeupSession,
+} from "@/lib/actions/makeupSessionAction";
 
-const MakeupSessionForm  = ({
+const MakeupSessionForm = ({
   type,
   setOpen,
   data,
@@ -28,6 +41,8 @@ const MakeupSessionForm  = ({
     resolver: zodResolver(makeupSessionSchema),
   });
 
+  const [isPending, startTransition] = useTransition();
+
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   const [img, setImg] = useState<any>();
 
@@ -43,7 +58,9 @@ const MakeupSessionForm  = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     // console.log(data);
-    formAction({...data, userId: userId});
+    startTransition(() => {
+      formAction({ ...data, userId: userId });
+    });
   });
 
   const router = useRouter();
@@ -103,7 +120,7 @@ const MakeupSessionForm  = ({
           error={errors.endTime}
           type="date"
         />
-   
+
         <div className=" flex flex-col gap-2 w-full md:w-1/4">
           <label className=" text-xs text-gray-500">Semestre</label>
           <select
@@ -123,8 +140,6 @@ const MakeupSessionForm  = ({
             </p>
           )}
         </div>
- 
-
       </div>
 
       {state.error && (

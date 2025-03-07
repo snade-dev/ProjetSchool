@@ -119,7 +119,7 @@ export const UpdateCorrect = ({
             </div>
           ))}
           {state.error && state.message}
-          {role === "student" && (
+          {(role === "teacher" || role==="admin") && (
             <button
               type="submit"
               className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"

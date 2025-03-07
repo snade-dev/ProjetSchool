@@ -47,8 +47,10 @@ export async function teacherReponseAction(
     }
 
     // Calcul du score total
-    const totalScore = answers.reduce((acc, answer) => acc + answer.score, 0);
-    console.log("Score total calculé :", totalScore);
+    const totalScore = answers.length
+      ? answers.reduce((acc, answer) => acc + answer.score, 0) / answers.length
+      : 0;
+    console.log("Score moyen calculé :", totalScore);
 
     // Gestion du quizResult
     const studentId = answers[0]?.studentId;

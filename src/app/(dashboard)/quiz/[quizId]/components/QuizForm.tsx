@@ -7,8 +7,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useActionState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
+import { useTransition } from "react";
 
-const QuizForm = ({ quizId, teacherId }: { quizId: string, teacherId: string }) => {
+const QuizForm = ({
+  quizId,
+  teacherId,
+}: {
+  quizId: string;
+  teacherId: string;
+}) => {
   const {
     control,
     register,
@@ -26,8 +33,12 @@ const QuizForm = ({ quizId, teacherId }: { quizId: string, teacherId: string }) 
     message: "",
   });
 
+  const [isPending, startTransition] = useTransition();
+
   const onSubmit = handleSubmit((data: QuestionSchema) => {
-    formAction({ ...data, quizId: quizId });
+    startTransition(() => {
+      formAction({ ...data, quizId });
+    });
   });
 
   useEffect(() => {
@@ -47,7 +58,12 @@ const QuizForm = ({ quizId, teacherId }: { quizId: string, teacherId: string }) 
         className="w-full p-3 text-base border-2 border-black rounded-lg shadow-[2.5px_3px_0px_#000] focus:shadow-[5.5px_7px_0px_#000] focus:outline-none transition-all duration-200"
       />
 
-      <input type="text" className="hidden" {...register("createdBy")} defaultValue={teacherId} />
+      <input
+        type="text"
+        className="hidden"
+        {...register("createdBy")}
+        defaultValue={teacherId}
+      />
 
       <button
         className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-pointer mb-6 mt-4"
@@ -57,7 +73,6 @@ const QuizForm = ({ quizId, teacherId }: { quizId: string, teacherId: string }) 
           Créer
         </span>
       </button>
-
     </form>
   );
 };

@@ -19,6 +19,7 @@ type ResultList = Prisma.ResultGetPayload<{
       select: {
         id: true;
         name: true;
+        username: true;
         surname: true;
         classId: true;
         class: { select: { name: true } };
@@ -33,7 +34,7 @@ export default async function ResultListPage(
   }
 ) {
   const searchParams = await props.searchParams;
-  const { userId ,sessionClaims } = await auth();
+  const { userId, sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   if (!userId) {
@@ -52,6 +53,7 @@ export default async function ResultListPage(
   // Construction de la query de base
   const query: Prisma.ResultWhereInput = {};
 
+  // Filtres basés sur l'interface utilisateur
   if (searchParams.classId) {
     query.student = {
       classId: parseInt(searchParams.classId),
@@ -59,9 +61,8 @@ export default async function ResultListPage(
   }
 
   if (role === "student") {
-    query.student = { id:  userId};
+    query.student = { id: userId };
   }
-
 
   if (searchParams.semesterId) {
     query.semesterId = parseInt(searchParams.semesterId);
@@ -92,6 +93,23 @@ export default async function ResultListPage(
     ];
   }
 
+  // Si le rôle est "parent", ne voir que les résultats de ses enfants.
+  // On récupère les identifiants des enfants liés à ce parent (champ "parentId" sur Student)
+  if (role === "parent") {
+    const children = await prisma.student.findMany({
+      where: { parentId: userId },
+      select: { id: true },
+    });
+    const childrenIds = children.map(child => child.id);
+    if (query.student) {
+      query.student = {
+        AND: [query.student, { id: { in: childrenIds } }],
+      };
+    } else {
+      query.student = { id: { in: childrenIds } };
+    }
+  }
+
   // Pour le calcul des moyennes, on clone la query et on exclut le filtre sur l'examen
   const averagesQuery = { ...query };
   delete averagesQuery.examId;
@@ -111,6 +129,7 @@ export default async function ResultListPage(
           select: {
             id: true,
             name: true,
+            username: true,
             surname: true,
             classId: true,
             class: { select: { name: true } }, // Inclure classScore
@@ -127,8 +146,6 @@ export default async function ResultListPage(
         ...query,
         examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
       },
-      
-      
     }),
     prisma.result.groupBy({
       by: ["studentId", "semesterId"],
@@ -149,7 +166,7 @@ export default async function ResultListPage(
     );
     const classScore = result.classScore ?? 0; // Récupérer classScore
     const score = result.score ?? 0; // Récupérer score
-    const moyenne = (classScore * 0.4) + (score * 0.6); // Calculer la nouvelle moyenne
+    const moyenne = classScore * 0.4 + score * 0.6; // Calculer la nouvelle moyenne
 
     return {
       ...result,
@@ -157,7 +174,7 @@ export default async function ResultListPage(
     };
   });
 
-  const count2 =averages.length;
+  const count2 = averages.length;
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

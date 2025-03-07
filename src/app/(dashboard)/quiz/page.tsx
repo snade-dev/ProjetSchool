@@ -66,7 +66,13 @@ const QuizListPage = async (
       <td className=" hidden md:table-cell">{item.class?.name || "-"}</td>
       <td className=" hidden md:table-cell">{item.subject?.name || "-"}</td>
       <td className=" hidden md:table-cell">{item.teacher?.username || "-"}</td>
-      <td><Link href={`quiz/${item.id}?teacherId=${item.teacher.id}`}>Ajouter des questions</Link></td>
+      <td>
+        <Link href={`quiz/${item.id}?teacherId=${item.teacher.id}`}>
+          <button className="px-3 py-1 bg-lamaSky rounded hover:bg-lamaYellowDark text-white">
+            Ajouter des questions
+          </button>
+        </Link>
+      </td>
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("en-US").format(item.date)}
       </td>

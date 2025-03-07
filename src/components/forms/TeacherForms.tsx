@@ -4,12 +4,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import Image from "next/image";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useActionState,
+} from "react";
 import { teacherSchema, TeacherSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { CldUploadWidget } from "next-cloudinary";
+import { useTransition } from "react";
 
 const TeacherForms = ({
   type,
@@ -42,10 +49,13 @@ const TeacherForms = ({
     }
   );
 
+  const [isPending, startTransition] = useTransition(); // add transition
+
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
-    // console.log(data);
-    formAction({ ...data, img: img?.secure_url });
+    startTransition(() => {
+      formAction({ ...data, img: img?.secure_url });
+    });
   });
 
   const router = useRouter();

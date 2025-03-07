@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useEffect, useActionState } from "react";
+import { useEffect, useActionState, useTransition } from "react";
 
 const EditInput = ({
   TuitionId,
@@ -34,14 +34,18 @@ const EditInput = ({
     message: "",
   });
 
+  const [isPending, startTransition] = useTransition();
+
   const onSubmit = handleSubmit(async (data: Schemas) => {
     // console.log(data);
-    formAction({
-      ...data,
-      id: TuitionId,
-      studentId: studentId,
-      amont: Number(data.amont),
-      month: month,
+    startTransition(() => {
+      formAction({
+        ...data,
+        id: TuitionId,
+        studentId: studentId,
+        amont: Number(data.amont),
+        month: month,
+      });
     });
 
     console.log(state);

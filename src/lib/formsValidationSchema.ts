@@ -239,13 +239,15 @@ export type MakeupExamSchema = z.infer<typeof makeupExamSchema>;
 export const attendanceSchema = z.object({
   id: z.coerce.number().optional(),
   date: z.coerce.date({ message: "La date est requise !" }),
-  present:z.string(),
-  studentUsername: z.string().min(1, "l'etudiant doit etre entrer"),
+  present: z.string(), // Si vous souhaitez un booléen, vous pouvez utiliser z.boolean()
+  session: z.enum(["MORNING", "EVENING"], { message: "La session doit être spécifiée (MORNING ou EVENING)" }),
+  studentUsername: z.string().min(1, "L'étudiant doit être renseigné"),
   subjectId: z.coerce.number({ message: "La leçon est requise !" }),
   classId: z.coerce.number({ message: "La leçon est requise !" }),
 });
 
 export type Attendancechema = z.infer<typeof attendanceSchema>;
+
 
 export const studentAnswerSchema = z.object({
   answers: z.array(

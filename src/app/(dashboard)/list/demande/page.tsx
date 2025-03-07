@@ -39,7 +39,7 @@ const ReclamationListPage = async (
     },
     {
       header: "voir les details",
-      accessor: "status",
+      accessor: "details",
       className: "hidden md:table-cell",
     },
     ...(role === "admin"

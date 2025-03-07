@@ -3,7 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useActionState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { eventSchema, EventSchema } from "@/lib/formsValidationSchema";
@@ -28,6 +35,7 @@ const EventForm = ({
     resolver: zodResolver(eventSchema),
   });
 
+  const [isPending, startTransition] = useTransition();
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
 
   const [state, formAction] = useActionState(
@@ -42,7 +50,10 @@ const EventForm = ({
     // console.log("hello");
     // console.log(data);
     setLoading(true);
-    formAction(data);
+
+    startTransition(() => {
+      formAction(data);
+    });
   });
 
   const router = useRouter();
@@ -58,13 +69,15 @@ const EventForm = ({
     }
   }, [state, router, type, setOpen]);
   // console.log("leeosns", lessons);
-  
-  const {classes} = relatedData;
+
+  const { classes } = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Créer un nouvel évènement" : "Modifier un évènement"}
+        {type === "create"
+          ? "Créer un nouvel évènement"
+          : "Modifier un évènement"}
       </h1>
       <span className="text-xs text-gray-400 font-medium">
         Information d&apos;authentication
@@ -117,9 +130,7 @@ const EventForm = ({
                 _count: { students: number };
               }) => (
                 <option value={classItem.id} key={classItem.id}>
-                  ({classItem.name} -{" "}
-                  {classItem.capacity}{" "}
-                  Capacité)
+                  ({classItem.name} - {classItem.capacity} Capacité)
                 </option>
               )
             )}
@@ -141,7 +152,7 @@ const EventForm = ({
           hidden
         />
       )}
-      
+
       <button
         disabled={loading}
         type="submit"

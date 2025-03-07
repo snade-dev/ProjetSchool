@@ -3,7 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useActionState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { lessonSchema, LessonSchema } from "@/lib/formsValidationSchema";
@@ -29,6 +36,8 @@ const LessonForm = ({
     defaultValues: data, // Initialisation des valeurs par défaut pour le mode "update"
   });
 
+  const [isPending, startTransition] = useTransition();
+
   const [state, formAction] = useActionState(
     type === "create" ? createLesson : updateLesson,
     {
@@ -41,7 +50,10 @@ const LessonForm = ({
 
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
-    formAction(data);
+
+    startTransition(() => {
+      formAction(data);
+    });
   });
 
   const router = useRouter();

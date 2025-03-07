@@ -5,12 +5,12 @@ import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@clerk/nextjs/server";
-import { Class, Prisma, Student } from "@prisma/client";
+import { Class, Parent, Prisma, Student } from "@prisma/client";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-type StudentList = Student & { class: Class };
+type StudentList = Student & { class: Class , parent: Parent};
 
 
 const StudentListPage = async (
@@ -33,13 +33,18 @@ const StudentListPage = async (
       accessor: "info",
     },
     {
-      header: "Identifiants",
+      header: "Nom d'utilisateur",
       accessor: "studentId",
       className: "hidden md:table-cell",
     },
     {
       header: "Classes",
       accessor: "grade",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Parent",
+      accessor: "parent",
       className: "hidden md:table-cell",
     },
     {
@@ -82,6 +87,7 @@ const StudentListPage = async (
       </td>
       <td className=" hidden md:table-cell">{item.username}</td>
       <td className=" hidden md:table-cell">{item.class.name[0]}</td>
+      <td className=" hidden md:table-cell">{item.parent.name}</td>
       <td className=" hidden lg:table-cell">{item.phone}</td>
       <td className=" hidden lg:table-cell">{item.address}</td>
       <td>
@@ -138,6 +144,7 @@ const StudentListPage = async (
       where: query,
       include: {
         class: true,
+        parent: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

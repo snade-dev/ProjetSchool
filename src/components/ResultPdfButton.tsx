@@ -24,10 +24,15 @@ const ResultPdfButton = ({
   questionsWithAnswers,
   totalScore,
   quizId,
+  studentName,
+  studentSurName,
 }: {
   questionsWithAnswers: QuestionWithAnswers[];
   totalScore: number;
   quizId: string;
+  studentName: string;
+  studentSurName: string;
+
 }) => {
   const [isClient, seIsClient] = useState(false);
 
@@ -40,7 +45,7 @@ const ResultPdfButton = ({
       {/* Bouton de téléchargement PDF */}
       <PDFDownloadLink
         document={
-          <ResultPDF questions={questionsWithAnswers} score={totalScore} />
+          <ResultPDF studentName={studentName} studentSurName={studentSurName} questions={questionsWithAnswers} score={totalScore} />
         }
         fileName={`resultat-quiz-${quizId}.pdf`}
       >

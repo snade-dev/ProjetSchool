@@ -3,7 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useActionState,
+  useTransition,
+} from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { semesterSchema, SemesterSchema } from "@/lib/formsValidationSchema";
@@ -28,6 +34,8 @@ const SemesterForm = ({
     resolver: zodResolver(semesterSchema),
   });
 
+  const [isPending, startTransition] = useTransition();
+
   const [state, formAction] = useActionState(
     type === "create" ? createSemester : updateSemester,
     {
@@ -37,15 +45,13 @@ const SemesterForm = ({
     }
   );
 
-const onSubmit = handleSubmit(async (data) => {
-  console.log("🟡 Données envoyées par React Hook Form :", data);
+  const onSubmit = handleSubmit(async (data) => {
+    console.log("🟡 Données envoyées par React Hook Form :", data);
 
-  formAction(data);
-});
-
-
-
-
+    startTransition(() => {
+      formAction(data);
+    });
+  });
 
   const router = useRouter();
 
@@ -59,10 +65,8 @@ const onSubmit = handleSubmit(async (data) => {
     }
   }, [state, router, type, setOpen]);
 
-
   const { semesters, subjects } = relatedData;
   // console.log(JSON.stringify(subjects));
-
 
   // console.log(semesters); // Vérification des données liées aux classes
 

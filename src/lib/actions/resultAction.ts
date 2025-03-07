@@ -68,7 +68,6 @@ export const createResult = async (
         subjectId: data.subjectId,
         score: data.score,
         classScore: data.classScore,
-        examId: 2,
         studentId: student.id,
         semesterId: data.semesterId,
       },

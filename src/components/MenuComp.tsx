@@ -134,12 +134,12 @@ const menuItems = [
         href: "/list/reclamation",
         visible: ["admin", "teacher", "student"],
       },
-      {
-        icon: Repeat,
-        label: "Session Rattrapage",
-        href: "/list/makeupSession", 
-        visible: ["admin", "teacher", "student"],
-      },
+      // {
+      //   icon: Repeat,
+      //   label: "Session Rattrapage",
+      //   href: "/list/makeupSession", 
+      //   visible: ["admin", "teacher", "student"],
+      // },
       {
         icon: File,
         label: "Demande",
@@ -160,23 +160,23 @@ const menuItems = [
       },
     ],
   },
-  {
-    title: "Autres",
-    items: [
-      {
-        icon: User,
-        label: "Profil",
-        href: "/profile",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: Settings,
-        label: "Paramètre",
-        href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-    ],
-  },
+  // {
+  //   title: "Autres",
+  //   items: [
+  //     {
+  //       icon: User,
+  //       label: "Profil",
+  //       href: "/profile",
+  //       visible: ["admin", "teacher", "student", "parent"],
+  //     },
+  //     {
+  //       icon: Settings,
+  //       label: "Paramètre",
+  //       href: "/settings",
+  //       visible: ["admin", "teacher", "student", "parent"],
+  //     },
+  //   ],
+  // },
 ];
 
 const MenuComp = ({role} : {role: string}) => {

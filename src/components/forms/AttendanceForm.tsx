@@ -3,7 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useActionState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { attendanceSchema, Attendancechema } from "@/lib/formsValidationSchema";
@@ -42,9 +49,15 @@ const AttendanceForm = ({
     }
   );
 
+  const [isPending, startTransition] = useTransition();
+
+
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
-    formAction(data);
+    startTransition(() => {
+
+      formAction(data);
+    })
   });
 
   const router = useRouter();
@@ -69,9 +82,6 @@ const AttendanceForm = ({
           ? "Créer une nouvelle présence"
           : "Modifier la présence"}
       </h1>
-      <span className="text-xs text-gray-400 font-medium">
-        Informations d&apos;authentification
-      </span>
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -87,7 +97,7 @@ const AttendanceForm = ({
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             {...register("present")}
-            >
+          >
             <option value="true">Oui</option>
             <option value="false">Non</option>
           </select>
@@ -110,7 +120,6 @@ const AttendanceForm = ({
                 {classe.name}
               </option>
             ))}
-            
           </select>
           {errors.classId && (
             <p className="text-xs text-red-400 font-bold">
@@ -125,7 +134,7 @@ const AttendanceForm = ({
           defaultValue={data?.date}
           register={register}
           error={errors?.date}
-          type="dateTime-local"
+          type="dateTime"
         />
 
         <div className="flex flex-col gap-2 w-full md:w-1/4">
@@ -158,6 +167,24 @@ const AttendanceForm = ({
             hidden
           />
         )}
+
+        {/* Nouveau champ pour le créneau horaire */}
+        <div>
+          <label htmlFor="session" className="text-xs text-gray-500">Session</label>
+          <select
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            id="session"
+            {...register("session", {
+              required: "Veuillez sélectionner une session",
+            })}
+          >
+            <option value="MORNING">Matin</option>
+            <option value="EVENING">Soir</option>
+          </select>
+          {errors.session && (
+            <p className="text-red-500">{errors.session.message}</p>
+          )}
+        </div>
       </div>
       <button
         disabled={loading}

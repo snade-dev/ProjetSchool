@@ -193,17 +193,19 @@ model ExamAverage {
 }
 
 model Attendance {
-  id      Int      @id @default(autoincrement())
-  date    DateTime
-  present Boolean
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  present   Boolean
+  session   Session  @default(MORNING) // Nouveau champ pour indiquer le créneau (matin ou soir)
 
   studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   classId   Int
-  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   subjectId Int
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 }
+
 
 model Event {
   id          Int      @id @default(autoincrement())
@@ -438,4 +440,9 @@ enum Day {
   WEDNESDAY
   THURSDAY
   FRIDAY
+}
+
+enum Session {
+  MORNING
+  EVENING
 }
