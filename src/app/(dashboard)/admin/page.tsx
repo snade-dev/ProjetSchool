@@ -49,7 +49,6 @@
 // export default Adminpage;
 
 
-import { auth } from "@clerk/nextjs/server";
 import {
   BookOpen,
   GraduationCap,
@@ -62,14 +61,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import UserCard from "@/components/UserCard";
+import { auth } from "@/lib/auth";
 
 const Adminpage = async ({
   searchParams,
 }: {
   searchParams: { [keys: string]: string | undefined };
 }) => {
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+
 
   return (
     <div className="p-6 space-y-8">

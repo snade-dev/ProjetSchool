@@ -1,9 +1,6 @@
 "use server";
 
-import {
-  AttestationSchema,
-  QuizSchema,
-} from "../formsValidationSchema";
+import { AttestationSchema, QuizSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 
 type CurrentState = {
@@ -25,8 +22,6 @@ export const createAttestation = async (
   }
 ) => {
   try {
-
-
     const quiz = await prisma.attestation.create({
       data: {
         title: data.title,
@@ -44,7 +39,7 @@ export const createAttestation = async (
 
 export const updateAttestation = async (
   currentState: CurrentState,
-  data:  {
+  data: {
     title: string;
     description: string;
     studentId: string;
@@ -92,7 +87,12 @@ export const deleteQuiz = async (
 
 export const createQuestion = async (
   currentState: CurrentState,
-  data: { questionText: string; id?: string | undefined; quizId: string, createdBy: string }
+  data: {
+    questionText: string;
+    id?: string | undefined;
+    quizId: string;
+    createdBy: string;
+  }
 ) => {
   try {
     const quiz = await prisma.quiz.findUnique({
@@ -125,7 +125,12 @@ export const createQuestion = async (
 };
 export const updateQuestion = async (
   currentState: CurrentState,
-  data: { questionText: string; id?: string | undefined; quizId: string, createdBy: string }
+  data: {
+    questionText: string;
+    id?: string | undefined;
+    quizId: string;
+    createdBy: string;
+  }
 ) => {
   try {
     const quiz = await prisma.question.findUnique({
@@ -159,7 +164,7 @@ export const updateQuestion = async (
   }
 };
 
-// import { Prisma } from "@prisma/client";
+// import { Prisma }from "@/app/generated/prisma"
 
 // export const updateOption = async (
 //   currentState: CurrentState,

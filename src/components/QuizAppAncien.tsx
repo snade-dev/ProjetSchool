@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Quiz, Question, AnswerOption } from "@prisma/client";
+import { Quiz, Question, AnswerOption } from "@/app/generated/prisma";
 import { getQuiz } from "@/actions/getQuiz";
 
 type QuizAppProps = {
@@ -62,8 +62,7 @@ export const QuizApp = ({ chapterId }: QuizAppProps) => {
               Bravos ✅✅✅✅✅ Ton score est de {score} sur{" "}
               {dataQuiz?.questions.length}
             </p>
-          )
-          }
+          )}
 
           <button onClick={Repeat}>Reprendre le quiz</button>
         </div>

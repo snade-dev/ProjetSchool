@@ -5,21 +5,22 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Class, Event, Prisma } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Class, Event, Prisma } from "@/app/generated/prisma";
 import Image from "next/image";
+import { headers } from "next/headers";
 
 type EventList = Event & { class: Class };
 
-const EventListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const EventListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
 
   const columns = [
     {
@@ -125,7 +126,6 @@ const EventListPage = async (
 
   if (role === "admin") {
     // L'admin peut tout voir, pas besoin de filtrer par classe
-  
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques
     query.OR = [
@@ -163,9 +163,7 @@ const EventListPage = async (
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && (
-              <FormContainer table="event" type="create" />
-            )}
+            {role === "admin" && <FormContainer table="event" type="create" />}
           </div>
         </div>
       </div>

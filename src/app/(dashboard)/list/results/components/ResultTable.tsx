@@ -3,9 +3,8 @@
 import Table from "@/components/Table";
 import { useState } from "react";
 import StudentResultModal from "./StudentResultModal";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { getResults } from "./actions";
-
 
 type ResultWithDetails2 = Prisma.ResultGetPayload<{
   include: {
@@ -21,10 +20,8 @@ type ResultWithDetails2 = Prisma.ResultGetPayload<{
         class: { select: { name: true } };
       };
     };
-
   };
-}> & {moyenne: number};
-
+}> & { moyenne: number };
 
 type ResultWithDetails = Prisma.ResultGetPayload<{
   include: {
@@ -50,11 +47,7 @@ interface ResultTableProps {
   actions?: React.ReactNode;
 }
 
-export default function ResultTable({
-  data,
-  role,
-  actions,
-}: ResultTableProps) {
+export default function ResultTable({ data, role, actions }: ResultTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: string;
     name: string;
@@ -97,7 +90,6 @@ export default function ResultTable({
             accessor: "preview",
             className: "hidden md:table-cell",
           },
-          
         ]}
         renderRow={(item: ResultWithDetails2) => (
           <tr
@@ -106,13 +98,19 @@ export default function ResultTable({
           >
             <td className="hidden md:table-cell">{item.student.username}</td>
             <td>{item.semester.name}</td>
-            <td className={`hidden md:table-cell font-semibold ${(item.moyenne < 10) ? "text-red-500" : "text-green-500"}`}>
+            <td
+              className={`hidden md:table-cell font-semibold ${
+                item.moyenne < 10 ? "text-red-500" : "text-green-500"
+              }`}
+            >
               {item.moyenne.toFixed(3)}
             </td>
             <td className="hidden md:table-cell">{item.student.class.name}</td>
             <td className="hidden md:table-cell">
               <button
-                onClick={() => handleStudentClick(item.student.id, item.semester.id)}
+                onClick={() =>
+                  handleStudentClick(item.student.id, item.semester.id)
+                }
                 className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
               >
                 Voir détails

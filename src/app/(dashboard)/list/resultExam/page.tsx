@@ -3,25 +3,26 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Prisma, Subject, Class, Quiz } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Prisma, Subject, Class, Quiz } from "@/app/generated/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 
 type QuizList = Quiz & { subject: Subject } & { class: Class } & {
   StudentAnswer: { id: string; score: number | null }[];
 };
 
-const QuizListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const QuizListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const currentUserId = session?.user.id;
+  const role = session?.user.role;
   const { page, ...queryParams } = searchParams;
 
   if (!currentUserId) {
@@ -38,17 +39,17 @@ const QuizListPage = async (
     {
       header: "Matiere",
       accessor: "subject",
-      className: "hidden md:table-cell"
+      className: "hidden md:table-cell",
     },
     {
       header: "Classes",
       accessor: "class",
-      className: "hidden md:table-cell"
+      className: "hidden md:table-cell",
     },
     {
       header: "Date de l'examen",
       accessor: "date",
-      className: "hidden md:table-cell"
+      className: "hidden md:table-cell",
     },
     {
       header: "Note de l'examen",
@@ -68,14 +69,12 @@ const QuizListPage = async (
         className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
       >
         <td className="flex items-center gap-4 p-4">{item.title}</td>
-        <td className="hidden md:table-cell">
-          {item.subject.name}
-        </td>
+        <td className="hidden md:table-cell">{item.subject.name}</td>
         <td className="hidden md:table-cell">{item.class.name}</td>
         <td className="hidden md:table-cell">
           {new Intl.DateTimeFormat("en-US").format(item.date)}
         </td>
-      
+
         <td className="">
           {hasCorrection ? (
             <Link

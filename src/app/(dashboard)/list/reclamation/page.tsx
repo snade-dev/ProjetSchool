@@ -4,23 +4,24 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Complaint, Prisma, Quiz } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Complaint, Prisma, Quiz } from "@/app/generated/prisma";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 type ComplainList = Complaint & { quiz: Quiz };
 
-const ReclamationListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const ReclamationListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { sessionClaims, userId } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const currentUserId = session?.user.id;
+  const role = session?.user.role;
 
   const columns = [
     {

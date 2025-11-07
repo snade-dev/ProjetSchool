@@ -2,7 +2,7 @@
 
 import FormContainer from "@/components/FormContainer";
 import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { Dispatch, SetStateAction } from "react";
 
 type ResultWithDetails = Prisma.MakeupExamGetPayload<{
@@ -21,7 +21,6 @@ type ResultWithDetails = Prisma.MakeupExamGetPayload<{
   };
 }>;
 
-
 export async function renderResultActions(item: any, role: string) {
   if (role === "admin" || role === "teacher") {
     return (
@@ -32,13 +31,9 @@ export async function renderResultActions(item: any, role: string) {
     );
   }
   return null;
-} 
+}
 
-
-
-
-  export const getResults = async (studentId: string, sessionId: string) => {
-
+export const getResults = async (studentId: string, sessionId: string) => {
   const results = await prisma.makeupExam.findMany({
     where: { studentId, sessionId },
     include: {

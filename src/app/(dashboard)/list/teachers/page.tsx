@@ -4,24 +4,25 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Class, Prisma, Subject, Teacher } from "@prisma/client";
+import { auth } from "@/lib/auth";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
+import { Class, Prisma, Subject, Teacher } from "@/app/generated/prisma";
 
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 // Genere les lignes de la table
 
-const TeacherListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const TeacherListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
 
   const { page, ...queryParams } = searchParams;
 
@@ -174,7 +175,7 @@ const TeacherListPage = async (
             </button>
             {role === "admin" && (
               // Le formulaire de creation de teacher
-              (<FormContainer table="teacher" type="create" />)
+              <FormContainer table="teacher" type="create" />
             )}
           </div>
         </div>

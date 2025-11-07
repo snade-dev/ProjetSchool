@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import MakeupExamForm from "./makeupExam";
-import { Subject } from "@prisma/client";
+import { Subject } from "@/app/generated/prisma";
 
 interface RegisterButtonProps {
   makeupSessionId: string;
   registeredSubjects: number[];
   userId: string;
   subjects: Subject[];
-  semesterId: number
+  semesterId: number;
 }
 
 export function RegisterButton({

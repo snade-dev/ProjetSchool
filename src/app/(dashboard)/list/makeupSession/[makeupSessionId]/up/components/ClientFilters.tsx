@@ -1,6 +1,6 @@
 "use client";
 
-import { Class, Semester } from "@prisma/client";
+import { Class, Semester } from "@/app/generated/prisma";
 import { useHandleFilterChange } from "./FonctionOnchange";
 
 export default function ClientFilters({

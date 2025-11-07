@@ -1,12 +1,13 @@
-import { UserButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import Image from "next/image";
 
 const Navbar = async () => {
-  const user = await currentUser();
-  if (!user) {
-    return <p>Utilisateur non trouver</p>;
-  }
+
+const session = await auth.api.getSession({
+    headers: await headers() // you need to pass the headers object.
+})
 
   return (
     <header className=" flex items-center justify-between p-4">
@@ -32,20 +33,19 @@ const Navbar = async () => {
         </div>
         <div className=" flex flex-col">
           <span className=" text-xs leading-3 font-medium">
-            {user.username || "Lamine"}
+            {session?.user.name || "Lamine"}
           </span>
           <span className=" text-[10px] text-gray-500 text-right">
-            {user?.publicMetadata.role === "student"
+            {session?.user.role === "student"
               ? "étudiant"
-              : user?.publicMetadata.role === "teacher"
+              : session?.user?.role === "teacher"
               ? "enseignant"
-              : user?.publicMetadata.role === "admin"
+              : session?.user?.role === "admin"
               ? "administrateur"
               : ""}
           </span>
         </div>
 
-        <UserButton />
       </div>
     </header>
   );

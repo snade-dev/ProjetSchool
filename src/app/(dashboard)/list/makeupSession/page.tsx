@@ -4,26 +4,32 @@ import TableSearch from "@/components/TableSearch";
 import FormContainer from "@/components/FormContainer";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { MakeupSession, Prisma, Subject, Semester } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import {
+  MakeupSession,
+  Prisma,
+  Subject,
+  Semester,
+} from "@/app/generated/prisma";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 type MakeupSessionList = MakeupSession & {
   subject: Subject;
   semester: Semester;
 };
 
-const MakeupSessionListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const MakeupSessionListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { sessionClaims, userId } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
 
   const columns = [
     {

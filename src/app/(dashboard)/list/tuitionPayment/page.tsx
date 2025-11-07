@@ -3,8 +3,8 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
-import { Class, Prisma, Student, TuitionPayment } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Class, Prisma, Student, TuitionPayment } from "@/app/generated/prisma";
 import { Download, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import ClassFilter from "./components/classFilter";
 import dynamic from "next/dynamic";
 import ReceiptButton from "./components/ReceiptButton";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 
 // const ReceiptButton = dynamic(() => import("./components/ReceiptButton"), {
 //   ssr: false,
@@ -25,8 +26,11 @@ const TuitionListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) => {
   const searchParams = await props.searchParams;
-  const { sessionClaims, userId } = await auth();
-  const role = (sessionClaims?.metadata as { role: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const userId = session?.user.id;
 
   if (!userId) {
     notFound();
@@ -48,8 +52,6 @@ const TuitionListPage = async (props: {
     // Colonne Actions uniquement pour l'admin
     ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
   ];
-
-
 
   // Génération des lignes
   const renderRow = (item: TuitionPaymentList) => {
@@ -120,7 +122,6 @@ const TuitionListPage = async (props: {
 
   if (role === "parent") {
     query.parentId = userId;
-    
   }
 
   // Ajouter filtre par classe si spécifié

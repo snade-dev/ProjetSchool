@@ -3,25 +3,26 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Prisma, StudentAnswer, Student } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Prisma, StudentAnswer, Student } from "@/app/generated/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 
 type StudentAnswerList = StudentAnswer & { student: Student };
 // modifier ça pou recuperer
-const QuizListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-    params: Promise<{ quizId: string }>;
-  }
-) => {
+const QuizListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+  params: Promise<{ quizId: string }>;
+}) => {
   const params = await props.params;
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
   const { quizId } = params;
   const { page, ...queryParams } = searchParams;
 

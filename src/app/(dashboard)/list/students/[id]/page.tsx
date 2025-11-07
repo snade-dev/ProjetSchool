@@ -4,23 +4,27 @@ import Link from "next/link";
 import Announcement from "@/components/Annoucement";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { Class, Student } from "@prisma/client";
-import { auth } from "@clerk/nextjs/server";
+import { Class, Student } from "../@/app/generated/prisma";
+import { auth } from "@/lib/auth";
 import FormContainer from "@/components/FormContainer";
 import { Suspense } from "react";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
+import { headers } from "next/headers";
 
-const SingleStudentPage = async (props: { params: Promise<{ id: string }> }) => {
+const SingleStudentPage = async (props: {
+  params: Promise<{ id: string }>;
+}) => {
   const params = await props.params;
   const { id } = params;
-  const { sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const student:
     | (Student & {
-        class: Class & {_count: {lessons: number}};
+        class: Class & { _count: { lessons: number } };
       })
     | null = await prisma.student.findUnique({
     where: { id: id },
@@ -57,10 +61,9 @@ const SingleStudentPage = async (props: { params: Promise<{ id: string }> }) => 
                   {student.name + " " + student.surname}
                 </h1>
                 {/* La FormModal */}
-                 {role === "admin" && (
+                {role === "admin" && (
                   <FormContainer table="student" type="update" data={student} />
                 )}
-
               </div>
               <p className="text-sm text-gray-500">
                 Lorem ipsum, dolor sit amet consectetur adipisicing elit.
@@ -149,7 +152,6 @@ const SingleStudentPage = async (props: { params: Promise<{ id: string }> }) => 
         {/* BOTTOM */}
         <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
           <h1>Student&apos;s Schedule</h1>
-          
         </div>
       </div>
       {/* RIGHT */}
@@ -179,7 +181,7 @@ const SingleStudentPage = async (props: { params: Promise<{ id: string }> }) => 
               className="p-3 rounded-md bg-lamaYellowLight"
               href={`/list/results?studentId=${id}`}
             >
-               Resultat de l&apos;étudiant;
+              Resultat de l&apos;étudiant;
             </Link>
           </div>
         </div>

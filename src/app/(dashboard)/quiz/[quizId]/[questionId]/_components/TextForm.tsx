@@ -3,7 +3,7 @@
 import { updateQuestion } from "@/lib/actions/quizAction";
 import { questionSchema, QuestionSchema } from "@/lib/formsValidationSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Question } from "@prisma/client";
+import { Question } from "@/app/generated/prisma";
 import { useRouter } from "next/navigation";
 import { useEffect, useActionState } from "react";
 import { useForm } from "react-hook-form";

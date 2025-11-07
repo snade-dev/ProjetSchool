@@ -1,13 +1,14 @@
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Exam, Prisma, Result, Student, Subject } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Exam, Prisma, Result, Student, Subject } from "@/app/generated/prisma";
 import FormContainer from "@/components/FormContainer";
 import ClientFilters from "./components/ClientFilters";
 import ResultTable from "./components/ResultTable";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { headers } from "next/dist/server/request/headers";
 
 // On utilise une intersection type pour ajouter "moyenne" au payload de Result.
 type ResultList = Prisma.ResultGetPayload<{
@@ -28,14 +29,15 @@ type ResultList = Prisma.ResultGetPayload<{
   };
 }> & { moyenne: number };
 
-export default async function ResultListPage(
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) {
+export default async function ResultListPage(props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const userId = session?.user.id;
 
   if (!userId) {
     notFound();
@@ -100,7 +102,7 @@ export default async function ResultListPage(
       where: { parentId: userId },
       select: { id: true },
     });
-    const childrenIds = children.map(child => child.id);
+    const childrenIds = children.map((child) => child.id);
     if (query.student) {
       query.student = {
         AND: [query.student, { id: { in: childrenIds } }],
@@ -161,8 +163,7 @@ export default async function ResultListPage(
   const processedData: ResultList[] = data.map((result) => {
     const avgEntry = averages.find(
       (a) =>
-        a.studentId === result.studentId &&
-        a.semesterId === result.semesterId
+        a.studentId === result.studentId && a.semesterId === result.semesterId
     );
     const classScore = result.classScore ?? 0; // Récupérer classScore
     const score = result.score ?? 0; // Récupérer score

@@ -4,29 +4,28 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Exam, ExamAverage, Prisma, Student } from '@prisma/client';
+import { auth } from "@/lib/auth";
+import { Exam, ExamAverage, Prisma, Student } from "@/app/generated/prisma";
 import Image from "next/image";
 import { title } from "process";
-import FormContainer from '@/components/FormContainer';
+import FormContainer from "@/components/FormContainer";
+import { headers } from "next/headers";
 
-type ResultList = ExamAverage & { exam: Exam } &{student: Student}
+type ResultList = ExamAverage & { exam: Exam } & { student: Student };
 
-const AverageListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const AverageListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
   // Requete vers la base de donnéés
-
 
   const columns = [
     // {
@@ -53,7 +52,7 @@ const AverageListPage = async (
     //   accessor: "class",
     //   className: "hidden md:table-cell",
     // },
-  
+
     ...(role === "admin" || role === "teacher"
       ? [
           {
@@ -74,12 +73,12 @@ const AverageListPage = async (
       <td className="hidden md:table-cell">{item.average}</td>
       <td>
         <div className="flex items-center gap-2">
-          {(role === "admin" ||role === "teacher") && (
-              <>
-                <FormContainer table="average" type="update" data={item} />
-                <FormContainer table="average" type="delete" id={item.id} />
-              </>
-            )}
+          {(role === "admin" || role === "teacher") && (
+            <>
+              <FormContainer table="average" type="update" data={item} />
+              <FormContainer table="average" type="delete" id={item.id} />
+            </>
+          )}
         </div>
       </td>
     </tr>
@@ -138,29 +137,30 @@ const AverageListPage = async (
         exam: {
           select: {
             id: true,
-           title: true
+            title: true,
           },
         },
         student: {
           select: {
             id: true,
             name: true,
-            username: true
-          }
-        }
+            username: true,
+          },
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.examAverage.count({ where: query}),
+    prisma.examAverage.count({ where: query }),
   ]);
-
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
       <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">Tous les resultats</h1>
+        <h1 className="hidden md:block text-lg font-semibold">
+          Tous les resultats
+        </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
@@ -171,8 +171,8 @@ const AverageListPage = async (
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {(role === "admin" || role === "teacher") && (
-                <FormContainer table="average" type="create" />
-              )}
+              <FormContainer table="average" type="create" />
+            )}
           </div>
         </div>
       </div>

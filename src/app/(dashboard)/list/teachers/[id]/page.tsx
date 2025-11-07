@@ -3,13 +3,15 @@ import BigCalandarContainer from "@/components/BigCalandarContainer";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
-import { Teacher } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Teacher } from "@/app/generated/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-const SingleTeacherPage = async (props: { params: Promise<{ id: string }> }) => {
+const SingleTeacherPage = async (props: {
+  params: Promise<{ id: string }>;
+}) => {
   const params = await props.params;
   const { id } = params;
   const { sessionClaims } = await auth();
@@ -65,7 +67,6 @@ const SingleTeacherPage = async (props: { params: Promise<{ id: string }> }) => 
                       table="teacher"
                       type="update"
                       data={teacher}
-
                     />
                   )}
                 </div>

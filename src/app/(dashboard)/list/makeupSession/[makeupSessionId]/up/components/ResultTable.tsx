@@ -3,12 +3,11 @@
 import Table from "@/components/Table";
 import { useState } from "react";
 import StudentResultModal from "./StudentResultModal";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { getResults } from "./actions";
 
 type ResultWithDetails = Prisma.MakeupExamGetPayload<{
   include: {
-
     subject: { select: { id: true; name: true } };
     student: {
       select: {
@@ -33,9 +32,9 @@ type ResultWithDetails2 = Prisma.MakeupExamGetPayload<{
     };
     session: {
       select: {
-        semester: true
-      }
-    }
+        semester: true;
+      };
+    };
   };
 }>;
 
@@ -98,14 +97,14 @@ export default function ResultTable({
             key={item.id}
             className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
           >
-            <td className="flex items-center gap-4 p-4">
-            {item.student.name}
-            </td>
+            <td className="flex items-center gap-4 p-4">{item.student.name}</td>
             {/* <td className="hidden md:table-cell">{moyenne}</td> */}
             <td className="hidden md:table-cell">{item.student.class.name}</td>
             <td className="hidden md:table-cell">
               <button
-                onClick={() => handleStudentClick(item.student.id, item.sessionId)}
+                onClick={() =>
+                  handleStudentClick(item.student.id, item.sessionId)
+                }
                 className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
               >
                 Voir détails

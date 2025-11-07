@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export type FormContainerProps = {
   // le nom de la table envoyer en props
@@ -28,9 +29,11 @@ export type FormContainerProps = {
 };
 
 const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
-  const { sessionClaims, userId } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-  const currentUserID = userId;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserID = session?.user.id;
   let relatedData = {};
   if (type !== "delete") {
     switch (table) {
@@ -90,11 +93,13 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { classes: quizClass, subjects: quizSubjects };
         break;
       case "makeupSession":
-      
         const makeupSessionSemesters = await prisma.semester.findMany({
           select: { id: true, name: true },
         });
-        relatedData = { userId: currentUserID, semesters: makeupSessionSemesters };
+        relatedData = {
+          userId: currentUserID,
+          semesters: makeupSessionSemesters,
+        };
         break;
       case "event":
         const eventClass = await prisma.class.findMany({
@@ -171,8 +176,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           classes: AttendanceClass,
         };
         break;
-      case "attestation": 
-        relatedData= {studentId: currentUserID}
+      case "attestation":
+        relatedData = { studentId: currentUserID };
         break;
 
       default:

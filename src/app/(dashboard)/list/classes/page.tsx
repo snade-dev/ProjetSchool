@@ -4,22 +4,22 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Class, Prisma, Teacher } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Class, Prisma, Teacher } from "@/app/generated/prisma";
 import Image from "next/image";
+import { headers } from "next/headers";
 
-type ClassList = Class & { supervisor: Teacher}
+type ClassList = Class & { supervisor: Teacher };
 
-
-const ClassListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const ClassListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
 
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const columns = [
     {
@@ -43,7 +43,7 @@ const ClassListPage = async (
             accessor: "action",
           },
         ]
-      : []), 
+      : []),
   ];
 
   const RenderRow = (item: ClassList) => (
@@ -53,7 +53,9 @@ const ClassListPage = async (
     >
       <td className="flex items-center gap-4 p-4">{item.name}</td>
       <td className="hidden md:table-cell">{item.capacity}</td>
-      <td className="hidden md:table-cell">{item.supervisor?.name + " " + item.supervisor?.surname}</td>
+      <td className="hidden md:table-cell">
+        {item.supervisor?.name + " " + item.supervisor?.surname}
+      </td>
       <td>
         <div className=" flex items-center gap-2">
           {role === "admin" && (
@@ -78,7 +80,7 @@ const ClassListPage = async (
       if (value !== undefined) {
         switch (key) {
           case "supervisorId":
-            query.supervisorId = value
+            query.supervisorId = value;
             break;
           case "search":
             query.name = {
@@ -122,9 +124,7 @@ const ClassListPage = async (
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src={"/sort.png"} alt="" width={14} height={14} />
             </button>
-            {role === "admin" && (
-                <FormContainer table="class" type="create" />
-            )}
+            {role === "admin" && <FormContainer table="class" type="create" />}
           </div>
         </div>
       </div>

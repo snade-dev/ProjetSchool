@@ -1,8 +1,6 @@
 "use server";
 
-import {
-  QuizSchema,
-} from "../formsValidationSchema";
+import { QuizSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 
 type CurrentState = {
@@ -66,7 +64,7 @@ export const updateQuiz = async (
         date: data.date,
         classId: parseInt(data.classId),
         subjectId: parseInt(data.subjectId),
-        duration: data.duration
+        duration: data.duration,
       },
     });
 
@@ -98,7 +96,12 @@ export const deleteQuiz = async (
 
 export const createQuestion = async (
   currentState: CurrentState,
-  data: { questionText: string; id?: string | undefined; quizId: string, createdBy: string }
+  data: {
+    questionText: string;
+    id?: string | undefined;
+    quizId: string;
+    createdBy: string;
+  }
 ) => {
   try {
     const quiz = await prisma.quiz.findUnique({
@@ -131,7 +134,12 @@ export const createQuestion = async (
 };
 export const updateQuestion = async (
   currentState: CurrentState,
-  data: { questionText: string; id?: string | undefined; quizId: string, createdBy: string }
+  data: {
+    questionText: string;
+    id?: string | undefined;
+    quizId: string;
+    createdBy: string;
+  }
 ) => {
   try {
     const quiz = await prisma.question.findUnique({
@@ -165,7 +173,7 @@ export const updateQuestion = async (
   }
 };
 
-// import { Prisma } from "@prisma/client";
+// import { Prisma }from "@/app/generated/prisma"
 
 // export const updateOption = async (
 //   currentState: CurrentState,

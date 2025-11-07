@@ -1,17 +1,19 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { RegisterButton } from "./components/RegisterButton";
+import { headers } from "next/headers";
 
-export default async function MakeupSessionDetailsPage(
-  props: {
-    params: Promise<{ makeupSessionId: string }>;
-  }
-) {
+export default async function MakeupSessionDetailsPage(props: {
+  params: Promise<{ makeupSessionId: string }>;
+}) {
   const params = await props.params;
   const { makeupSessionId } = params;
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const userId = session?.user.id;
 
   const makeupSession = await prisma.makeupSession.findUnique({
     where: { id: makeupSessionId },

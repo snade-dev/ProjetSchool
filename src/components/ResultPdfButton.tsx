@@ -10,7 +10,7 @@ const PDFDownloadLink = dynamic(
   }
 );
 import ResultPDF from "./ResultPdf";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 
 import { useEffect, useState } from "react";
 
@@ -32,7 +32,6 @@ const ResultPdfButton = ({
   quizId: string;
   studentName: string;
   studentSurName: string;
-
 }) => {
   const [isClient, seIsClient] = useState(false);
 
@@ -45,7 +44,12 @@ const ResultPdfButton = ({
       {/* Bouton de téléchargement PDF */}
       <PDFDownloadLink
         document={
-          <ResultPDF studentName={studentName} studentSurName={studentSurName} questions={questionsWithAnswers} score={totalScore} />
+          <ResultPDF
+            studentName={studentName}
+            studentSurName={studentSurName}
+            questions={questionsWithAnswers}
+            score={totalScore}
+          />
         }
         fileName={`resultat-quiz-${quizId}.pdf`}
       >

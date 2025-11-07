@@ -4,23 +4,24 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Class, Exam, Prisma, Subject, Teacher } from "@/app/generated/prisma";
 import Image from "next/image";
+import { headers } from "next/headers";
 
 type ExamList = Exam & {
   lesson: { subject: Subject; class: Class; teacher: Teacher };
 };
 
-const ExamListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const ExamListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
 
   const { page, ...queryParams } = searchParams;
   const columns = [
@@ -67,12 +68,8 @@ const ExamListPage = async (
       key={item.id}
       className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
     >
-      <td className="flex items-center gap-4 p-4">
-        {item.title}
-      </td>
-      <td className="hidden md:table-cell">
-        {item.lesson.subject.name}
-      </td>
+      <td className="flex items-center gap-4 p-4">{item.title}</td>
+      <td className="hidden md:table-cell">{item.lesson.subject.name}</td>
       <td className="">{item.lesson.class.name}</td>
       <td className="hidden md:table-cell">
         {item.lesson.teacher.name + "" + item.lesson.teacher.surname}
@@ -113,13 +110,13 @@ const ExamListPage = async (
           case "teacherId":
             query.lesson.teacherId = value;
             break;
-       
+
           case "search":
             query.lesson.subject = {
               name: { contains: value, mode: "insensitive" },
             };
             break;
-            
+
           default:
             break;
         }
@@ -193,7 +190,9 @@ const ExamListPage = async (
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
               <Image src={"/sort.png"} alt="" width={14} height={14} />
             </button>
-            {(role === "admin" || role === "teacher") && <FormContainer table="exam" type="create" />}
+            {(role === "admin" || role === "teacher") && (
+              <FormContainer table="exam" type="create" />
+            )}
           </div>
         </div>
       </div>

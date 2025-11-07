@@ -4,36 +4,58 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Attendance, Class, Prisma, Student, Subject } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import {
+  Attendance,
+  Class,
+  Prisma,
+  Student,
+  Subject,
+} from "@/app/generated/prisma";
 import clsx from "clsx";
 import Image from "next/image";
+import { headers } from "next/headers";
 
 type AttendanceList = Attendance & { class: Class } & { student: Student } & {
   subject: Subject;
 };
 
-const AttendanceListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const AttendanceListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { sessionClaims, userId } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const userId = session?.user.id;
 
   // Colonnes du tableau
   const columns = [
     { header: "Date", accessor: "date", className: "hidden md:table-cell" },
     { header: "Présent", accessor: "present" },
-    { header: "Session", accessor: "session", className: "hidden md:table-cell" }, // Nouvelle colonne
-    { header: "Étudiant", accessor: "student.name", className: "hidden md:table-cell" },
-    { header: "class", accessor: "class.name", className: "hidden md:table-cell" },
-    { header: "Matiere", accessor: "subject.name", className: "hidden md:table-cell" },
+    {
+      header: "Session",
+      accessor: "session",
+      className: "hidden md:table-cell",
+    }, // Nouvelle colonne
+    {
+      header: "Étudiant",
+      accessor: "student.name",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "class",
+      accessor: "class.name",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Matiere",
+      accessor: "subject.name",
+      className: "hidden md:table-cell",
+    },
     ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
   ];
-  
 
   // Génération des lignes
   const renderRow = (item: AttendanceList) => (
@@ -53,9 +75,9 @@ const AttendanceListPage = async (
         {item.present ? "Présent" : "Absent"}
       </td>
       <td className="hidden md:table-cell">
-        {item.session === "MORNING"
+        {item.sessionDay === "MORNING"
           ? "Matin"
-          : item.session === "EVENING"
+          : item.sessionDay === "EVENING"
           ? "Soir"
           : "N/A"}
       </td>
@@ -72,7 +94,6 @@ const AttendanceListPage = async (
       )}
     </tr>
   );
-  
 
   // Gestion des paramètres de recherche
   const { page, ...queryParams } = searchParams;

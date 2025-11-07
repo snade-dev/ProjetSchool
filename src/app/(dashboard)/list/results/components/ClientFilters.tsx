@@ -1,6 +1,6 @@
 "use client";
 
-import { Class, Semester, Exam } from "@prisma/client";
+import { Class, Semester, Exam } from "@/app/generated/prisma";
 import { useHandleFilterChange } from "./FonctionOnchange";
 
 export default function ClientFilters({
@@ -56,8 +56,6 @@ export default function ClientFilters({
           </option>
         ))}
       </select>
-
-    
 
       {/* Bouton pour Effacer le filtre Étudiant */}
       {initialStudentId && (

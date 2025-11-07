@@ -1,8 +1,8 @@
 // app/reclamations/[id]/page.tsx
 import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
-import { Complaint, Quiz } from "@prisma/client";
-import { auth } from "@clerk/nextjs/server";
+import { Complaint, Quiz } from "@/app/generated/prisma";
+import { auth } from "@/lib/auth";
 import { UpdateCorrect } from "./components/UpdateCorrect";
 
 type ComplaintDetails = Complaint & {
@@ -11,15 +11,15 @@ type ComplaintDetails = Complaint & {
   teacher?: { name: string; username: string };
 };
 
-export default async function ReclamationDetailsPage(
-  props: {
-    params: Promise<{ reclamationId: string }>;
-  }
-) {
+export default async function ReclamationDetailsPage(props: {
+  params: Promise<{ reclamationId: string }>;
+}) {
   const params = await props.params;
   const { reclamationId } = params;
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const complaint = await prisma.complaint.findUnique({
     where: { id: reclamationId },

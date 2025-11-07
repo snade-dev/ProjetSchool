@@ -14,7 +14,6 @@
 //   });
 
 //   // console.log(classItem);
-  
 
 //   return (
 //     <div className="p-4 flex gap-4 flex-col md:flex-row">
@@ -34,7 +33,6 @@
 //   )
 // }
 // export default Studentpage
-
 
 // import Annoucement from "@/components/Annoucement";
 // import AttendanceChartConainer from "@/components/AttendanceChartConainer";
@@ -86,8 +84,7 @@
 // };
 // export default Adminpage;
 
-
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import {
   BookOpen,
   GraduationCap,
@@ -100,14 +97,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import UserCard from "@/components/UserCard";
+import { headers } from "next/headers";
 
 const Adminpage = async ({
   searchParams,
 }: {
   searchParams: { [keys: string]: string | undefined };
 }) => {
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   return (
     <div className="p-6 space-y-8">

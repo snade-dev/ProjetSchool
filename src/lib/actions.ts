@@ -1,6 +1,6 @@
 "use server";
 
-import { clerkClient } from '@clerk/nextjs/server';
+import { authClient } from './auth-client';
 import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } from './formsValidationSchema';
 import prisma from './prisma';
 
@@ -149,7 +149,6 @@ export const deleteClass = async (currentState: CurrentState ,data: FormData) =>
 export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
 
     try {
-        const client = await clerkClient();
 
         
         const existingTeacher = await prisma.teacher.findFirst({
@@ -179,15 +178,15 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
         let user: any = {}
 
         try {
-          user = await client.users.createUser({
-            username: data.username,
-            emailAddress: [`${data.email}`],
-            password: data.password,
-            firstName: data.name,
-            lastName: data.surname,
-            publicMetadata: {role: "teacher"}
+          user = await authClient.admin.createUser({
+            name: data.username,
+            email: data.email ?? "",
+            password: data?.password  ?? "<PASSWORD>",
+            role: "teacher",
+            // firstName: data.name,
+            // lastName: data.surname,x
+            // publicMetadata: {role: "teacher"}
           });
-
 
 
         } catch (clerkError) {
@@ -230,19 +229,16 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 
 export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
     try {
-      const client = await clerkClient();
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
 
       try {
-        const user = await client.users.updateUser(data.id, {
-          username: data.username,
+        const user = await authClient.updateUser({
+          name: data.username,
           ...(data.password !== "" && {password: data.password}),
-          firstName: data.name,
-          lastName: data.surname,
-          publicMetadata: {role: "teacher"}
+        
         })
        } catch (clerkError) {
         console.warn(`Utilisateur avec l'id ${data.id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);

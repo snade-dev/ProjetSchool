@@ -4,7 +4,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import {
   Class,
   Prisma,
@@ -12,8 +12,9 @@ import {
   Semester,
   Teacher,
   Subject,
-} from "@prisma/client";
+} from "@/app/generated/prisma";
 import Image from "next/image";
+import { headers } from "next/headers";
 
 type SemesterList = Semester & {
   classes: Class[];
@@ -21,14 +22,14 @@ type SemesterList = Semester & {
   subjects: Subject[];
 };
 
-const SemesterListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const SemesterListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const columns = [
     {
