@@ -6,6 +6,7 @@ import {
   SchoolYearSchema,
 } from "../formsValidationSchema";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
 
 type CurrentState = {
   success: boolean;
@@ -17,8 +18,8 @@ export const upsertSchoolSettings = async (
   currentState: CurrentState,
   data: SchoolSettingsSchema
 ) => {
-  // TODO S02: requireRole(["admin"])
   try {
+    await requireRole(["admin"]);
     await prisma.schoolSettings.upsert({
       where: { id: 1 },
       update: {
@@ -55,8 +56,8 @@ export const createSchoolYear = async (
   currentState: CurrentState,
   data: SchoolYearSchema
 ) => {
-  // TODO S02: requireRole(["admin"])
   try {
+    await requireRole(["admin"]);
     await prisma.schoolYear.create({
       data: {
         name: data.name,
@@ -78,8 +79,8 @@ export const updateSchoolYear = async (
   currentState: CurrentState,
   data: SchoolYearSchema
 ) => {
-  // TODO S02: requireRole(["admin"])
   try {
+    await requireRole(["admin"]);
     await prisma.schoolYear.update({
       where: { id: data.id },
       data: {
@@ -101,9 +102,9 @@ export const deleteSchoolYear = async (
   currentState: CurrentState,
   data: FormData
 ) => {
-  // TODO S02: requireRole(["admin"])
   const id = data.get("id") as string;
   try {
+    await requireRole(["admin"]);
     await prisma.schoolYear.delete({
       where: { id: parseInt(id) },
     });
@@ -122,9 +123,9 @@ export const activateSchoolYear = async (
   currentState: CurrentState,
   data: FormData
 ) => {
-  // TODO S02: requireRole(["admin"])
   const id = data.get("id") as string;
   try {
+    await requireRole(["admin"]);
     await prisma.$transaction([
       prisma.schoolYear.updateMany({ data: { isActive: false } }),
       prisma.schoolYear.update({

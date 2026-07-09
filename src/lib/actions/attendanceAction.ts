@@ -2,6 +2,8 @@
 
 import { Attendancechema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
 
 
 type CurrentState = {
@@ -20,10 +22,21 @@ export const createAttendance = async (
     currentState: CurrentState2,
     data: Attendancechema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
+      const { userId, role } = await requireRole(["admin", "teacher"]);
+
+      if (role === "teacher") {
+        const teacherLesson = await prisma.lesson.findFirst({
+          where: {
+            teacherId: userId,
+            classId: data.classId,
+            subjectId: data.subjectId,
+          },
+        });
+        if (!teacherLesson) {
+          return { success: false, error: true, message: "Accès refusé" };
+        }
+      }
 
       const student = await prisma.student.findUnique({
         where: {
@@ -34,7 +47,7 @@ export const createAttendance = async (
       if (!student) {
         return { success: false, error: true, message: "Ce etudiant n'existe pas" };
       }
-  
+
       await prisma.attendance.create({
         data: {
           date: data.date,
@@ -44,8 +57,8 @@ export const createAttendance = async (
           classId: data.classId
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/attendances");
       return { success: true, error: false, message: "" };
     } catch (err) {
       console.log(err);
@@ -57,10 +70,22 @@ export const createAttendance = async (
     currentState: CurrentState2,
     data: Attendancechema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
+      const { userId, role } = await requireRole(["admin", "teacher"]);
+
+      if (role === "teacher") {
+        const teacherLesson = await prisma.lesson.findFirst({
+          where: {
+            teacherId: userId,
+            classId: data.classId,
+            subjectId: data.subjectId,
+          },
+        });
+        if (!teacherLesson) {
+          return { success: false, error: true, message: "Accès refusé" };
+        }
+      }
+
       const student = await prisma.student.findUnique({
         where: {
           username: data.studentUsername
@@ -70,7 +95,7 @@ export const createAttendance = async (
       if (!student) {
         return { success: false, error: true, message: "Ce etudiant n'existe pas" };
       }
-  
+
       await prisma.attendance.update({
         where: {
           id: data.id,
@@ -84,32 +109,29 @@ export const createAttendance = async (
         },
       });
   
-      // revalidatePath("/list/subjects");
+      revalidatePath("/list/attendances");
       return { success: false, error: true, message: "Une erreur c'est produite" };
     } catch (err) {
       console.log(err);
       return { success: false, error: true, message: "Une erreur c'est produite" };
     }
   };
-  
+
   export const deleteAttendance = async (
     currentState: CurrentState,
     data: FormData
   ) => {
     const id = data.get("id") as string;
-  
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
     try {
+      await requireRole(["admin"]);
       await prisma.attendance.delete({
         where: {
           id: parseInt(id),
-          // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/attendances");
       return { success: true, error: false };
     } catch (err) {
       console.log(err);

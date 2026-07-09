@@ -2,6 +2,8 @@
 
 import { LessonSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
 
 type CurrentState = {
     success: boolean,
@@ -18,8 +20,8 @@ type CurrentState2 = {
 export const createLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
 
     try {
+        await requireRole(["admin"]);
 
-        
         const existingLesson = await prisma.lesson.findFirst({
           where: {
             OR: [
@@ -55,19 +57,20 @@ export const createLesson = async (currentState: CurrentState2 ,data: LessonSche
       },
     });
 
-        
 
-        // revalidatePath("/list/teache");
+
+        revalidatePath("/list/lessons");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const updateLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
     try {
+      await requireRole(["admin"]);
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
@@ -97,18 +100,19 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
         },
       });
 
-        // revalidatePath("/list/Lesson");
+        revalidatePath("/list/lessons");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const deleteLesson = async (currentState: CurrentState ,data: FormData) => {
     const id = Number(data.get("id") as unknown);
     try {
+      await requireRole(["admin"]);
 
       try {
         await prisma.lesson.delete({
@@ -121,11 +125,11 @@ export const deleteLesson = async (currentState: CurrentState ,data: FormData) =
     }
 
 
-        // revalidatePath("/list/Lesson");
+        revalidatePath("/list/lessons");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: ""};
     }
-    
+
 }

@@ -28,6 +28,7 @@ export async function signIn(formData: FormData) {
   const email = formData.get("email")?.toString() || "";
   const password = formData.get("password")?.toString() || "";
 
+  let role = "";
   try {
     const response = await auth.api.signInEmail({
       body: {
@@ -40,9 +41,16 @@ export async function signIn(formData: FormData) {
       throw new Error("Identifiants invalides.");
     }
 
-    redirect("/admin");
+    role = (response.user as { role?: string })?.role ?? "";
   } catch (error) {
     console.error("Erreur de connexion Better Auth:", error);
     redirect("/sign-in?error=invalid-credentials");
   }
+
+  // Redirection selon le rôle réel (hors du try : redirect() lève NEXT_REDIRECT)
+  if (!role) {
+    redirect("/sign-in?error=no-role");
+  }
+
+  redirect(`/${role}`);
 }

@@ -2,6 +2,8 @@
 
 import { AnnounceSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
 
 
 type CurrentState = {
@@ -20,11 +22,9 @@ export const createAnnounce = async (
     currentState: CurrentState,
     data: AnnounceSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-  
+      await requireRole(["admin"]);
+
       await prisma.announcement.create({
         data: {
           title: data.title,
@@ -33,8 +33,8 @@ export const createAnnounce = async (
           classId: data.classId,
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/announcements");
       return { success: true, error: false };
     } catch (err) {
       console.log(err);
@@ -46,23 +46,9 @@ export const createAnnounce = async (
     currentState: CurrentState,
     data: AnnounceSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-      // if (role === "teacher") {
-      //   const teacherLesson = await prisma.lesson.findFirst({
-      //     where: {
-      //       teacherId: userId!,
-      //       id: data.lessonId,
-      //     },
-      //   });
-  
-      //   if (!teacherLesson) {
-      //     return { success: false, error: true };
-      //   }
-      // }
-  
+      await requireRole(["admin"]);
+
       await prisma.announcement.update({
         where: {
           id: data.id,
@@ -74,33 +60,30 @@ export const createAnnounce = async (
             classId: data.classId,
           },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/announcements");
       return { success: true, error: false };
     } catch (err) {
       console.log(err);
       return { success: false, error: true };
     }
   };
-  
+
   export const deleteAnnounce = async (
     currentState: CurrentState,
     data: FormData
   ) => {
     const id = data.get("id") as string;
-  
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
     try {
+      await requireRole(["admin"]);
       await prisma.announcement.delete({
         where: {
           id: parseInt(id),
-          // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/announcements");
       return { success: true, error: false };
     } catch (err) {
       console.log(err);

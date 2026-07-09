@@ -1,14 +1,17 @@
 "use server";
 import { redirect } from "next/navigation";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
 
 // Cette fonction s'exécute côté serveur
 export default async function updateAttestationDate(formData: FormData) {
-  
+
+    await requireRole(["admin", "teacher"]);
+
     // Récupération des valeurs depuis le formulaire
     const attestationId = formData.get("attestationId")?.toString();
     const dateValue = formData.get("Rdate")?.toString();
-  
+
     if (!attestationId) {
       throw new Error("L'identifiant de l'attestation est manquant");
     }

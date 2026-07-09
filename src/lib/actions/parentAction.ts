@@ -3,6 +3,8 @@
 import { authClient } from '../auth-client';
 import { ParentSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
 
 
 type CurrentState = {
@@ -20,7 +22,7 @@ type CurrentState2 = {
 export const createParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
 
     try {
-        // use better-auth admin client instead of Clerk
+        await requireRole(["admin"]);
         const existingParent = await prisma.parent.findFirst({
           where: {
             OR: [
@@ -78,19 +80,20 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
           }
         });
 
-        
 
-        // revalidatePath("/list/teache");
+
+        revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const updateParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
     try {
+      await requireRole(["admin"]);
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
@@ -125,18 +128,19 @@ export const updateParent = async (currentState: CurrentState2 ,data: ParentSche
         },
       });
 
-        // revalidatePath("/list/Parent");
+        revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const deleteParent = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
+      await requireRole(["admin"]);
       try {
         // authClient.admin typings may not expose deleteUser; cast to any to call runtime API.
         await (authClient.admin as any).deleteUser({ userId: id });
@@ -150,11 +154,11 @@ export const deleteParent = async (currentState: CurrentState ,data: FormData) =
     }
 
 
-        // revalidatePath("/list/Parent");
+        revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: ""};
     }
-    
+
 }

@@ -2,6 +2,8 @@
 
 import { QuizSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
+import { revalidatePath } from "next/cache";
 
 type CurrentState = {
   success: boolean;
@@ -18,6 +20,8 @@ export const createQuiz = async (
   data: QuizSchema
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
     const teacher = await prisma.teacher.findUnique({
       where: {
         username: data.teacherUsername,
@@ -32,6 +36,10 @@ export const createQuiz = async (
       };
     }
 
+    if (role === "teacher" && teacher.id !== userId) {
+      return { success: false, error: true, message: "Accès refusé" };
+    }
+
     const quiz = await prisma.quiz.create({
       data: {
         title: data.title,
@@ -43,6 +51,7 @@ export const createQuiz = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
@@ -55,6 +64,17 @@ export const updateQuiz = async (
   data: QuizSchema
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
+    if (role === "teacher") {
+      const owned = await prisma.quiz.findFirst({
+        where: { id: data.id, teacherId: userId },
+      });
+      if (!owned) {
+        return { success: false, error: true, message: "Accès refusé" };
+      }
+    }
+
     const quiz = await prisma.quiz.update({
       where: {
         id: data.id,
@@ -68,6 +88,7 @@ export const updateQuiz = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
@@ -79,7 +100,18 @@ export const deleteQuiz = async (
   data: FormData
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
     const id = data.get("id") as string;
+
+    if (role === "teacher") {
+      const owned = await prisma.quiz.findFirst({
+        where: { id, teacherId: userId },
+      });
+      if (!owned) {
+        return { success: false, error: true };
+      }
+    }
 
     const quiz = await prisma.quiz.delete({
       where: {
@@ -87,6 +119,7 @@ export const deleteQuiz = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false };
   } catch (error) {
     console.log(error);
@@ -104,6 +137,8 @@ export const createQuestion = async (
   }
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
     const quiz = await prisma.quiz.findUnique({
       where: {
         id: data.quizId,
@@ -118,6 +153,10 @@ export const createQuestion = async (
       };
     }
 
+    if (role === "teacher" && quiz.teacherId !== userId) {
+      return { success: false, error: true, message: "Accès refusé" };
+    }
+
     const question = await prisma.question.create({
       data: {
         createdBy: data.createdBy,
@@ -126,6 +165,7 @@ export const createQuestion = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
@@ -142,6 +182,8 @@ export const updateQuestion = async (
   }
 ) => {
   try {
+    await requireRole(["admin", "teacher"]);
+
     const quiz = await prisma.question.findUnique({
       where: {
         id: data.id,
@@ -166,6 +208,7 @@ export const updateQuestion = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
