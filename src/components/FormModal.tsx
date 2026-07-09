@@ -33,6 +33,7 @@ import { deleteMakeupSession } from "@/lib/actions/makeupSessionAction";
 import { deleteSchoolYear } from "@/lib/actions/settingsAction";
 import { deleteFee } from "@/lib/actions/feeAction";
 import { deleteInvoice } from "@/lib/actions/invoiceAction";
+import { deleteExpense } from "@/lib/actions/expenseAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -88,6 +89,9 @@ const InvoiceForm = dynamic(() => import("./forms/InvoiceForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const PaymentForm = dynamic(() => import("./forms/PaymentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ExpenseForm = dynamic(() => import("./forms/ExpenseForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -259,6 +263,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  expense: (type, data, setOpen, relatedData) => (
+    <ExpenseForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -312,7 +324,8 @@ const FormModal = ({
       makeupSession:deleteMakeupSession,
       schoolYear:deleteSchoolYear,
       fee:deleteFee,
-      invoice:deleteInvoice
+      invoice:deleteInvoice,
+      expense:deleteExpense
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)

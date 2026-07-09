@@ -20,6 +20,7 @@ import {
   FileText as FileTextIcon,
   Repeat,
   Wallet,
+  Receipt,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
 
@@ -181,6 +182,12 @@ const menuItems = [
         label: "Mes factures",
         href: "/list/invoices",
         visible: ["student", "parent"],
+      },
+      {
+        icon: Receipt,
+        label: "Dépenses",
+        href: "/list/expenses",
+        visible: ["admin"],
       },
     ],
   },

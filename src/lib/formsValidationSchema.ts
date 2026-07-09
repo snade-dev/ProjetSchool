@@ -216,6 +216,39 @@ export const paymentSchema = z.object({
 
 export type PaymentSchema = z.infer<typeof paymentSchema>;
 
+// ---- S09 : Dépenses & catégories ----
+export const expenseSchema = z.object({
+  id: z.string().optional(),
+  label: z
+    .string()
+    .min(2, { message: "Le libellé est requis (min. 2 caractères) !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  date: z.coerce.date({ message: "La date est requise !" }),
+  categoryId: z.coerce
+    .number({ message: "La catégorie est requise !" })
+    .min(1, { message: "La catégorie est requise !" }),
+  supplier: z.string().optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
+  receiptImg: z.string().optional().or(z.literal("")),
+  method: z.enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"], {
+    message: "La méthode de paiement est requise !",
+  }),
+});
+
+export type ExpenseSchema = z.infer<typeof expenseSchema>;
+
+export const expenseCategorySchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z
+    .string()
+    .min(2, { message: "Le nom de la catégorie est requis (min. 2 caractères) !" }),
+});
+
+export type ExpenseCategorySchema = z.infer<typeof expenseCategorySchema>;
+
 
 
 
