@@ -21,6 +21,7 @@ import {
   Repeat,
   Wallet,
   Receipt,
+  BarChart2,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
 
@@ -206,6 +207,17 @@ const menuItems = [
         label: "Paie",
         href: "/list/payroll",
         visible: ["admin"],
+      },
+    ],
+  },
+  {
+    title: "STATISTIQUES",
+    items: [
+      {
+        icon: BarChart2,
+        label: "Stats élèves",
+        href: "/stats/students",
+        visible: ["admin", "teacher"],
       },
     ],
   },

@@ -55,4 +55,5 @@ type RouteAccessMap = {
     "/list/employees": ["admin"],
     "/list/payroll": ["admin"],
     "/settings": ["admin"],
+    "/stats": ["admin", "teacher"],
   };
