@@ -384,6 +384,12 @@ export const lessonSchema = z.object({
   subjectId: z.coerce.number().min(1, { message: "La classe est requise !" }),
   classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
   teacherUsername: z.string().min(1, { message: "La classe est requise !" }),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, { message: "Heure de début requise (HH:MM) !" }),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, { message: "Heure de fin requise (HH:MM) !" }),
 });
 
 export type LessonSchema = z.infer<typeof lessonSchema>;

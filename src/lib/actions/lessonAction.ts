@@ -11,10 +11,13 @@ type CurrentState = {
 }
 
 type CurrentState2 = {
-    success: boolean, 
+    success: boolean,
     error: boolean,
     message: string
 }
+
+/** "HH:MM" → DateTime (date de référence fixe : seule l'heure du jour compte). */
+const timeToDate = (hhmm: string): Date => new Date(`1970-01-05T${hhmm}:00.000Z`);
 
 // Lesson
 export const createLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
@@ -47,13 +50,19 @@ export const createLesson = async (currentState: CurrentState2 ,data: LessonSche
       return {success: false, error: true, message: "L'enseignant n'existe pas."}
     }
         
+    if (data.startTime >= data.endTime) {
+      return { success: false, error: true, message: "L'heure de fin doit être après l'heure de début." };
+    }
+
     await prisma.lesson.create({
       data: {
         name: data.name,
         day: data.day,
         subjectId: Number(data.subjectId),
         classId: Number(data.classId),
-        teacherId: teacher.id
+        teacherId: teacher.id,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime)
       },
     });
 
@@ -87,6 +96,10 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
       }
 
 
+      if (data.startTime >= data.endTime) {
+        return { success: false, error: true, message: "L'heure de fin doit être après l'heure de début." };
+      }
+
       await prisma.lesson.update({
         where: {
           id: data.id
@@ -96,7 +109,9 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
         day: data.day,
         subjectId: Number(data.subjectId),
         classId: Number(data.classId),
-        teacherId: teacher.id
+        teacherId: teacher.id,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime)
         },
       });
 

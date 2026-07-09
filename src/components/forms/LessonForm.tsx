@@ -33,7 +33,19 @@ const LessonForm = ({
     formState: { errors },
   } = useForm<LessonSchema>({
     resolver: zodResolver(lessonSchema),
-    defaultValues: data, // Initialisation des valeurs par défaut pour le mode "update"
+    // Initialisation des valeurs par défaut pour le mode "update"
+    // (les DateTime deviennent des chaînes "HH:MM" pour les inputs time)
+    defaultValues: data
+      ? {
+          ...data,
+          startTime: data.startTime
+            ? new Date(data.startTime).toISOString().slice(11, 16)
+            : "08:00",
+          endTime: data.endTime
+            ? new Date(data.endTime).toISOString().slice(11, 16)
+            : "09:00",
+        }
+      : { startTime: "08:00", endTime: "09:00" },
   });
 
   const [isPending, startTransition] = useTransition();
@@ -108,6 +120,39 @@ const LessonForm = ({
           register={register}
           error={errors?.teacherUsername}
         />
+        {/* Créneau horaire hebdomadaire (emploi du temps) */}
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Heure de début</label>
+          <input
+            type="time"
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            {...register("startTime")}
+            defaultValue={
+              data?.startTime
+                ? new Date(data.startTime).toISOString().slice(11, 16)
+                : "08:00"
+            }
+          />
+          {errors.startTime && (
+            <p className="text-xs text-red-400">{errors.startTime.message}</p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-xs text-gray-500">Heure de fin</label>
+          <input
+            type="time"
+            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            {...register("endTime")}
+            defaultValue={
+              data?.endTime
+                ? new Date(data.endTime).toISOString().slice(11, 16)
+                : "09:00"
+            }
+          />
+          {errors.endTime && (
+            <p className="text-xs text-red-400">{errors.endTime.message}</p>
+          )}
+        </div>
       </div>
 
       {data && (

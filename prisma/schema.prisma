@@ -131,6 +131,9 @@ model Lesson {
   id   Int    @id @default(autoincrement())
   name String
   day  Day
+  // Créneau horaire hebdomadaire (seule l'heure du jour compte) — emploi du temps
+  startTime DateTime?
+  endTime   DateTime?
 
   subjectId Int
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
