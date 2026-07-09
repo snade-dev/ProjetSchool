@@ -5,6 +5,7 @@ import { formatFCFA } from "@/lib/finance";
 import { getFinanceStats } from "@/lib/stats/financeStats";
 import Table from "@/components/Table";
 import YearSelect from "./components/YearSelect";
+import ExportCsvButton from "@/components/ExportCsvButton";
 import MonthlyComposedChart from "./components/MonthlyComposedChart";
 import ExpensePieChart from "./components/ExpensePieChart";
 
@@ -114,7 +115,14 @@ export default async function FinanceStatsPage(props: {
             {currentYear.isActive ? " (active)" : ""}
           </p>
         </div>
-        <YearSelect years={years} currentYearId={schoolYearId} />
+        <div className="flex items-center gap-3">
+          <ExportCsvButton
+            endpoint="invoices"
+            filename={`factures-${currentYear.name}`}
+            params={{ schoolYearId: String(schoolYearId) }}
+          />
+          <YearSelect years={years} currentYearId={schoolYearId} />
+        </div>
       </div>
 
       {/* Rangée de tuiles */}

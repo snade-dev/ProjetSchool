@@ -9,6 +9,8 @@ import { getGenerationPreview, syncOverdueInvoices } from "@/lib/actions/invoice
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { formatFCFA, invoiceBalance } from "@/lib/finance";
+import { buildInvoiceWhere } from "@/lib/queryBuilders";
+import ExportCsvButton from "@/components/ExportCsvButton";
 import {
   Invoice,
   Payment,
@@ -54,28 +56,11 @@ const InvoicesListPage = async (props: {
     scopeWhere.student = { parentId: currentUserId! };
   }
 
-  // --- Filtres de la liste ---
-  const query: Prisma.InvoiceWhereInput = { ...scopeWhere };
-  const andFilters: Prisma.InvoiceWhereInput[] = [];
-
-  if (status && status in InvoiceStatus) {
-    andFilters.push({ status: status as InvoiceStatus });
-  }
-  if (month) {
-    const m = parseInt(month);
-    if (!Number.isNaN(m)) andFilters.push({ month: m });
-  }
-  if (search) {
-    andFilters.push({
-      student: {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { surname: { contains: search, mode: "insensitive" } },
-        ],
-      },
-    });
-  }
-  if (andFilters.length > 0) query.AND = andFilters;
+  // --- Filtres de la liste (builder partagé avec l'export CSV S18) ---
+  const query: Prisma.InvoiceWhereInput = {
+    ...scopeWhere,
+    ...buildInvoiceWhere({ status, month, search }),
+  };
 
   const [data, count, grouped] = await prisma.$transaction([
     prisma.invoice.findMany({
@@ -286,6 +271,7 @@ const InvoicesListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
+            {isAdmin && <ExportCsvButton endpoint="invoices" filename="factures" />}
             {isAdmin && (
               <GenerateInvoicesButton
                 month={genMonth}

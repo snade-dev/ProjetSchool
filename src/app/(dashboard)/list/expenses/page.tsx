@@ -7,6 +7,8 @@ import ExpenseFilters from "./components/ExpenseFilters";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { formatFCFA, paymentMethodLabel } from "@/lib/finance";
+import { buildExpenseWhere } from "@/lib/queryBuilders";
+import ExportCsvButton from "@/components/ExportCsvButton";
 import { Expense, ExpenseCategory, Prisma } from "@/app/generated/prisma";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,47 +37,16 @@ const ExpensesListPage = async (props: {
   const { page, month, year, categoryId, search } = searchParams;
   const p = page ? parseInt(page) : 1;
 
-  // --- Filtres ---
-  const query: Prisma.ExpenseWhereInput = {};
-  const andFilters: Prisma.ExpenseWhereInput[] = [];
-
-  // Filtre mois/année : bornes de dates (gte/lt) — jamais de comparaison de strings.
   const now = new Date();
-  const m = month ? parseInt(month) : undefined; // 1..12
-  const y = year ? parseInt(year) : undefined;
 
-  if (m && !Number.isNaN(m)) {
-    const yy = y && !Number.isNaN(y) ? y : now.getFullYear();
-    andFilters.push({
-      date: {
-        gte: new Date(yy, m - 1, 1),
-        lt: new Date(yy, m, 1),
-      },
-    });
-  } else if (y && !Number.isNaN(y)) {
-    andFilters.push({
-      date: {
-        gte: new Date(y, 0, 1),
-        lt: new Date(y + 1, 0, 1),
-      },
-    });
-  }
-
-  if (categoryId) {
-    const cid = parseInt(categoryId);
-    if (!Number.isNaN(cid)) andFilters.push({ categoryId: cid });
-  }
-
-  if (search) {
-    andFilters.push({
-      OR: [
-        { label: { contains: search, mode: "insensitive" } },
-        { supplier: { contains: search, mode: "insensitive" } },
-      ],
-    });
-  }
-
-  if (andFilters.length > 0) query.AND = andFilters;
+  // --- Filtres (builder partagé avec l'export CSV S18) ---
+  const query: Prisma.ExpenseWhereInput = buildExpenseWhere({
+    month,
+    year,
+    categoryId,
+    search,
+    now,
+  });
 
   const [data, count, totalAgg, firstExpense, categories] = await Promise.all([
     prisma.expense.findMany({
@@ -184,6 +155,9 @@ const ExpensesListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
+            {role === "admin" && (
+              <ExportCsvButton endpoint="expenses" filename="depenses" />
+            )}
             <FormContainer table="expense" type="create" />
           </div>
         </div>

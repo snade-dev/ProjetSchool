@@ -10,6 +10,8 @@ import AdjustmentsCell from "./components/AdjustmentsCell";
 import MarkPaidButton from "./components/MarkPaidButton";
 import UnmarkPaidButton from "./components/UnmarkPaidButton";
 import PayslipDownloadButton from "@/components/pdf/PayslipDownloadButton";
+import ExportCsvButton from "@/components/ExportCsvButton";
+import { clampMonth, clampYear } from "@/lib/queryBuilders";
 
 const MONTHS = [
   "Janvier",
@@ -27,19 +29,6 @@ const MONTHS = [
 ];
 
 type PayrollRow = SalaryPayment & { employee: Employee };
-
-// Clamp serveur des params d'URL : mois 1-12, année 2020-2100, sinon mois courant.
-const clampMonth = (raw?: string, fallback?: number) => {
-  const n = raw ? parseInt(raw, 10) : NaN;
-  if (Number.isNaN(n) || n < 1 || n > 12) return fallback ?? new Date().getMonth() + 1;
-  return n;
-};
-const clampYear = (raw?: string, fallback?: number) => {
-  const n = raw ? parseInt(raw, 10) : NaN;
-  if (Number.isNaN(n) || n < 2020 || n > 2100)
-    return fallback ?? new Date().getFullYear();
-  return n;
-};
 
 const PayrollPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -122,12 +111,15 @@ const PayrollPage = async (props: {
         </div>
 
         {role === "admin" && (
-          <GeneratePayrollButton
-            month={month}
-            year={year}
-            monthLabel={monthLabel}
-            alreadyGenerated={rows.length > 0}
-          />
+          <div className="flex items-center gap-3">
+            <ExportCsvButton endpoint="payroll" filename="paie" />
+            <GeneratePayrollButton
+              month={month}
+              year={year}
+              monthLabel={monthLabel}
+              alreadyGenerated={rows.length > 0}
+            />
+          </div>
         )}
       </div>
 
