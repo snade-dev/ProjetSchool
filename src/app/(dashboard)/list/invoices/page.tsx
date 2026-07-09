@@ -3,6 +3,8 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
+import GenerateInvoicesButton from "./components/GenerateInvoicesButton";
+import { getGenerationPreview } from "@/lib/actions/invoiceAction";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { formatFCFA, invoiceBalance } from "@/lib/finance";
@@ -104,6 +106,20 @@ const InvoicesListPage = async (props: {
   const overdueCount = statOf("OVERDUE")?._count._all ?? 0;
   const overdueAmount = statOf("OVERDUE")?._sum.total ?? 0;
 
+  // --- Aperçu de génération (E31) : params dédiés gm/gy pour ne pas interférer
+  //     avec le filtre `month` de la liste. L'aperçu est calculé côté serveur. ---
+  const nowGen = new Date();
+  const genMonth = searchParams.gm
+    ? parseInt(searchParams.gm)
+    : nowGen.getMonth() + 1;
+  const genYear = searchParams.gy
+    ? parseInt(searchParams.gy)
+    : nowGen.getFullYear();
+  const generationPreview =
+    isAdmin && searchParams.generate === "1"
+      ? await getGenerationPreview(genMonth, genYear)
+      : null;
+
   const columns = [
     { header: "Référence", accessor: "reference" },
     { header: "Élève", accessor: "student" },
@@ -193,6 +209,13 @@ const InvoicesListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
+            {isAdmin && (
+              <GenerateInvoicesButton
+                month={genMonth}
+                year={genYear}
+                preview={generationPreview}
+              />
+            )}
             {isAdmin && <FormContainer table="invoice" type="create" />}
           </div>
         </div>
