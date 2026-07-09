@@ -19,6 +19,7 @@ import {
   FilePlus,
   FileText as FileTextIcon,
   Repeat,
+  Wallet,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
 
@@ -162,6 +163,17 @@ const menuItems = [
         icon: Settings,
         label: "Paramètres",
         href: "/settings",
+        visible: ["admin"],
+      },
+    ],
+  },
+  {
+    title: "FINANCE",
+    items: [
+      {
+        icon: Wallet,
+        label: "Grille des frais",
+        href: "/list/fees",
         visible: ["admin"],
       },
     ],

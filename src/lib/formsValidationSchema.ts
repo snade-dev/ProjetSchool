@@ -155,6 +155,24 @@ export const schoolSettingsSchema = z.object({
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
+// ---- S04 : Grille des frais de scolarité ----
+export const feeStructureSchema = z.object({
+  id: z.coerce.number().optional(),
+  label: z
+    .string()
+    .min(2, { message: "Le libellé du frais est requis (min. 2 caractères) !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  period: z.enum(["MONTHLY", "YEARLY", "ONE_TIME"], {
+    message: "La périodicité est requise !",
+  }),
+  classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
+});
+
+export type FeeStructureSchema = z.infer<typeof feeStructureSchema>;
+
 
 
 
