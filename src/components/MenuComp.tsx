@@ -195,6 +195,12 @@ const menuItems = [
         href: "/list/employees",
         visible: ["admin"],
       },
+      {
+        icon: Wallet,
+        label: "Paie",
+        href: "/list/payroll",
+        visible: ["admin"],
+      },
     ],
   },
   // {

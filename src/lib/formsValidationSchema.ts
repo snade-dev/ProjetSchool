@@ -288,6 +288,46 @@ export const employeeSchema = z.object({
 
 export type EmployeeSchema = z.infer<typeof employeeSchema>;
 
+// ---- S11 : Paie mensuelle ----
+export const payrollGenerateSchema = z.object({
+  month: z.coerce
+    .number({ message: "Le mois est requis !" })
+    .int()
+    .min(1, { message: "Mois invalide (1-12) !" })
+    .max(12, { message: "Mois invalide (1-12) !" }),
+  year: z.coerce
+    .number({ message: "L'année est requise !" })
+    .int()
+    .min(2020, { message: "Année invalide (2020-2100) !" })
+    .max(2100, { message: "Année invalide (2020-2100) !" }),
+});
+
+export type PayrollGenerateSchema = z.infer<typeof payrollGenerateSchema>;
+
+export const salaryAdjustSchema = z.object({
+  id: z.string().min(1, { message: "Identifiant manquant !" }),
+  bonuses: z.coerce
+    .number({ message: "Les primes sont requises !" })
+    .int({ message: "Les primes doivent être un nombre entier !" })
+    .min(0, { message: "Les primes ne peuvent pas être négatives !" }),
+  deductions: z.coerce
+    .number({ message: "Les retenues sont requises !" })
+    .int({ message: "Les retenues doivent être un nombre entier !" })
+    .min(0, { message: "Les retenues ne peuvent pas être négatives !" }),
+});
+
+export type SalaryAdjustSchema = z.infer<typeof salaryAdjustSchema>;
+
+export const markPaidSchema = z.object({
+  id: z.string().min(1, { message: "Identifiant manquant !" }),
+  method: z.enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"], {
+    message: "La méthode de paiement est requise !",
+  }),
+  paidAt: z.coerce.date({ message: "La date de paiement est requise !" }),
+});
+
+export type MarkPaidSchema = z.infer<typeof markPaidSchema>;
+
 export const parentSchema = z.object({
   id: z.string().optional(),
   username: z
