@@ -24,6 +24,10 @@ const sanitize = (s: string) => s.replace(/\s+/g, "_");
  */
 const BulletinButton = ({ data }: { data: ReportCardData }) => (
   <PDFDownloadLink
+    // key = remount forcé quand (élève, semestre) change : le chemin « update »
+    // du reconciler react-pdf crashe en build minifié quand la structure du
+    // document change (ex. bulletin avec notes → bulletin vide).
+    key={`${data.student.id}-${data.semester.id}`}
     document={<BulletinPDF data={data} />}
     fileName={`bulletin_${sanitize(data.student.surname)}_${sanitize(
       data.student.name

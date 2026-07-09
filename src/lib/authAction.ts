@@ -2,6 +2,7 @@
 
 import { auth } from "./auth";
 import { redirect } from "next/navigation";
+import prisma from "./prisma";
 
 export async function signUp(formData: FormData) {
   const name = formData.get("name")?.toString() || "";
@@ -41,7 +42,13 @@ export async function signIn(formData: FormData) {
       throw new Error("Identifiants invalides.");
     }
 
-    role = (response.user as { role?: string })?.role ?? "";
+    // `signInEmail` ne renvoie PAS les champs de plugin (role absent de la
+    // réponse — cf. better-auth sign-in/email) : on lit le rôle en base.
+    const dbUser = await prisma.user.findUnique({
+      where: { email },
+      select: { role: true },
+    });
+    role = dbUser?.role ?? "";
   } catch (error) {
     console.error("Erreur de connexion Better Auth:", error);
     redirect("/sign-in?error=invalid-credentials");
