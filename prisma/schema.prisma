@@ -52,6 +52,8 @@ model Student {
   ResultAverage ResultAverage[]
 
   MakeupExam MakeupExam[]
+
+  invoices Invoice[] // back-relation S03
 }
 
 model Teacher {
@@ -76,6 +78,8 @@ model Teacher {
   ExamCorrection ExamCorrection[]
 
   Quiz Quiz[]
+
+  employee Employee? // back-relation S03 (utilisée par story 10)
 }
 
 model Parent {
@@ -105,6 +109,8 @@ model Class {
   Quiz Quiz[]
 
   Attendance Attendance[]
+
+  feeStructures FeeStructure[] // back-relation S03
 }
 
 model Subject {
@@ -520,7 +526,11 @@ model SchoolYear {
   startDate DateTime
   endDate   DateTime
   isActive  Boolean  @default(false)  // UNE seule active (invariant applicatif)
-  // Relations finance/RH (invoices, expenses, feeStructures, salaryPayments) ajoutées en S03
+  // Relations finance/RH ajoutées en S03
+  invoices        Invoice[]
+  expenses        Expense[]
+  feeStructures   FeeStructure[]
+  salaryPayments  SalaryPayment[]
 }
 
 model SchoolSettings {          // singleton (id = 1)
@@ -532,4 +542,150 @@ model SchoolSettings {          // singleton (id = 1)
   logo        String?                 // URL Cloudinary
   currency    String  @default("FCFA")
   legalFooter String?                 // pied de page factures/reçus
+}
+
+// ---- M4 Finance ----
+enum FeePeriod {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+}
+
+model FeeStructure {            // grille des frais par classe et année
+  id           Int        @id @default(autoincrement())
+  label        String                 // "Scolarité mensuelle", "Inscription"…
+  amount       Int                    // FCFA
+  period       FeePeriod
+  classId      Int
+  class        Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  lines        InvoiceLine[]
+  @@unique([classId, schoolYearId, label])
+}
+
+enum InvoiceStatus {
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  reference     String        @unique          // "FAC-2025-00042" (compteur, story-05)
+  status        InvoiceStatus @default(ISSUED)
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime
+  month         Int?                           // 1-12 si facture mensuelle auto
+  generationKey String?       @unique          // "auto-{studentId}-{schoolYearId}-{month}" → idempotence du batch
+  total         Int                            // dénormalisé = somme des lignes (recalculé à chaque écriture)
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolYearId  Int
+  schoolYear    SchoolYear    @relation(fields: [schoolYearId], references: [id])
+  createdById   String                          // User.id (admin)
+  createdAt     DateTime      @default(now())
+  lines         InvoiceLine[]
+  payments      Payment[]
+  @@index([studentId])
+  @@index([status])
+  @@index([schoolYearId, month])
+}
+
+model InvoiceLine {
+  id             Int           @id @default(autoincrement())
+  label          String
+  quantity       Int           @default(1)
+  unitAmount     Int                             // FCFA
+  invoiceId      String
+  invoice        Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  feeStructureId Int?
+  feeStructure   FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: SetNull)
+}
+
+enum PaymentMethod {
+  CASH
+  MOBILE_MONEY
+  BANK_TRANSFER
+  CHEQUE
+}
+
+model Payment {
+  id           String        @id @default(uuid())
+  amount       Int
+  method       PaymentMethod @default(CASH)
+  paidAt       DateTime      @default(now())
+  reference    String?                          // n° transaction Mobile Money / chèque
+  invoiceId    String
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  receivedById String                           // User.id (admin caissier)
+  createdAt    DateTime      @default(now())
+  @@index([invoiceId])
+  @@index([paidAt])
+}
+
+model ExpenseCategory {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique          // "Fournitures", "Électricité", "Loyer"…
+  expenses Expense[]
+}
+
+model Expense {
+  id           String          @id @default(uuid())
+  label        String
+  amount       Int
+  date         DateTime
+  supplier     String?
+  receiptImg   String?                          // justificatif Cloudinary
+  method       PaymentMethod   @default(CASH)
+  notes        String?
+  categoryId   Int
+  category     ExpenseCategory @relation(fields: [categoryId], references: [id])
+  schoolYearId Int
+  schoolYear   SchoolYear      @relation(fields: [schoolYearId], references: [id])
+  createdById  String
+  createdAt    DateTime        @default(now())
+  @@index([date])
+  @@index([categoryId])
+}
+
+// ---- M5 RH / Paie ----
+model Employee {
+  id         String    @id @default(uuid())
+  teacherId  String?   @unique         // lien optionnel vers Teacher ; null = staff (gardien, secrétaire…)
+  teacher    Teacher?  @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  name       String
+  surname    String
+  position   String                    // "Enseignant", "Secrétaire", "Gardien"…
+  phone      String?
+  email      String?
+  hireDate   DateTime
+  baseSalary Int                       // salaire mensuel brut, FCFA
+  active     Boolean   @default(true)
+  salaries   SalaryPayment[]
+}
+
+enum SalaryStatus {
+  PENDING
+  PAID
+}
+
+model SalaryPayment {
+  id           String        @id @default(uuid())
+  month        Int                     // 1-12
+  year         Int
+  baseAmount   Int                     // copie du baseSalary au moment de la génération
+  bonuses      Int           @default(0)
+  deductions   Int           @default(0)
+  netAmount    Int                     // base + bonuses - deductions (recalculé côté serveur)
+  status       SalaryStatus  @default(PENDING)
+  paidAt       DateTime?
+  method       PaymentMethod @default(CASH)
+  employeeId   String
+  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  schoolYearId Int
+  schoolYear   SchoolYear    @relation(fields: [schoolYearId], references: [id])
+  @@unique([employeeId, month, year])
 }
