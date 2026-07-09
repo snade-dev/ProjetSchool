@@ -30,6 +30,9 @@ export const upsertSchoolSettings = async (
         logo: data.logo || null,
         currency: data.currency || "FCFA",
         legalFooter: data.legalFooter || null,
+        themePrimary: data.themePrimary || null,
+        themeSecondary: data.themeSecondary || null,
+        themeAccent: data.themeAccent || null,
       },
       create: {
         id: 1,
@@ -40,10 +43,14 @@ export const upsertSchoolSettings = async (
         logo: data.logo || null,
         currency: data.currency || "FCFA",
         legalFooter: data.legalFooter || null,
+        themePrimary: data.themePrimary || null,
+        themeSecondary: data.themeSecondary || null,
+        themeAccent: data.themeAccent || null,
       },
     });
 
     revalidatePath("/settings");
+    revalidatePath("/", "layout"); // le thème (ThemeStyle) est injecté par le layout racine
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

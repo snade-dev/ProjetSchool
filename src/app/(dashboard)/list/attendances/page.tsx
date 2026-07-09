@@ -13,7 +13,8 @@ import {
   Subject,
 } from "@/app/generated/prisma";
 import clsx from "clsx";
-import Image from "next/image";
+import Link from "next/link";
+import { ClipboardCheck } from "lucide-react";
 import { headers } from "next/headers";
 
 type AttendanceList = Attendance & { class: Class } & { student: Student } & {
@@ -120,16 +121,18 @@ const AttendanceListPage = async (props: {
     ];
   }
 
-  // Ajout de restrictions basées sur le rôle
-  // if (role !== "admin") {
-  //   const roleConditions = {
-  //     teacher: { lesson: { teacherId: currentUserId! } },
-  //     student: { studentId: currentUserId! },
-  //     parent: { student: { parentId: currentUserId! } },
-  //   };
-
-  //   query.AND = [roleConditions[role as keyof typeof roleConditions] || {}];
-  // }
+  // Restrictions par rôle (défense en profondeur) : un élève ne voit que ses
+  // pointages, un parent ceux de ses enfants, un teacher ceux de ses classes.
+  if (!role || !userId) {
+    return null;
+  }
+  if (role === "student") {
+    query.studentId = userId;
+  } else if (role === "parent") {
+    query.student = { parentId: userId };
+  } else if (role === "teacher") {
+    query.class = { lessons: { some: { teacherId: userId } } };
+  }
 
   // Requête vers la base de données
   const [data, count] = await prisma.$transaction([
@@ -156,12 +159,15 @@ const AttendanceListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            {(role === "admin" || role === "teacher") && (
+              <Link
+                href="/list/attendances/appel"
+                className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white text-sm font-semibold rounded-md px-4 py-2 transition"
+              >
+                <ClipboardCheck size={16} />
+                Faire l&apos;appel
+              </Link>
+            )}
             {role === "admin" && (
               <FormContainer table="attendance" type="create" />
             )}

@@ -110,10 +110,122 @@ export const createAttendance = async (
       });
   
       revalidatePath("/list/attendances");
-      return { success: false, error: true, message: "Une erreur c'est produite" };
+      // H22 corrigé : le succès renvoie bien success:true (l'ancien retour était erroné)
+      return { success: true, error: false, message: "" };
     } catch (err) {
       console.log(err);
       return { success: false, error: true, message: "Une erreur c'est produite" };
+    }
+  };
+
+  /**
+   * Feuille d'appel (refonte présence) : enregistre la présence de TOUTE une
+   * classe pour (date, session, matière) en un seul envoi.
+   * - admin/teacher ; un teacher ne peut pointer qu'une (classe, matière)
+   *   qu'il enseigne (vérif Lesson, même règle que saveGrades S12).
+   * - Idempotent : si un pointage existe déjà pour (élève, jour, session,
+   *   matière), il est mis à jour au lieu d'être dupliqué.
+   */
+  export const saveRollCall = async (
+    currentState: CurrentState2,
+    data: {
+      classId: number;
+      subjectId: number;
+      date: string; // "yyyy-MM-dd"
+      sessionDay: "MORNING" | "EVENING";
+      entries: { studentId: string; present: boolean }[];
+    }
+  ): Promise<CurrentState2> => {
+    try {
+      const { userId, role } = await requireRole(["admin", "teacher"]);
+
+      const classId = Number(data.classId);
+      const subjectId = Number(data.subjectId);
+      const sessionDay = data.sessionDay === "EVENING" ? "EVENING" : "MORNING";
+      const day = new Date(`${data.date}T00:00:00`);
+      if (
+        !Number.isInteger(classId) ||
+        !Number.isInteger(subjectId) ||
+        Number.isNaN(day.getTime()) ||
+        !Array.isArray(data.entries) ||
+        data.entries.length === 0
+      ) {
+        return { success: false, error: true, message: "Données invalides." };
+      }
+
+      if (role === "teacher") {
+        const teacherLesson = await prisma.lesson.findFirst({
+          where: { teacherId: userId, classId, subjectId },
+        });
+        if (!teacherLesson) {
+          return {
+            success: false,
+            error: true,
+            message: "Vous ne pouvez faire l'appel que pour vos classes.",
+          };
+        }
+      }
+
+      // Seuls les élèves de la classe sont acceptés (URL/payload forgés).
+      const students = await prisma.student.findMany({
+        where: { classId },
+        select: { id: true },
+      });
+      const allowed = new Set(students.map((s) => s.id));
+      const entries = data.entries.filter((e) => allowed.has(e.studentId));
+
+      const nextDay = new Date(day);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      await prisma.$transaction(
+        async (tx) => {
+          for (const e of entries) {
+            const existing = await tx.attendance.findFirst({
+              where: {
+                studentId: e.studentId,
+                subjectId,
+                classId,
+                sessionDay,
+                date: { gte: day, lt: nextDay },
+              },
+              select: { id: true },
+            });
+            if (existing) {
+              await tx.attendance.update({
+                where: { id: existing.id },
+                data: { present: !!e.present },
+              });
+            } else {
+              await tx.attendance.create({
+                data: {
+                  date: day,
+                  present: !!e.present,
+                  sessionDay,
+                  studentId: e.studentId,
+                  subjectId,
+                  classId,
+                },
+              });
+            }
+          }
+        },
+        { timeout: 30000 }
+      );
+
+      revalidatePath("/list/attendances");
+      revalidatePath("/list/attendances/appel");
+      return {
+        success: true,
+        error: false,
+        message: `Appel enregistré (${entries.length} élève(s)).`,
+      };
+    } catch (err) {
+      console.log(err);
+      return {
+        success: false,
+        error: true,
+        message: "Erreur lors de l'enregistrement de l'appel.",
+      };
     }
   };
 

@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Palette par défaut (thème personnalisable dans /settings — voir ThemeStyle) */
+:root {
+  --lama-sky: 166 216 247;
+  --lama-sky-light: 200 233 248;
+  --lama-purple: 181 164 241;
+  --lama-purple-light: 212 201 255;
+  --lama-yellow: 241 215 109;
+  --lama-yellow-light: 249 240 181;
+}
+
 .react-calendar {
   width: 100% !important;
   border: none !important;

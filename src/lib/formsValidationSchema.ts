@@ -151,6 +151,21 @@ export const schoolSettingsSchema = z.object({
   logo: z.string().optional().or(z.literal("")),
   currency: z.string().optional().or(z.literal("")),
   legalFooter: z.string().optional().or(z.literal("")),
+  themePrimary: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
+    .optional()
+    .or(z.literal("")),
+  themeSecondary: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
+    .optional()
+    .or(z.literal("")),
+  themeAccent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
+    .optional()
+    .or(z.literal("")),
 });
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;

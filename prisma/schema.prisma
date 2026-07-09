@@ -542,6 +542,10 @@ model SchoolSettings {          // singleton (id = 1)
   logo        String?                 // URL Cloudinary
   currency    String  @default("FCFA")
   legalFooter String?                 // pied de page factures/reçus
+  // Thème de l'application (hex "#RRGGBB") — null = palette par défaut
+  themePrimary   String?              // couleur principale (lamaSky)
+  themeSecondary String?              // couleur secondaire (lamaPurple)
+  themeAccent    String?              // couleur d'accent (lamaYellow)
 }
 
 // ---- M4 Finance ----
