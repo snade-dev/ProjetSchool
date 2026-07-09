@@ -27,7 +27,8 @@ export type FormContainerProps = {
     | "fee"
     | "invoice"
     | "payment"
-    | "expense";
+    | "expense"
+    | "employee";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
@@ -208,6 +209,28 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           orderBy: { name: "asc" },
         });
         relatedData = { categories: expenseCategories };
+        break;
+      case "employee":
+        // Enseignants SANS fiche employé (relation inverse `employee: null`).
+        // À l'édition d'un employé lié, on inclut aussi son enseignant courant
+        // pour que le <select> verrouillé affiche son nom.
+        const freeTeachers = await prisma.teacher.findMany({
+          where: {
+            OR: [
+              { employee: null },
+              ...(data?.teacherId ? [{ id: data.teacherId }] : []),
+            ],
+          },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            email: true,
+            phone: true,
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        });
+        relatedData = { teachers: freeTeachers };
         break;
 
       default:

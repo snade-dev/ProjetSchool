@@ -189,6 +189,12 @@ const menuItems = [
         href: "/list/expenses",
         visible: ["admin"],
       },
+      {
+        icon: Users,
+        label: "Employés",
+        href: "/list/employees",
+        visible: ["admin"],
+      },
     ],
   },
   // {

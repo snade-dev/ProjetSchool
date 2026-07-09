@@ -252,6 +252,42 @@ export type ExpenseCategorySchema = z.infer<typeof expenseCategorySchema>;
 
 
 
+// ---- S10 : Employés (enseignants + staff) ----
+export const employeeSchema = z.object({
+  id: z.string().optional(),
+  // Lien optionnel vers un Teacher. Si fourni, name/surname/email/phone seront
+  // écrasés côté serveur par ceux du Teacher (source de vérité).
+  teacherId: z.string().optional().or(z.literal("")),
+  name: z
+    .string()
+    .min(2, { message: "Le prénom est requis (min. 2 caractères) !" }),
+  surname: z
+    .string()
+    .min(2, { message: "Le nom est requis (min. 2 caractères) !" }),
+  position: z
+    .string()
+    .min(2, { message: "Le poste est requis (min. 2 caractères) !" }),
+  phone: z.string().optional().or(z.literal("")),
+  email: z
+    .string()
+    .email({ message: "Adresse e-mail invalide !" })
+    .optional()
+    .or(z.literal("")),
+  hireDate: z.coerce.date({ message: "La date d'embauche est requise !" }),
+  baseSalary: z.coerce
+    .number({ message: "Le salaire de base est requis !" })
+    .int({ message: "Le salaire doit être un nombre entier !" })
+    .positive({ message: "Le salaire doit être supérieur à 0 !" }),
+  // Le <select> poste "true"/"false" (chaînes) : z.coerce.boolean() rendrait
+  // "false" → true. On normalise explicitement (défaut true si absent).
+  active: z.preprocess(
+    (v) => (v === undefined || v === null ? true : v === "true" || v === true),
+    z.boolean()
+  ),
+});
+
+export type EmployeeSchema = z.infer<typeof employeeSchema>;
+
 export const parentSchema = z.object({
   id: z.string().optional(),
   username: z

@@ -31,5 +31,6 @@ type RouteAccessMap = {
     "/list/fees": ["admin"],
     "/list/invoices": ["admin", "student", "parent"],
     "/list/expenses": ["admin"],
+    "/list/employees": ["admin"],
     "/settings": ["admin"],
   };

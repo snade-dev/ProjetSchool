@@ -34,6 +34,7 @@ import { deleteSchoolYear } from "@/lib/actions/settingsAction";
 import { deleteFee } from "@/lib/actions/feeAction";
 import { deleteInvoice } from "@/lib/actions/invoiceAction";
 import { deleteExpense } from "@/lib/actions/expenseAction";
+import { deleteEmployee } from "@/lib/actions/employeeAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -92,6 +93,9 @@ const PaymentForm = dynamic(() => import("./forms/PaymentForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ExpenseForm = dynamic(() => import("./forms/ExpenseForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const EmployeeForm = dynamic(() => import("./forms/EmployeeForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -271,6 +275,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  employee: (type, data, setOpen, relatedData) => (
+    <EmployeeForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -325,7 +337,8 @@ const FormModal = ({
       schoolYear:deleteSchoolYear,
       fee:deleteFee,
       invoice:deleteInvoice,
-      expense:deleteExpense
+      expense:deleteExpense,
+      employee:deleteEmployee
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)
@@ -360,7 +373,8 @@ const FormModal = ({
         </button>
         {state.error && (
           <p className=" font-bold text-red-300">
-            Une erreur c&apos;est proudite lors de la suppression
+            {(state as any).message ||
+              "Une erreur c'est proudite lors de la suppression"}
           </p>
         )}
       </form>
