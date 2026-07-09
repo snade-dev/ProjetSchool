@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState, useActionState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { Check, X, Users, Loader2 } from "lucide-react";
+import { Check, X, Users, Loader2, Search } from "lucide-react";
 import { saveRollCall } from "@/lib/actions/attendanceAction";
 
 type Option = { id: number; name: string };
 type StudentRow = { id: string; name: string; surname: string };
+type DirectoryRow = StudentRow & { classId: number; className: string };
 
 /**
  * Grille d'appel : filtres (classe, matière, date, session) pilotés par l'URL,
@@ -22,6 +23,8 @@ const RollCallClient = ({
   sessionDay,
   students,
   existing,
+  directory,
+  focusId,
 }: {
   classes: Option[];
   subjects: Option[];
@@ -31,10 +34,13 @@ const RollCallClient = ({
   sessionDay: "MORNING" | "EVENING";
   students: StudentRow[];
   existing: Record<string, boolean>;
+  directory: DirectoryRow[];
+  focusId: string | null;
 }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  const [search, setSearch] = useState("");
 
   // Présence locale : préremplie par l'existant, défaut présent.
   const initial = useMemo(
@@ -70,6 +76,32 @@ const RollCallClient = ({
   };
 
   const presentCount = students.filter((s) => presence[s.id]).length;
+
+  // Recherche d'élève : filtre la classe affichée + propose les élèves des
+  // AUTRES classes (bascule automatique vers leur classe, élève surligné).
+  const norm = (s: string) => s.toLowerCase().trim();
+  const q = norm(search);
+  const visibleStudents = q
+    ? students.filter((s) => norm(`${s.name} ${s.surname}`).includes(q))
+    : students;
+  const crossMatches = q
+    ? directory
+        .filter(
+          (s) =>
+            s.classId !== selectedClassId &&
+            norm(`${s.name} ${s.surname}`).includes(q)
+        )
+        .slice(0, 6)
+    : [];
+
+  const goToStudent = (s: DirectoryRow) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("classId", String(s.classId));
+    params.delete("subjectId");
+    params.set("focus", s.id);
+    setSearch("");
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const submit = () => {
     if (!selectedClassId || !selectedSubjectId) return;
@@ -142,6 +174,38 @@ const RollCallClient = ({
             <option value="EVENING">Soir</option>
           </select>
         </div>
+        {/* Recherche directe d'un élève (toutes classes autorisées) */}
+        <div className="flex flex-col gap-1 relative">
+          <label className="text-xs text-gray-500">Rechercher un élève</label>
+          <div className="relative">
+            <Search
+              size={14}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nom de l'élève…"
+              className={`${selectCls} pl-8 w-48`}
+            />
+          </div>
+          {crossMatches.length > 0 && (
+            <div className="absolute top-full left-0 mt-1 z-10 bg-white rounded-md shadow-lg ring-1 ring-gray-200 py-1 w-64">
+              {crossMatches.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => goToStudent(s)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-lamaSkyLight"
+                >
+                  {s.name} {s.surname}
+                  <span className="text-xs text-gray-400"> — {s.className}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="ml-auto flex items-center gap-2 text-sm text-gray-500">
           <Users size={16} />
           {presentCount}/{students.length} présents
@@ -155,8 +219,9 @@ const RollCallClient = ({
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-          {students.map((s) => {
+          {visibleStudents.map((s) => {
             const present = presence[s.id] ?? true;
+            const focused = focusId === s.id;
             return (
               <button
                 key={s.id}
@@ -168,7 +233,7 @@ const RollCallClient = ({
                   present
                     ? "bg-green-50 ring-green-200 text-green-800"
                     : "bg-red-50 ring-red-200 text-red-700"
-                }`}
+                } ${focused ? "ring-2 ring-lamaSky shadow-md" : ""}`}
               >
                 <span className="font-medium truncate">
                   {s.name} {s.surname}

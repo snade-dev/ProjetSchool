@@ -69,6 +69,19 @@ const RollCallPage = async (props: {
     : subjects[0]?.id;
   const selectedSubject = subjects.find((s) => s.id === subjectId) ?? subjects[0];
 
+  // Annuaire des élèves des classes autorisées (recherche directe d'un élève,
+  // bascule automatique vers sa classe).
+  const allStudents = await prisma.student.findMany({
+    where: { classId: { in: classes.map((c) => c.id) } },
+    select: { id: true, name: true, surname: true, classId: true },
+    orderBy: [{ name: "asc" }, { surname: "asc" }],
+  });
+  const classNameById = new Map(classes.map((c) => [c.id, c.name]));
+  const directory = allStudents.map((s) => ({
+    ...s,
+    className: classNameById.get(s.classId) ?? "",
+  }));
+
   const today = new Date().toISOString().slice(0, 10);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? "")
     ? (searchParams.date as string)
@@ -165,6 +178,8 @@ const RollCallPage = async (props: {
         sessionDay={sessionDay}
         students={students}
         existing={existing}
+        directory={directory}
+        focusId={searchParams.focus ?? null}
       />
 
       {/* Historique des appels : chaque jour reste modifiable */}

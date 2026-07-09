@@ -166,10 +166,12 @@ const SingleTeacherPage = async (props: {
               </div>
             </div>
           </div>
-          {/* BOTTOM */}
+          {/* BOTTOM — Emploi du temps de l'enseignant */}
           <div className=" mt-4 bg-white rounded-md p-4 h-[800px]">
-            <h1>Emploi du Temps des enseignants</h1>
-            {/* <BigCalandarContainer type="teacherId" id={teacher.id} /> */}
+            <h1 className="text-lg font-semibold mb-2">Emploi du temps</h1>
+            <div className="h-[730px]">
+              <BigCalandarContainer type="teacherId" id={teacher.id} />
+            </div>
           </div>
         </div>
         {/* RIGHT */}
