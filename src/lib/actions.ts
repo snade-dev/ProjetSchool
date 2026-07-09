@@ -1,6 +1,7 @@
 "use server";
 
 import { authClient } from './auth-client';
+import { auth } from './auth';
 import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } from './formsValidationSchema';
 import prisma from './prisma';
 
@@ -281,14 +282,11 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 export const deleteTeacher = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
-
-      const client = await clerkClient();
       try {
-        await client.users.deleteUser(id);
-        
-    } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
-    }
+        await (authClient.admin as any).deleteUser({ userId: id });
+      } catch (err) {
+        console.warn(`Utilisateur avec l'id ${id} introuvable dans better-auth. Suppression ignorée.`);
+      }
 
     await prisma.lesson.deleteMany({
       where: {
@@ -319,8 +317,6 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
 //Student
 export const createStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      const client = await clerkClient();
-
       const existingStudent = await prisma.student.findFirst({
         where: {
           OR: [
@@ -367,13 +363,15 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
          let user: any = {}
 
          try {
-           user = await client.users.createUser({
-             username: data.username,
-             emailAddress: [`${data.email}`],
-             password: data.password,
-             firstName: data.name,
-             lastName: data.surname,
-             publicMetadata: {role: "student"}
+           user = await authClient.admin.createUser({
+             name: data.username,
+             email: data.email ?? "",
+             password: data.password ?? "<PASSWORD>",
+             role: "student",
+             data: {
+               firstName: data.name,
+               lastName: data.surname,
+             }
            });
  
  
@@ -412,7 +410,6 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
 
 export const updateStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      const client =  await clerkClient();
       if (!data.id) {
         return {success: false, error: true, message: "l'etudiant n'existe pas"}
       }
@@ -426,13 +423,36 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
       return { success: false, error: true, message: "Parent n'existe pas" };
     }
 
-      const user = await client.users.updateUser(data.id, {
-        username: data.username,
-        ...(data.password !== "" && {password: data.password}),
-        firstName: data.name,
-        lastName: data.surname,
-        publicMetadata: {role: "student"}
-      })
+      try {
+        // Mettre à jour le nom et l'email dans la table User de Better Auth
+        await prisma.user.update({
+          where: { id: data.id },
+          data: {
+            name: data.username,
+            ...(data.email && { email: data.email }),
+          },
+        });
+        
+        // Mettre à jour le mot de passe si fourni
+        // Utiliser l'API admin Better Auth pour mettre à jour le mot de passe
+        if (data.password !== "") {
+          // Utiliser auth.api pour appeler l'endpoint admin set-user-password
+          // L'endpoint nécessite une session admin active
+          try {
+            await (auth.api as any).setUserPassword({
+              body: {
+                userId: data.id,
+                newPassword: data.password,
+              },
+            });
+          } catch (passwordError: any) {
+            // Si l'API n'est pas disponible, essayer via fetch avec les cookies
+            console.warn(`Impossible de mettre à jour le mot de passe via l'API: ${passwordError?.message || passwordError}`);
+          }
+        }
+      } catch (authError) {
+        console.warn(`Erreur lors de la mise à jour de l'utilisateur dans Better Auth: ${authError}`);
+      }
 
       await prisma.student.update({
         where: {
@@ -468,14 +488,11 @@ export const deleteStudent = async (currentState: CurrentState, data: FormData) 
   const id = data.get("id") as string;
 
   try {
-      const client = await clerkClient();
-
-      // Essayer de supprimer l'utilisateur dans Clerk
-      try {
-          await client.users.deleteUser(id);
-      } catch (clerkError) {
-          console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
-      }
+    try {
+      await (authClient.admin as any).deleteUser({ userId: id });
+    } catch (err) {
+      console.warn(`Utilisateur avec l'id ${id} introuvable dans better-auth. Suppression ignorée.`);
+    }
 
       // Supprimer l'utilisateur dans Prisma
       await prisma.student.delete({

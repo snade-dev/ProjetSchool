@@ -1,6 +1,7 @@
 // app/reclamations/[id]/page.tsx
 import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { Complaint, Quiz } from "@/app/generated/prisma";
 import { auth } from "@/lib/auth";
 import { UpdateCorrect } from "./components/UpdateCorrect";

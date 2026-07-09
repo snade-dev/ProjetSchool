@@ -105,7 +105,7 @@ export default function RegisterPage() {
 
           <div className="text-sm text-center">
             <Link
-              href="/auth/login"
+              href="/sign-in"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
               Déjà un compte ? Connectez-vous

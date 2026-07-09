@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Correct } from "./components/CorrectionForm";
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 const page = async (props: {
   params: Promise<{ quizId: string; answerId: string }>;

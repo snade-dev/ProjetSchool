@@ -1,9 +1,15 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
+import Link from "next/link";
 
 const UserButtonWrapper = () => {
-  return <UserButton />;
+  return (
+    <div className="flex items-center">
+      <Link href="/sign-in" className="text-sm font-medium">
+        Se connecter
+      </Link>
+    </div>
+  );
 };
 
 export default UserButtonWrapper;

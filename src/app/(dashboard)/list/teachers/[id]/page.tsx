@@ -9,14 +9,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 const SingleTeacherPage = async (props: {
   params: Promise<{ id: string }>;
 }) => {
   const params = await props.params;
   const { id } = params;
-  const { sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
   const teacher:
     | (Teacher & {
         _count: { subjects: number; lessons: number; classes: number };

@@ -1,24 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "@/lib/authAction";
-import { auth } from "@/lib/auth";
-import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-     startTransition(async() => {
-      const { data: session } = await authClient.getSession()
-      console.log(session);
-     })
-  }, [])
-  
-
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -34,7 +20,6 @@ export default function LoginPage() {
         </div>
         <form className="mt-8 space-y-6" action={signIn}>
           <div className="rounded-md shadow-sm -space-y-px">
-              
             <div>
               <label htmlFor="email" className="sr-only">
                 Adresse email
@@ -69,7 +54,6 @@ export default function LoginPage() {
                 }
               />
             </div>
-
           </div>
 
           <div>
@@ -81,7 +65,15 @@ export default function LoginPage() {
             </button>
           </div>
 
-          
+          <div className="text-sm text-center">
+            <span className="text-gray-600">Pas encore de compte ?</span>{" "}
+            <Link
+              href="/sign-up"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Créer un compte
+            </Link>
+          </div>
         </form>
       </div>
     </div>

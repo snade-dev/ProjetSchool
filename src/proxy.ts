@@ -18,7 +18,13 @@ import { auth } from "./lib/auth";
 
 type Session = typeof auth.$Infer.Session;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname === "/" || pathname === "/sign-in" || pathname === "/sign-up") {
+    return NextResponse.next();
+  }
+
 	const { data: session } = await betterFetch<Session>("/api/auth/get-session", {
 		baseURL: request.nextUrl.origin,
 		headers: {
@@ -55,19 +61,21 @@ export async function middleware(request: NextRequest) {
 	return NextResponse.next();
 }
 
-export const config = {
-	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - api (API routes)
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * - public folder
-		 * - sign-in (page de connexion)
-		 * - sign-up (page d'inscription)
-		 */
-		"/((?!api|_next/static|_next/image|favicon.ico|public|sign-in|sign-up).*)",
-	],
-};
 
+// Configure middleware to exclude static files and Next.js internals
+// In Next.js 16, middleware intercepts ALL requests by default, including static files
+// This matcher excludes files with extensions (static assets) from middleware processing
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - auth pages that must remain public
+     * - favicon.ico (favicon file)
+     * - files with extensions (static assets like .png, .svg, etc.)
+     */
+    '/((?!api|_next/static|_next/image|sign-in|sign-up|favicon.ico|.*\\..*).*)',
+  ],
+};

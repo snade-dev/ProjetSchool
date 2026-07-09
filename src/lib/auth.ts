@@ -6,7 +6,10 @@ import { nextCookies } from "better-auth/next-js";
 import { ac, admin, parent, student, teacher, user } from './permission';
  
 export const auth = betterAuth({
-    emailAndPassword: {  
+    baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000",
+    secret: process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET,
+    trustedOrigins: [process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000"],
+    emailAndPassword: {
         enabled: true
     },
 

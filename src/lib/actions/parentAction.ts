@@ -1,6 +1,6 @@
 "use server";
 
-import { clerkClient } from '@clerk/nextjs/server';
+import { authClient } from '../auth-client';
 import { ParentSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
 
@@ -20,9 +20,7 @@ type CurrentState2 = {
 export const createParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
 
     try {
-        const client = await clerkClient();
-
-        
+        // use better-auth admin client instead of Clerk
         const existingParent = await prisma.parent.findFirst({
           where: {
             OR: [
@@ -50,17 +48,20 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
         let user: any = {}
 
         try {
-          user = await client.users.createUser({
-            username: data.username,
-            emailAddress: [`${data.email}`],
-            password: data.password,
-            firstName: data.name,
-            lastName: data.surname,
-            publicMetadata: {role: "parent"}
+          // create user through better-auth admin API
+          user = await authClient.admin.createUser({
+            name: data.username,
+            email: data.email ?? "",
+            password: data.password ?? "<PASSWORD>",
+            role: "parent",
+            data: {
+              firstName: data.name,
+              lastName: data.surname,
+            }
           });
 
-        } catch (clerkError) {
-          console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
+        } catch (err) {
+          console.warn(`Failed to create user via better-auth. ${err}`);
           return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
         }
 
@@ -90,22 +91,22 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
 
 export const updateParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
     try {
-      const client = await clerkClient();
-
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
 
       try {
-        const user = await client.users.updateUser(data.id, {
-          username: data.username,
-          ...(data.password !== "" && {password: data.password}),
-          firstName: data.name,
-          lastName: data.surname,
-          publicMetadata: {role: "Parent"}
-        })
-       } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${data.id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
+        // Update password only via admin API if provided
+        if (data.password && data.password !== "") {
+          await (authClient.admin as any).setUserPassword({
+            userId: data.id,
+            newPassword: data.password
+          });
+        }
+        // Note: Better Auth doesn't provide admin updateUser for name/email.
+        // User table fields are managed via Prisma below.
+       } catch (err) {
+        console.warn(`Utilisateur avec l'id ${data.id} introuvable dans better-auth. Ignoré.`);
        }
 
 
@@ -136,17 +137,16 @@ export const updateParent = async (currentState: CurrentState2 ,data: ParentSche
 export const deleteParent = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
-
-      const client = await clerkClient();
       try {
-        await client.users.deleteUser(id);
+        // authClient.admin typings may not expose deleteUser; cast to any to call runtime API.
+        await (authClient.admin as any).deleteUser({ userId: id });
         await prisma.parent.delete({
           where: {
             id: id
           }
         });
-    } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
+    } catch (err) {
+        console.warn(`Utilisateur avec l'id ${id} introuvable dans better-auth. Suppression ignorée.`);
     }
 
 

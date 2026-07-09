@@ -4,7 +4,7 @@ import Link from "next/link";
 import Announcement from "@/components/Annoucement";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { Class, Student } from "../@/app/generated/prisma";
+import { Class, Student } from "@/app/generated/prisma";
 import { auth } from "@/lib/auth";
 import FormContainer from "@/components/FormContainer";
 import { Suspense } from "react";
