@@ -512,3 +512,24 @@ model Verification {
 
   @@map("verification")
 }
+
+// ---- M7 Administration ----
+model SchoolYear {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique          // "2025-2026"
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)  // UNE seule active (invariant applicatif)
+  // Relations finance/RH (invoices, expenses, feeStructures, salaryPayments) ajoutées en S03
+}
+
+model SchoolSettings {          // singleton (id = 1)
+  id          Int     @id       // pas de @default : on passe toujours id:1 dans l'upsert
+  name        String                  // nom de l'établissement (en-têtes PDF)
+  address     String?
+  phone       String?
+  email       String?
+  logo        String?                 // URL Cloudinary
+  currency    String  @default("FCFA")
+  legalFooter String?                 // pied de page factures/reçus
+}

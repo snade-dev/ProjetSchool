@@ -118,6 +118,43 @@ export const eventSchema = z.object({
 
 export type EventSchema = z.infer<typeof eventSchema>;
 
+// ---- S01 : Année scolaire & paramètres établissement ----
+export const schoolYearSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    name: z
+      .string()
+      .min(4, { message: "Le nom de l'année scolaire est requis (ex : 2025-2026) !" }),
+    startDate: z.coerce.date({ message: "La date de début est requise !" }),
+    endDate: z.coerce.date({ message: "La date de fin est requise !" }),
+    isActive: z.coerce.boolean().optional(),
+  })
+  .refine((data) => data.endDate > data.startDate, {
+    message: "La date de fin doit être postérieure à la date de début !",
+    path: ["endDate"],
+  });
+
+export type SchoolYearSchema = z.infer<typeof schoolYearSchema>;
+
+export const schoolSettingsSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z
+    .string()
+    .min(2, { message: "Le nom de l'établissement est requis !" }),
+  address: z.string().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  email: z
+    .string()
+    .email({ message: "Adresse e-mail invalide !" })
+    .optional()
+    .or(z.literal("")),
+  logo: z.string().optional().or(z.literal("")),
+  currency: z.string().optional().or(z.literal("")),
+  legalFooter: z.string().optional().or(z.literal("")),
+});
+
+export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
+
 
 
 

@@ -158,6 +158,12 @@ const menuItems = [
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
       },
+      {
+        icon: Settings,
+        label: "Paramètres",
+        href: "/settings",
+        visible: ["admin"],
+      },
     ],
   },
   // {

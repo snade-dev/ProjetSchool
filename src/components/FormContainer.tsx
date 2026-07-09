@@ -22,7 +22,8 @@ export type FormContainerProps = {
     | "semester"
     | "quiz"
     | "makeupSession"
-    | "attestation";
+    | "attestation"
+    | "schoolYear";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
