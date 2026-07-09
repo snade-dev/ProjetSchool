@@ -12,6 +12,34 @@
   --lama-yellow-light: 249 240 181;
 }
 
+/* Emploi du temps (react-big-calendar) : événements lisibles, texte non écrasé */
+.rbc-event {
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+}
+.rbc-event-content {
+  white-space: normal !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+}
+.rbc-event-label {
+  font-size: 9px !important;
+  margin-bottom: 1px;
+}
+.rbc-toolbar {
+  font-size: 13px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rbc-toolbar button {
+  padding: 4px 10px;
+}
+.rbc-timeslot-group {
+  min-height: 48px !important;
+}
+
 .react-calendar {
   width: 100% !important;
   border: none !important;

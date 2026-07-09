@@ -118,7 +118,8 @@ export const updateParent = async (currentState: CurrentState2 ,data: ParentSche
           id: data.id
         },
         data: {
-          ...(data.password !== "" && {password: data.password}),
+          // Bug corrigé : le modèle Parent n'a PAS de colonne password
+          // (mot de passe géré par better-auth via setUserPassword ci-dessus).
           username: data.username,
           name: data.name,
           surname: data.surname,

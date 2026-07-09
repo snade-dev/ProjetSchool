@@ -260,7 +260,8 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
           id: data.id
         },
         data: {
-          ...(data.password !== "" && {password: data.password}),
+          // Bug corrigé : le modèle Teacher n'a PAS de colonne password
+          // (mot de passe géré par better-auth plus haut).
           username: data.username,
           name: data.name,
           surname: data.surname,
@@ -470,7 +471,8 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
           id: data.id
         },
         data: {
-          ...(data.password !== "" && {password: data.password}),
+          // Bug corrigé : le modèle Student n'a PAS de colonne password
+          // (mot de passe géré par better-auth plus haut).
           username: data.username,
           name: data.name,
           surname: data.surname,
