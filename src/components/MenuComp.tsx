@@ -219,6 +219,12 @@ const menuItems = [
         href: "/stats/students",
         visible: ["admin", "teacher"],
       },
+      {
+        icon: BarChart2,
+        label: "Stats enseignants",
+        href: "/stats/teachers",
+        visible: ["admin"],
+      },
     ],
   },
   // {
