@@ -1,231 +1,293 @@
-import React from "react";
 import {
+  Document,
   Page,
   Text,
   View,
-  Document,
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
+import type { ReportCardData } from "@/lib/reportCard";
 
-interface Grade {
-  subject: string;
-  score: number;
-  classscore: number | null;
-}
+/**
+ * E20 — Bulletin scolaire PDF (durci, S13).
+ * Composant PUR : props (ReportCardData sérialisable) → rendu. AUCUN accès DB ici.
+ * Sobre : noir + un filet lamaSky (#C3EBFA), lisible en impression N&B.
+ */
 
-interface BulletinPDFProps {
-  studentName: string;
-  studentUserName: string;
-  grades: Grade[];
-  className: string;
-  semesterName: string;
-}
+const LAMA_SKY = "#C3EBFA";
+const LAMA_SKY_LIGHT = "#EDF9FD";
 
-const BulletinPDF = ({
-  studentName,
-  studentUserName,
-  grades,
-  className,
-  semesterName,
-}: BulletinPDFProps) => {
-  const average =
-    grades.length > 0
-      ? (
-          grades.reduce(
-            (sum, grade) => sum + (grade.score || 0) + (grade.classscore || 0),
-            0
-          ) / (grades.length * 2)
-        ).toFixed(2)
-      : "N/A";
+const styles = StyleSheet.create({
+  page: { padding: 36, fontSize: 10, fontFamily: "Helvetica", color: "#111" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: LAMA_SKY,
+    marginBottom: 10,
+  },
+  logo: { width: 48, height: 48, borderRadius: 24, objectFit: "cover" },
+  headerText: { flexGrow: 1 },
+  schoolName: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
+  schoolMeta: { fontSize: 8, color: "#555" },
+  title: {
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: "bold",
+    marginTop: 8,
+    marginBottom: 12,
+    textTransform: "uppercase",
+  },
+  identity: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: LAMA_SKY_LIGHT,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 14,
+  },
+  identityItem: { flexDirection: "column", gap: 2 },
+  identityLabel: { fontSize: 8, color: "#555" },
+  identityValue: { fontSize: 11, fontWeight: "bold" },
+  table: { borderWidth: 1, borderColor: "#999" },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#CCC",
+    alignItems: "center",
+  },
+  tableHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: LAMA_SKY,
+    borderBottomWidth: 1,
+    borderBottomColor: "#999",
+  },
+  th: {
+    fontSize: 8,
+    fontWeight: "bold",
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+    textAlign: "center",
+  },
+  td: {
+    fontSize: 9,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    textAlign: "center",
+  },
+  colSubject: { width: "22%", textAlign: "left" },
+  colNote: { width: "10%" },
+  colAvg: { width: "12%" },
+  colRank: { width: "10%" },
+  colAppreciation: { width: "24%", textAlign: "left" },
+  emptyBox: {
+    borderWidth: 1,
+    borderColor: "#999",
+    padding: 24,
+    textAlign: "center",
+    fontSize: 11,
+    color: "#555",
+  },
+  summary: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#999",
+    backgroundColor: LAMA_SKY_LIGHT,
+    padding: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  summaryItem: { flexDirection: "column", gap: 2, alignItems: "center" },
+  summaryLabel: { fontSize: 8, color: "#555" },
+  summaryValue: { fontSize: 13, fontWeight: "bold" },
+  signatures: {
+    marginTop: 40,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  signBox: { width: "35%", textAlign: "center" },
+  signLine: {
+    borderTopWidth: 1,
+    borderTopColor: "#555",
+    marginTop: 34,
+    paddingTop: 4,
+    fontSize: 9,
+    color: "#333",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 20,
+    left: 36,
+    right: 36,
+    fontSize: 7,
+    color: "#888",
+    textAlign: "center",
+    borderTopWidth: 1,
+    borderTopColor: "#EEE",
+    paddingTop: 6,
+  },
+});
+
+/** Format d'une note /20 : « 12,50 » ou « — » si absente (jamais NaN). */
+const fmtNote = (n: number | null | undefined): string =>
+  n == null || Number.isNaN(n)
+    ? "—"
+    : n.toLocaleString("fr-FR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+/** Format d'un rang : « 1er », « 3e », « — » si non classé. */
+const fmtRank = (rank: number | null | undefined): string =>
+  rank == null ? "—" : rank === 1 ? "1er" : `${rank}e`;
+
+const BulletinPDF = ({ data }: { data: ReportCardData }) => {
+  const { school, student } = data;
+  const hasGrades = data.subjects.length > 0;
 
   return (
     <Document>
-      <Page style={styles.page}>
+      <Page size="A4" style={styles.page}>
+        {/* En-tête établissement (SchoolSettings passé en props) */}
         <View style={styles.header}>
-          <View style={styles.headerR}>
-            <Text style={styles.schoolName}>École LS_School</Text>
-            <Text style={styles.slogan}>Excellence et Innovation</Text>
-            <Text style={styles.schoolInfo}>Bamako, Mali</Text>
+          {school?.logo ? (
+            /* eslint-disable-next-line jsx-a11y/alt-text */
+            <Image src={school.logo} style={styles.logo} />
+          ) : null}
+          <View style={styles.headerText}>
+            <Text style={styles.schoolName}>
+              {school?.name ?? "Établissement"}
+            </Text>
+            {school?.address ? (
+              <Text style={styles.schoolMeta}>{school.address}</Text>
+            ) : null}
+            {school?.phone || school?.email ? (
+              <Text style={styles.schoolMeta}>
+                {[school?.phone, school?.email].filter(Boolean).join("  ·  ")}
+              </Text>
+            ) : null}
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <Text style={styles.title}>
+          Bulletin du {data.semester.name}
+          {data.schoolYearName ? ` — ${data.schoolYearName}` : ""}
+        </Text>
 
-        <Text style={styles.title}>BULLETIN SCOLAIRE</Text>
-
-        <View style={styles.studentInfo}>
-          <Text style={styles.infoText}>Nom: {studentName}</Text>
-          <Text style={styles.infoText}>Classe: {className}</Text>
-          <Text style={styles.infoText}>Semestre: {semesterName}</Text>
-          <Text style={styles.infoText}>
-            Date: {new Date().toLocaleDateString()}
-          </Text>
+        {/* Bloc identité élève */}
+        <View style={styles.identity}>
+          <View style={styles.identityItem}>
+            <Text style={styles.identityLabel}>Élève</Text>
+            <Text style={styles.identityValue}>
+              {student.surname} {student.name}
+            </Text>
+          </View>
+          <View style={styles.identityItem}>
+            <Text style={styles.identityLabel}>Classe</Text>
+            <Text style={styles.identityValue}>{data.className}</Text>
+          </View>
+          <View style={styles.identityItem}>
+            <Text style={styles.identityLabel}>Effectif</Text>
+            <Text style={styles.identityValue}>{data.classSize} élèves</Text>
+          </View>
+          <View style={styles.identityItem}>
+            <Text style={styles.identityLabel}>Édité le</Text>
+            <Text style={styles.identityValue}>{data.generatedAt}</Text>
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>RÉSULTATS ACADÉMIQUES</Text>
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={styles.tableHeaderCell}>Matière</Text>
-            <Text style={styles.tableHeaderCell}>Examen</Text>
-            <Text style={styles.tableHeaderCell}>Classe</Text>
-          </View>
-          {grades.map((grade, index) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.tableCell}>{grade.subject}</Text>
-              <Text style={styles.tableCell}>{grade.score ?? "-"}</Text>
-              <Text style={styles.tableCell}>{grade.classscore ?? "-"}</Text>
+        {/* Tableau des matières */}
+        {hasGrades ? (
+          <View style={styles.table}>
+            <View style={styles.tableHeaderRow}>
+              <Text style={[styles.th, styles.colSubject]}>Matière</Text>
+              <Text style={[styles.th, styles.colNote]}>Note classe</Text>
+              <Text style={[styles.th, styles.colNote]}>Note examen</Text>
+              <Text style={[styles.th, styles.colAvg]}>Moyenne /20</Text>
+              <Text style={[styles.th, styles.colAvg]}>Moy. classe</Text>
+              <Text style={[styles.th, styles.colRank]}>Rang</Text>
+              <Text style={[styles.th, styles.colAppreciation]}>
+                Appréciation
+              </Text>
             </View>
-          ))}
-          <View style={styles.tableFooter}>
-            <Text style={styles.tableFooterCell}>Moyenne Générale</Text>
-            <Text style={styles.tableFooterCell}>{average}</Text>
+            {data.subjects.map((s) => (
+              <View key={s.subjectId} style={styles.tableRow}>
+                <Text style={[styles.td, styles.colSubject]}>
+                  {s.subjectName}
+                </Text>
+                <Text style={[styles.td, styles.colNote]}>
+                  {fmtNote(s.classScore)}
+                </Text>
+                <Text style={[styles.td, styles.colNote]}>
+                  {fmtNote(s.examScore)}
+                </Text>
+                <Text
+                  style={[styles.td, styles.colAvg, { fontWeight: "bold" }]}
+                >
+                  {fmtNote(s.average)}
+                </Text>
+                <Text style={[styles.td, styles.colAvg]}>
+                  {fmtNote(s.classAverage)}
+                </Text>
+                <Text style={[styles.td, styles.colRank]}>
+                  {s.rank != null
+                    ? `${fmtRank(s.rank)} / ${s.gradedCount}`
+                    : "—"}
+                </Text>
+                <Text style={[styles.td, styles.colAppreciation]}>
+                  {s.appreciation ?? "—"}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyBox}>
+            <Text>
+              Aucune note enregistrée pour ce semestre dans cette classe.
+            </Text>
+          </View>
+        )}
+
+        {/* Pied : moyenne générale, rang général, mention */}
+        <View style={styles.summary}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Moyenne générale</Text>
+            <Text style={styles.summaryValue}>
+              {fmtNote(data.generalAverage)} / 20
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Rang général</Text>
+            <Text style={styles.summaryValue}>
+              {data.generalRank != null
+                ? `${fmtRank(data.generalRank)} / ${data.gradedStudentCount}`
+                : "—"}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Mention</Text>
+            <Text style={styles.summaryValue}>{data.mention ?? "—"}</Text>
           </View>
         </View>
 
-        <View style={styles.signatureSection}>
-          <Text style={styles.signatureText}>Le Directeur Pédagogique,</Text>
-          {/* <Text style={styles.signatureText}>Dr. Lamine Dembele</Text> */}
-          <View style={styles.signatureLine} />
+        {/* Signatures */}
+        <View style={styles.signatures}>
+          <View style={styles.signBox}>
+            <Text style={styles.signLine}>Le Directeur</Text>
+          </View>
+          <View style={styles.signBox}>
+            <Text style={styles.signLine}>Le Parent</Text>
+          </View>
         </View>
+
+        {school?.legalFooter ? (
+          <Text style={styles.footer}>{school.legalFooter}</Text>
+        ) : null}
       </Page>
     </Document>
   );
 };
-
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontSize: 12,
-    backgroundColor: "#FFFFFF",
-    fontFamily: "Helvetica",
-  },
-  header: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    backgroundColor: "#2B3A67",
-    padding: 20,
-    borderRadius: 8,
-    color: "#FFFFFF",
-    gap: 4,
-  },
-  headerR: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2B3A67",
-    padding: 20,
-    borderRadius: 8,
-    color: "#FFFFFF",
-  },
-  schoolName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-  },
-  slogan: {
-    fontSize: 12,
-    color: "#D6E4FF",
-    fontStyle: "italic",
-  },
-  schoolInfo: {
-    fontSize: 12,
-    color: "#D6E4FF",
-  },
-  divider: {
-    height: 2,
-    backgroundColor: "#2B3A67",
-    marginVertical: 15,
-  },
-  title: {
-    fontSize: 28,
-    textAlign: "center",
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#2B3A67",
-    textTransform: "uppercase",
-  },
-  studentInfo: {
-    padding: 15,
-    backgroundColor: "#F8FAFF",
-    borderRadius: 6,
-    borderLeftWidth: 5,
-    borderLeftColor: "#2B3A67",
-    marginBottom: 20,
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#2D3748",
-    fontWeight: "bold",
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#2B3A67",
-    textAlign: "center",
-  },
-  table: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 6,
-    marginBottom: 20,
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#2B3A67",
-    padding: 10,
-  },
-  tableHeaderCell: {
-    width: "33.33%",
-    textAlign: "center",
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#EDF2F7",
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 8,
-  },
-  tableCell: {
-    width: "33.33%",
-    textAlign: "center",
-    color: "#4A5568",
-    fontSize: 12,
-  },
-  tableFooter: {
-    flexDirection: "row",
-    backgroundColor: "#2B3A67",
-    paddingVertical: 10,
-  },
-  tableFooterCell: {
-    width: "50%",
-    textAlign: "center",
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  signatureSection: {
-    marginTop: 30,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: "#CBD5E0",
-  },
-  signatureText: {
-    fontSize: 12,
-    color: "#4A5568",
-    marginBottom: 5,
-  },
-  signatureLine: {
-    width: 150,
-    height: 1,
-    backgroundColor: "#4A5568",
-    marginTop: 10,
-  },
-});
 
 export default BulletinPDF;

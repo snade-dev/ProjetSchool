@@ -11,16 +11,34 @@ import { Suspense } from "react";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
 import { headers } from "next/headers";
+import BulletinButton from "@/components/BulletinButton";
+import SemesterSelector from "@/components/SemesterSelector";
+import { buildReportCard } from "@/lib/reportCard";
 
 const SingleStudentPage = async (props: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) => {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const { id } = params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   const role = session?.user.role;
+  const userId = session?.user.id;
+
+  // Contrôle d'accès S13 : student → seulement lui-même ; parent → seulement
+  // ses enfants (vérifié après chargement) ; admin/teacher OK ; sinon notFound().
+  if (!role || !userId) {
+    return notFound();
+  }
+  if (!["admin", "teacher", "student", "parent"].includes(role)) {
+    return notFound();
+  }
+  if (role === "student" && userId !== id) {
+    return notFound();
+  }
 
   const student:
     | (Student & {
@@ -35,8 +53,26 @@ const SingleStudentPage = async (props: {
 
   if (!student) {
     return notFound();
-  } else {
   }
+
+  if (role === "parent" && student.parentId !== userId) {
+    return notFound();
+  }
+
+  // S13 — Bulletin : semestre sélectionné (?semesterId=) + ReportCardData précalculé
+  // côté serveur (le bouton PDF ne fait AUCUN accès DB).
+  const semesters = await prisma.semester.findMany({
+    select: { id: true, name: true },
+    orderBy: { id: "asc" },
+  });
+  const requestedSemesterId = searchParams.semesterId
+    ? parseInt(searchParams.semesterId)
+    : undefined;
+  const selectedSemester =
+    semesters.find((s) => s.id === requestedSemesterId) ?? semesters[0];
+  const reportCard = selectedSemester
+    ? await buildReportCard(student.id, selectedSemester.id)
+    : null;
 
   return (
     <div className="flex-1 p-4 flex flex-col gap-4 md:flex-row">
@@ -156,6 +192,29 @@ const SingleStudentPage = async (props: {
       </div>
       {/* RIGHT */}
       <div className="w-full md:w-1/3 flex flex-col gap-4">
+        {/* S13 — Bulletin scolaire (sélecteur de semestre + PDF précalculé) */}
+        <div className="bg-white p-4 rounded-md">
+          <h1 className="text-xl font-semibold">Bulletin scolaire</h1>
+          {semesters.length === 0 ? (
+            <p className="mt-4 text-sm text-gray-400">
+              Aucun semestre configuré.
+            </p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-3">
+              <SemesterSelector
+                semesters={semesters}
+                selectedId={selectedSemester?.id}
+              />
+              {reportCard ? (
+                <BulletinButton data={reportCard} />
+              ) : (
+                <p className="text-sm text-gray-400">
+                  Bulletin indisponible pour ce semestre.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
         <div className="bg-white p-4 rounded-md">
           <h1 className="text-xl font-semibold">Racourcie</h1>
           <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-500">

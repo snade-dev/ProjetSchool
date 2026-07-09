@@ -5,6 +5,7 @@ import { useState } from "react";
 import StudentResultModal from "./StudentResultModal";
 import { Prisma } from "@/app/generated/prisma";
 import { getResults } from "./actions";
+import type { ReportCardData } from "@/lib/reportCard";
 
 type ResultWithDetails2 = Prisma.ResultGetPayload<{
   include: {
@@ -45,13 +46,21 @@ interface ResultTableProps {
   data: ResultWithDetails2[];
   role: string;
   actions?: React.ReactNode;
+  /** S13 — ReportCardData précalculés par le RSC parent, clé `${studentId}:${semesterId}`. */
+  reportCards?: Record<string, ReportCardData>;
 }
 
-export default function ResultTable({ data, role, actions }: ResultTableProps) {
+export default function ResultTable({
+  data,
+  role,
+  actions,
+  reportCards,
+}: ResultTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: string;
     name: string;
     results: ResultWithDetails[];
+    reportCard: ReportCardData | null;
   } | null>(null);
 
   const handleStudentClick = async (studentId: string, semesterId: number) => {
@@ -62,6 +71,7 @@ export default function ResultTable({ data, role, actions }: ResultTableProps) {
         results.find((item) => item.student.id === studentId)?.student.name ||
         "",
       results: results,
+      reportCard: reportCards?.[`${studentId}:${semesterId}`] ?? null,
     });
   };
 
@@ -132,6 +142,7 @@ export default function ResultTable({ data, role, actions }: ResultTableProps) {
           onClose={() => setSelectedStudent(null)}
           results={selectedStudent.results}
           role={role}
+          reportCard={selectedStudent.reportCard}
         />
       )}
     </>

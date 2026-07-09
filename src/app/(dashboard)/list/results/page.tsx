@@ -9,6 +9,7 @@ import ResultTable from "./components/ResultTable";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { headers } from "next/dist/server/request/headers";
+import { buildClassReportCards, ReportCardData } from "@/lib/reportCard";
 
 // On utilise une intersection type pour ajouter "moyenne" au payload de Result.
 type ResultList = Prisma.ResultGetPayload<{
@@ -177,6 +178,27 @@ export default async function ResultListPage(props: {
 
   const count2 = averages.length;
 
+  // S13 — Préchargement des ReportCardData des lignes affichées (bulletin PDF).
+  // Un seul calcul par couple (classe, semestre) visible — pas de N+1 par élève —
+  // chaque calcul chargeant TOUS les Results de la classe en une requête.
+  const groups = new Map<string, { classId: number; semesterId: number }>();
+  for (const r of processedData) {
+    groups.set(`${r.student.classId}:${r.semesterId}`, {
+      classId: r.student.classId,
+      semesterId: r.semesterId,
+    });
+  }
+  const reportCards: Record<string, ReportCardData> = {};
+  for (const { classId, semesterId } of groups.values()) {
+    const cards = await buildClassReportCards(classId, semesterId);
+    for (const r of processedData) {
+      if (r.student.classId === classId && r.semesterId === semesterId) {
+        const card = cards.get(r.studentId);
+        if (card) reportCards[`${r.studentId}:${r.semesterId}`] = card;
+      }
+    }
+  }
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       <div className="flex items-center justify-between">
@@ -204,7 +226,11 @@ export default async function ResultListPage(props: {
         </div>
       </div>
 
-      <ResultTable data={processedData} role={role} />
+      <ResultTable
+        data={processedData}
+        role={role}
+        reportCards={reportCards}
+      />
 
       <Pagination page={page} count={count2} />
     </div>
