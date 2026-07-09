@@ -393,6 +393,30 @@ export const resultSchema = z.object({
 
 export type ResultSchema = z.infer<typeof resultSchema>;
 
+// ---- S12 : Saisie de notes en masse (gradeEntry) ----
+export const gradeEntrySchema = z.object({
+  classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
+  subjectId: z.coerce.number().min(1, { message: "La matière est requise !" }),
+  semesterId: z.coerce.number().min(1, { message: "Le semestre est requis !" }),
+  grades: z.array(
+    z.object({
+      studentId: z.string().min(1, { message: "L'élève est requis !" }),
+      score: z.coerce
+        .number()
+        .min(0, { message: "La note doit être ≥ 0 !" })
+        .max(20, { message: "La note doit être ≤ 20 !" })
+        .optional(),
+      classScore: z.coerce
+        .number()
+        .min(0, { message: "La note de classe doit être ≥ 0 !" })
+        .max(20, { message: "La note de classe doit être ≤ 20 !" })
+        .optional(),
+    })
+  ),
+});
+
+export type GradeEntrySchema = z.infer<typeof gradeEntrySchema>;
+
 export const answerOptionSchema = z.object({
   id: z.coerce.string().optional(),
   answerText: z.string().min(1, "la réponse est requis"),

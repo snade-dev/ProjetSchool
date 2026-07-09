@@ -113,6 +113,12 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
+        icon: Edit,
+        label: "Saisie des notes",
+        href: "/list/gradeEntry",
+        visible: ["admin", "teacher"],
+      },
+      {
         icon: CheckSquare,
         label: "Presence",
         href: "/list/attendances",
