@@ -173,6 +173,33 @@ export const feeStructureSchema = z.object({
 
 export type FeeStructureSchema = z.infer<typeof feeStructureSchema>;
 
+// ---- S05 : Factures ----
+export const invoiceLineSchema = z.object({
+  label: z
+    .string()
+    .min(1, { message: "Le libellé de la ligne est requis !" }),
+  quantity: z.coerce
+    .number({ message: "La quantité est requise !" })
+    .int({ message: "La quantité doit être un nombre entier !" })
+    .positive({ message: "La quantité doit être supérieure à 0 !" }),
+  unitAmount: z.coerce
+    .number({ message: "Le prix unitaire est requis !" })
+    .int({ message: "Le prix unitaire doit être un nombre entier !" })
+    .positive({ message: "Le prix unitaire doit être supérieur à 0 !" }),
+});
+
+export type InvoiceLineSchema = z.infer<typeof invoiceLineSchema>;
+
+export const invoiceSchema = z.object({
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  dueDate: z.coerce.date({ message: "L'échéance est requise !" }),
+  lines: z
+    .array(invoiceLineSchema)
+    .min(1, { message: "Au moins une ligne est requise !" }),
+});
+
+export type InvoiceSchema = z.infer<typeof invoiceSchema>;
+
 
 
 

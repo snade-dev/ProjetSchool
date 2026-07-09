@@ -176,6 +176,18 @@ const menuItems = [
         href: "/list/fees",
         visible: ["admin"],
       },
+      {
+        icon: FileText,
+        label: "Factures",
+        href: "/list/invoices",
+        visible: ["admin"],
+      },
+      {
+        icon: FileText,
+        label: "Mes factures",
+        href: "/list/invoices",
+        visible: ["student", "parent"],
+      },
     ],
   },
   // {
