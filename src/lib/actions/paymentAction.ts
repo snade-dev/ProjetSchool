@@ -4,6 +4,26 @@ import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { PaymentSchema } from "../formsValidationSchema";
+import { InvoiceStatus } from "@/app/generated/prisma";
+
+/**
+ * Statut dérivé d'une facture après (dé)paiement — jamais fourni par le client :
+ *   Σ == total          → PAID
+ *   sinon dueDate passée → OVERDUE
+ *   sinon Σ > 0          → PARTIALLY_PAID
+ *   sinon                → ISSUED
+ * (story-08 : une OVERDUE réglée intégralement passe PAID ; partiellement, reste OVERDUE.)
+ */
+const deriveInvoiceStatus = (
+  paidSum: number,
+  total: number,
+  dueDate: Date
+): InvoiceStatus => {
+  if (paidSum >= total) return "PAID";
+  if (dueDate < new Date()) return "OVERDUE";
+  if (paidSum > 0) return "PARTIALLY_PAID";
+  return "ISSUED";
+};
 
 type CurrentState = {
   success: boolean;
@@ -56,9 +76,13 @@ export const createPayment = async (
         },
       });
 
-      // Statut dérivé (jamais fourni par le client) : tout payé → PAID, sinon PARTIALLY_PAID.
+      // Statut dérivé (jamais fourni par le client), OVERDUE si échéance dépassée.
       const newPaid = paid + data.amount;
-      const status = newPaid >= invoice.total ? "PAID" : "PARTIALLY_PAID";
+      const status = deriveInvoiceStatus(
+        newPaid,
+        invoice.total,
+        invoice.dueDate
+      );
 
       await tx.invoice.update({
         where: { id: invoice.id },
@@ -128,12 +152,11 @@ export const deletePayment = async (
 
       let status = invoice.status;
       if (invoice.status !== "CANCELLED") {
-        status =
-          remaining >= invoice.total
-            ? "PAID"
-            : remaining > 0
-            ? "PARTIALLY_PAID"
-            : "ISSUED";
+        status = deriveInvoiceStatus(
+          remaining,
+          invoice.total,
+          invoice.dueDate
+        );
       }
 
       await tx.invoice.update({

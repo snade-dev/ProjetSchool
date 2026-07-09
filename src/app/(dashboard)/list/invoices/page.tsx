@@ -4,7 +4,8 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
 import GenerateInvoicesButton from "./components/GenerateInvoicesButton";
-import { getGenerationPreview } from "@/lib/actions/invoiceAction";
+import RemindButton from "./components/RemindButton";
+import { getGenerationPreview, syncOverdueInvoices } from "@/lib/actions/invoiceAction";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { formatFCFA, invoiceBalance } from "@/lib/finance";
@@ -13,6 +14,7 @@ import {
   Payment,
   Student,
   Class,
+  Parent,
   Prisma,
   InvoiceStatus,
 } from "@/app/generated/prisma";
@@ -22,7 +24,7 @@ import { headers } from "next/headers";
 import { Eye } from "lucide-react";
 
 type InvoiceList = Invoice & {
-  student: Student & { class: Class };
+  student: Student & { class: Class; parent: Parent };
   payments: Payment[];
 };
 
@@ -36,7 +38,12 @@ const InvoicesListPage = async (props: {
 
   const isAdmin = role === "admin";
 
+  // Synchro des impayés (story-08) : idempotent, admin uniquement, avant les
+  // agrégats pour que les stat-tiles reflètent les factures échues du jour.
+  if (isAdmin) await syncOverdueInvoices();
+
   const { page, status, month, search } = searchParams;
+  const isOverdueView = status === "OVERDUE";
   const p = page ? parseInt(page) : 1;
 
   // --- Périmètre par rôle (défense en profondeur) ---
@@ -74,7 +81,7 @@ const InvoicesListPage = async (props: {
     prisma.invoice.findMany({
       where: query,
       include: {
-        student: { include: { class: true } },
+        student: { include: { class: true, parent: true } },
         payments: true,
       },
       orderBy: { createdAt: "desc" },
@@ -104,7 +111,37 @@ const InvoicesListPage = async (props: {
   const paidCount = statOf("PAID")?._count._all ?? 0;
   const partialCount = statOf("PARTIALLY_PAID")?._count._all ?? 0;
   const overdueCount = statOf("OVERDUE")?._count._all ?? 0;
-  const overdueAmount = statOf("OVERDUE")?._sum.total ?? 0;
+
+  // Total impayés = Σ SOLDES des OVERDUE (total − Σ paiements), pas Σ total.
+  // Sans N+1 : ids OVERDUE → aggregate _sum.total + payment.groupBy _sum.amount,
+  // assemblage en JS (parade story-08).
+  let overdueAmount = 0;
+  if (isAdmin && overdueCount > 0) {
+    const overdueIds = (
+      await prisma.invoice.findMany({
+        where: { ...scopeWhere, status: "OVERDUE" },
+        select: { id: true },
+      })
+    ).map((i) => i.id);
+
+    const [totalAgg, payGroups] = await Promise.all([
+      prisma.invoice.aggregate({
+        where: { id: { in: overdueIds } },
+        _sum: { total: true },
+      }),
+      prisma.payment.groupBy({
+        by: ["invoiceId"],
+        where: { invoiceId: { in: overdueIds } },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const paidOnOverdue = payGroups.reduce(
+      (s, g) => s + (g._sum.amount ?? 0),
+      0
+    );
+    overdueAmount = (totalAgg._sum.total ?? 0) - paidOnOverdue;
+  }
 
   // --- Aperçu de génération (E31) : params dédiés gm/gy pour ne pas interférer
   //     avec le filtre `month` de la liste. L'aperçu est calculé côté serveur. ---
@@ -132,6 +169,17 @@ const InvoicesListPage = async (props: {
       accessor: "dueDate",
       className: "hidden md:table-cell",
     },
+    // Vue recouvrement (E33) : colonnes supplémentaires quand ?status=OVERDUE
+    ...(isOverdueView
+      ? [
+          { header: "Retard (j)", accessor: "overdueDays" },
+          {
+            header: "Parent",
+            accessor: "parent",
+            className: "hidden lg:table-cell",
+          },
+        ]
+      : []),
     { header: "Actions", accessor: "action" },
   ];
 
@@ -184,6 +232,25 @@ const InvoicesListPage = async (props: {
         >
           {new Intl.DateTimeFormat("fr-FR").format(item.dueDate)}
         </td>
+        {isOverdueView && (
+          <>
+            <td className="text-red-600 font-medium">
+              {Math.floor(
+                (now.getTime() - item.dueDate.getTime()) / 86400000
+              )}
+            </td>
+            <td className="hidden lg:table-cell">
+              <div className="flex flex-col">
+                <span>
+                  {item.student.parent.name} {item.student.parent.surname}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {item.student.parent.phone ?? "—"}
+                </span>
+              </div>
+            </td>
+          </>
+        )}
         <td>
           <div className="flex items-center gap-2">
             <Link
@@ -193,6 +260,16 @@ const InvoicesListPage = async (props: {
             >
               <Eye size={16} />
             </Link>
+            {isAdmin && item.status === "OVERDUE" && (
+              <RemindButton
+                invoiceId={item.id}
+                student={`${item.student.name} ${item.student.surname}`}
+                remindedAt={
+                  item.remindedAt ? item.remindedAt.toISOString() : null
+                }
+                reminderNote={item.reminderNote}
+              />
+            )}
           </div>
         </td>
       </tr>

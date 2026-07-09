@@ -587,6 +587,8 @@ model Invoice {
   schoolYear    SchoolYear    @relation(fields: [schoolYearId], references: [id])
   createdById   String                          // User.id (admin)
   createdAt     DateTime      @default(now())
+  reminderNote  String?                         // note libre de relance (story-08)
+  remindedAt    DateTime?                       // horodatage de la dernière relance (story-08)
   lines         InvoiceLine[]
   payments      Payment[]
   @@index([studentId])

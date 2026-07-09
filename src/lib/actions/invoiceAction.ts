@@ -252,6 +252,54 @@ export const cancelInvoice = async (
 };
 
 // ---------------------------------------------------------------------------
+// Impayés & recouvrement (story-08)
+// ---------------------------------------------------------------------------
+
+/**
+ * Bascule en OVERDUE toute facture encore ISSUED ou PARTIALLY_PAID dont
+ * l'échéance est dépassée. Fonction serveur simple (PAS une form action) :
+ * appelée en tête de `list/invoices/page.tsx` uniquement pour le rôle admin.
+ * UPDATE ensembliste, idempotent (no-op la plupart du temps) — pas de cron.
+ */
+export async function syncOverdueInvoices(): Promise<void> {
+  await prisma.invoice.updateMany({
+    where: {
+      status: { in: ["ISSUED", "PARTIALLY_PAID"] },
+      dueDate: { lt: new Date() },
+    },
+    data: { status: "OVERDUE" },
+  });
+}
+
+/**
+ * Note de relance (admin) : horodate la relance et enregistre une note libre.
+ * Aucun envoi de SMS/e-mail (hors scope, cf. story-08 « Quand s'arrêter »).
+ */
+export const markReminded = async (
+  id: string,
+  note: string
+): Promise<CurrentState> => {
+  try {
+    await requireRole(["admin"]);
+
+    await prisma.invoice.update({
+      where: { id },
+      data: {
+        remindedAt: new Date(),
+        reminderNote: note.trim() ? note.trim() : null,
+      },
+    });
+
+    revalidatePath("/list/invoices");
+    revalidatePath(`/list/invoices/${id}`);
+    return { success: true, error: false };
+  } catch (err) {
+    console.log(err);
+    return { success: false, error: true };
+  }
+};
+
+// ---------------------------------------------------------------------------
 // Génération automatique des factures mensuelles (story-06)
 // ---------------------------------------------------------------------------
 
