@@ -19,3 +19,17 @@ export const invoiceBalance = (invoice: InvoiceForBalance): number => {
   const paid = (invoice.payments ?? []).reduce((sum, p) => sum + p.amount, 0);
   return invoice.total - paid;
 };
+
+/**
+ * Libellés FR des méthodes de paiement (enum PaymentMethod).
+ * Réutilisé par le formulaire d'encaissement, la timeline et les reçus PDF.
+ */
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: "Espèces",
+  MOBILE_MONEY: "Mobile Money",
+  BANK_TRANSFER: "Virement bancaire",
+  CHEQUE: "Chèque",
+};
+
+export const paymentMethodLabel = (method: string): string =>
+  PAYMENT_METHOD_LABELS[method] ?? method;

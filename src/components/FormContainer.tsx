@@ -25,7 +25,8 @@ export type FormContainerProps = {
     | "attestation"
     | "schoolYear"
     | "fee"
-    | "invoice";
+    | "invoice"
+    | "payment";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;

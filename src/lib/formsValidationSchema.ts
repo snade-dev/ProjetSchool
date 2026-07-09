@@ -200,6 +200,22 @@ export const invoiceSchema = z.object({
 
 export type InvoiceSchema = z.infer<typeof invoiceSchema>;
 
+// ---- S07 : Encaissement (paiements) ----
+export const paymentSchema = z.object({
+  invoiceId: z.string().min(1, { message: "La facture est requise !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  method: z.enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"], {
+    message: "La méthode de paiement est requise !",
+  }),
+  paidAt: z.coerce.date({ message: "La date de paiement est requise !" }),
+  reference: z.string().optional().or(z.literal("")),
+});
+
+export type PaymentSchema = z.infer<typeof paymentSchema>;
+
 
 
 

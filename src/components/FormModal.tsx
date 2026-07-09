@@ -87,6 +87,9 @@ const FeeForm = dynamic(() => import("./forms/FeeForm"), {
 const InvoiceForm = dynamic(() => import("./forms/InvoiceForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const PaymentForm = dynamic(() => import("./forms/PaymentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 
 const forms: {
   [key: string]: (
@@ -248,6 +251,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  payment: (type, data, setOpen, relatedData) => (
+    <PaymentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 const FormModal = ({
@@ -304,10 +315,14 @@ const FormModal = ({
       invoice:deleteInvoice
     };
     // si c'est un formulaire de suppression
-    const [state, formAction] = useActionState(deleteActionMap[table], {
-      success: false,
-      error: false,
-    });
+    // (payment n'utilise pas ce chemin : encaissement = création uniquement)
+    const [state, formAction] = useActionState(
+      deleteActionMap[table as keyof typeof deleteActionMap],
+      {
+        success: false,
+        error: false,
+      }
+    );
 
     const router = useRouter();
 

@@ -3,12 +3,22 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { formatFCFA, invoiceBalance } from "@/lib/finance";
+import {
+  formatFCFA,
+  invoiceBalance,
+  paymentMethodLabel,
+} from "@/lib/finance";
 import InvoiceStatusBadge from "@/components/InvoiceStatusBadge";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 import AddInvoiceLineButton from "./components/AddInvoiceLineButton";
 import DeleteInvoiceLineButton from "./components/DeleteInvoiceLineButton";
 import CancelInvoiceButton from "./components/CancelInvoiceButton";
+import PaymentButton from "./components/PaymentButton";
+import DeletePaymentButton from "./components/DeletePaymentButton";
+import ReceiptDownloadButton from "@/components/pdf/ReceiptDownloadButton";
+import InvoiceDownloadButton from "@/components/pdf/InvoiceDownloadButton";
+import type { PaymentReceiptData } from "@/components/pdf/PaymentReceiptPdf";
+import type { InvoicePdfData } from "@/components/pdf/InvoicePdf";
 
 const InvoiceDetailPage = async (props: {
   params: Promise<{ id: string }>;
@@ -49,6 +59,73 @@ const InvoiceDetailPage = async (props: {
     invoice.status !== "PAID" &&
     invoice.status !== "CANCELLED";
   const balance = invoiceBalance(invoice);
+  const paidTotal = invoice.total - balance;
+
+  // Le paiement peut être encaissé tant que la facture n'est ni soldée ni annulée.
+  const canCollect =
+    isAdmin && invoice.status !== "PAID" && invoice.status !== "CANCELLED";
+
+  // Résolution des noms de caissiers (receivedById → User.name) pour les reçus.
+  const cashierIds = Array.from(
+    new Set(invoice.payments.map((p) => p.receivedById))
+  );
+  const cashiers = cashierIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: cashierIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const cashierName = (id: string) =>
+    cashiers.find((c) => c.id === id)?.name ?? "Administration";
+
+  const school = {
+    name: settings?.name ?? "Établissement",
+    address: settings?.address,
+    phone: settings?.phone,
+    email: settings?.email,
+    legalFooter: settings?.legalFooter,
+  };
+  const studentInfo = {
+    name: invoice.student.name,
+    surname: invoice.student.surname,
+    className: invoice.student.class?.name ?? null,
+    parentName: invoice.student.parent
+      ? `${invoice.student.parent.name} ${invoice.student.parent.surname}`
+      : null,
+  };
+
+  const invoicePdfData: InvoicePdfData = {
+    school,
+    reference: invoice.reference,
+    status: invoice.status,
+    issueDate: invoice.issueDate,
+    dueDate: invoice.dueDate,
+    schoolYear: invoice.schoolYear.name,
+    student: studentInfo,
+    lines: invoice.lines.map((l) => ({
+      label: l.label,
+      quantity: l.quantity,
+      unitAmount: l.unitAmount,
+    })),
+    total: invoice.total,
+    paid: paidTotal,
+    balance,
+  };
+
+  const receiptData = (p: (typeof invoice.payments)[number]): PaymentReceiptData => ({
+    receiptNo: p.id.slice(0, 8).toUpperCase(),
+    school,
+    student: {
+      name: studentInfo.name,
+      surname: studentInfo.surname,
+      className: studentInfo.className,
+    },
+    invoiceRef: invoice.reference,
+    amount: p.amount,
+    methodLabel: paymentMethodLabel(p.method),
+    date: p.paidAt,
+    cashier: cashierName(p.receivedById),
+  });
 
   return (
     <div className="flex-1 m-4 mt-0 flex flex-col gap-4">
@@ -60,12 +137,15 @@ const InvoiceDetailPage = async (props: {
         >
           <ArrowLeft size={16} /> Retour aux factures
         </Link>
-        {isAdmin && (
-          <CancelInvoiceButton
-            invoiceId={invoice.id}
-            hasPayments={hasPayments}
-          />
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <InvoiceDownloadButton data={invoicePdfData} />
+          {isAdmin && (
+            <CancelInvoiceButton
+              invoiceId={invoice.id}
+              hasPayments={hasPayments}
+            />
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
@@ -218,15 +298,52 @@ const InvoiceDetailPage = async (props: {
             </span>
           </div>
 
-          {/* Placeholder S07 : encaissement */}
-          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center border border-dashed border-gray-200 rounded-md">
-            <Clock size={28} className="text-gray-300" />
-            <p className="text-sm text-gray-400">
-              Encaissement disponible bientôt
-            </p>
-            <p className="text-xs text-gray-300">
-              La gestion des paiements et des reçus arrive prochainement.
-            </p>
+          {/* Bouton Encaisser — admin ET facture non soldée / non annulée */}
+          {canCollect && (
+            <PaymentButton invoiceId={invoice.id} balance={balance} />
+          )}
+
+          {/* Timeline des paiements (brief E32) */}
+          <div className="flex flex-col gap-3">
+            <span className="text-xs text-gray-400 font-medium">
+              Historique des paiements
+            </span>
+
+            {invoice.payments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-6 text-center border border-dashed border-gray-200 rounded-md">
+                <Wallet size={26} className="text-gray-300" />
+                <p className="text-sm text-gray-400">
+                  Aucun paiement enregistré
+                </p>
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {invoice.payments.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex flex-col gap-1 border-l-2 border-lamaSky pl-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold whitespace-nowrap">
+                        {formatFCFA(p.amount)}
+                      </span>
+                      {isAdmin && <DeletePaymentButton paymentId={p.id} />}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {paymentMethodLabel(p.method)}
+                      {p.reference ? ` · ${p.reference}` : ""}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {new Intl.DateTimeFormat("fr-FR").format(p.paidAt)} ·{" "}
+                      {cashierName(p.receivedById)}
+                    </span>
+                    <div className="mt-1">
+                      <ReceiptDownloadButton data={receiptData(p)} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
