@@ -225,6 +225,12 @@ const menuItems = [
         href: "/stats/teachers",
         visible: ["admin"],
       },
+      {
+        icon: BarChart2,
+        label: "Stats finance",
+        href: "/stats/finance",
+        visible: ["admin"],
+      },
     ],
   },
   // {
