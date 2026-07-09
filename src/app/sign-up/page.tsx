@@ -1,118 +1,110 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { signIn, signUp } from "@/lib/authAction";
+import { AlertCircle, Lock, Mail, ShieldCheck, User } from "lucide-react";
+import { signUp } from "@/lib/authAction";
+import {
+  AuthField,
+  AuthMessage,
+  AuthShell,
+  SubmitButton,
+} from "@/components/auth/AuthUi";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [clientError, setClientError] = useState<string | null>(null);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Créer un compte
-          </h2>
+    <AuthShell
+      title="Créer un compte"
+      subtitle="Rejoignez l'espace LS_School. Votre rôle sera attribué par l'administration."
+    >
+      <Suspense fallback={null}>
+        <AuthMessage />
+      </Suspense>
+
+      {clientError && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start gap-2 rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100"
+        >
+          <AlertCircle size={16} className="shrink-0 mt-[1px]" />
+          <span>{clientError}</span>
         </div>
-        <form className="mt-8 space-y-6" action={signUp}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Nom complet
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Nom complet"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Adresse email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Adresse email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Mot de passe
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Mot de passe"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirmer le mot de passe
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Confirmer le mot de passe"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
-              />
-            </div>
-          </div>
+      )}
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              S'inscrire
-            </button>
-          </div>
+      <form
+        className="flex flex-col gap-4"
+        action={signUp}
+        onSubmit={(e) => {
+          // Contrôle instantané côté client (revalidé côté serveur).
+          const form = e.currentTarget;
+          const password = (
+            form.elements.namedItem("password") as HTMLInputElement
+          )?.value;
+          const confirm = (
+            form.elements.namedItem("confirmPassword") as HTMLInputElement
+          )?.value;
+          if (password !== confirm) {
+            e.preventDefault();
+            setClientError("Les deux mots de passe ne correspondent pas.");
+            return;
+          }
+          setClientError(null);
+        }}
+      >
+        <AuthField
+          id="name"
+          name="name"
+          label="Nom complet"
+          icon={User}
+          placeholder="Prénom Nom"
+          autoComplete="name"
+        />
+        <AuthField
+          id="email"
+          name="email"
+          label="Adresse email"
+          type="email"
+          icon={Mail}
+          placeholder="vous@exemple.com"
+          autoComplete="email"
+        />
+        <AuthField
+          id="password"
+          name="password"
+          label="Mot de passe"
+          type="password"
+          icon={Lock}
+          placeholder="8 caractères minimum"
+          autoComplete="new-password"
+          minLength={8}
+        />
+        <AuthField
+          id="confirmPassword"
+          name="confirmPassword"
+          label="Confirmer le mot de passe"
+          type="password"
+          icon={ShieldCheck}
+          placeholder="Retapez le mot de passe"
+          autoComplete="new-password"
+          minLength={8}
+        />
 
-          <div className="text-sm text-center">
-            <Link
-              href="/sign-in"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Déjà un compte ? Connectez-vous
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="mt-2">
+          <SubmitButton label="Créer mon compte" />
+        </div>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-gray-400">
+        Déjà un compte ?{" "}
+        <Link
+          href="/sign-in"
+          className="font-semibold text-blue-500 hover:text-blue-600"
+        >
+          Se connecter
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
