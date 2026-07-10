@@ -68,10 +68,10 @@ const AnnouncementForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
+      <h1 className="text-xl font-bold text-gray-800">
         {type === "create" ? "Créer un nouvel annonce" : "Modifier un annonce"}
       </h1>
-      <span className="text-xs text-gray-400 font-medium">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
         Information d&apos;authentication
       </span>
       <div className="flex justify-between flex-wrap gap-4">
@@ -99,10 +99,10 @@ const AnnouncementForm = ({
           error={errors?.date}
           type="dateTime-local"
         />
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Classe</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Classe</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("classId")}
             defaultValue={data?.classId}
           >
@@ -142,7 +142,7 @@ const AnnouncementForm = ({
       <button
         disabled={loading}
         type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
+        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
       >
         {type === "create" ? "Créer" : "Modifier"}
       </button>

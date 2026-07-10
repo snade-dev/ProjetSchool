@@ -83,7 +83,7 @@ const SchoolYearForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
+      <h1 className="text-xl font-bold text-gray-800">
         {type === "create"
           ? "Créer une année scolaire"
           : "Modifier l'année scolaire"}
@@ -133,7 +133,7 @@ const SchoolYearForm = ({
       <button
         disabled={loading}
         type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
+        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
       >
         {type === "create" ? "Créer" : "Modifier"}
       </button>

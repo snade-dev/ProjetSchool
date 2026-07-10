@@ -101,14 +101,14 @@ const InvoiceForm = ({
 
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Nouvelle facture</h1>
+      <h1 className="text-xl font-bold text-gray-800">Nouvelle facture</h1>
 
       <div className="flex flex-wrap gap-4">
         {/* Élève */}
         <div className="flex flex-col gap-2 w-full md:w-2/5">
-          <label className="text-xs text-gray-500">Élève</label>
+          <label className="text-xs font-medium text-gray-500">Élève</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("studentId")}
             defaultValue=""
           >
@@ -130,11 +130,11 @@ const InvoiceForm = ({
         </div>
 
         {/* Échéance */}
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Échéance</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Échéance</label>
           <input
             type="date"
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("dueDate")}
           />
           {errors.dueDate?.message && (
@@ -148,7 +148,7 @@ const InvoiceForm = ({
       {/* Lignes dynamiques */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400 font-medium">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
             Lignes de la facture
           </span>
           <button
@@ -178,7 +178,7 @@ const InvoiceForm = ({
               <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                 <label className="text-[11px] text-gray-500">Libellé</label>
                 <input
-                  className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+                  className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
                   {...register(`lines.${index}.label` as const)}
                 />
                 {lineErr?.label?.message && (
@@ -191,7 +191,7 @@ const InvoiceForm = ({
                 <label className="text-[11px] text-gray-500">Qté</label>
                 <input
                   type="number"
-                  className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+                  className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
                   {...register(`lines.${index}.quantity` as const)}
                 />
                 {lineErr?.quantity?.message && (
@@ -204,7 +204,7 @@ const InvoiceForm = ({
                 <label className="text-[11px] text-gray-500">PU (FCFA)</label>
                 <input
                   type="number"
-                  className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+                  className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
                   {...register(`lines.${index}.unitAmount` as const)}
                 />
                 {lineErr?.unitAmount?.message && (
@@ -243,7 +243,7 @@ const InvoiceForm = ({
       <button
         disabled={loading}
         type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
+        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
       >
         Créer la facture
       </button>

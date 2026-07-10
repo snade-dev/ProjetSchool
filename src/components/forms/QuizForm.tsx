@@ -78,7 +78,7 @@ const QuizForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
+      <h1 className="text-xl font-bold text-gray-800">
         {type === "create"
           ? "Créer un nouvel examen en ligne"
           : "Modifier un examen en ligne"}
@@ -122,10 +122,10 @@ const QuizForm = ({
           register={register}
           error={errors?.teacherUsername}
         />
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Classe</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Classe</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("classId")}
             defaultValue={data?.classId}
           >
@@ -148,10 +148,10 @@ const QuizForm = ({
             </p>
           )}
         </div>
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
           <label className="font-bold">Sujet</label>
           <select
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("subjectId")}
           >
             {subjects.map((subject: { id: number; name: string }) => (
@@ -181,7 +181,7 @@ const QuizForm = ({
       <button
         disabled={loading}
         type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
+        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
       >
         {type === "create" ? "Créer" : "Modifier"}
       </button>

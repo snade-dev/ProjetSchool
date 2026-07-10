@@ -3,7 +3,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
-import Image from "next/image";
 import {
   Dispatch,
   SetStateAction,
@@ -15,7 +14,7 @@ import { teacherSchema, TeacherSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { createTeacher, updateTeacher } from "@/lib/actions";
-import { CldUploadWidget } from "next-cloudinary";
+import UploadField from "../UploadField";
 import { useTransition } from "react";
 
 const TeacherForms = ({
@@ -38,7 +37,7 @@ const TeacherForms = ({
   });
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
-  const [img, setImg] = useState<any>();
+  const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   const [state, formAction] = useActionState(
     type === "create" ? createTeacher : updateTeacher,
@@ -54,7 +53,7 @@ const TeacherForms = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     startTransition(() => {
-      formAction({ ...data, img: img?.secure_url });
+      formAction({ ...data, img: imgUrl });
     });
   });
 
@@ -74,12 +73,12 @@ const TeacherForms = ({
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className=" text-xl font-semibold">
+      <h1 className="text-xl font-bold text-gray-800">
         {type === "create"
           ? "Créer un nouveau Professeur"
           : "Modifier un Professeur"}
       </h1>
-      <span className=" text-xs text-gray-400 font-medium">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
         Information d&apos;authentification
       </span>
       <div className="flex justify-between flex-wrap gap-4">
@@ -107,7 +106,7 @@ const TeacherForms = ({
           error={errors.password}
         />
       </div>
-      <span className=" text-xs text-gray-400 font-medium">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
         Information personnel
       </span>
       <div className="flex justify-between flex-wrap gap-4">
@@ -164,11 +163,11 @@ const TeacherForms = ({
           error={errors.birthday}
           type="date"
         />
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sujet</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Sujet</label>
           <select
             multiple
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("subjects")}
             defaultValue={data?.subjects}
           >
@@ -184,10 +183,10 @@ const TeacherForms = ({
             </p>
           )}
         </div>
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sex</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Sex</label>
           <select
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("sex")}
             defaultValue={data?.sex}
           >
@@ -201,36 +200,22 @@ const TeacherForms = ({
           )}
         </div>
 
-        <CldUploadWidget
-          uploadPreset="school"
-          onSuccess={(result, { widget }) => {
-            setImg(result.info);
-            widget.close();
-          }}
-        >
-          {({ open }) => {
-            return (
-              <div
-                className=" text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-                onClick={() => open()}
-              >
-                <Image src="/upload.png" alt="" width={28} height={28} />
-                <span>Téléverser une photo</span>
-              </div>
-            );
-          }}
-        </CldUploadWidget>
+        <UploadField
+          label="Téléverser une photo"
+          value={imgUrl}
+          onChange={setImgUrl}
+        />
       </div>
 
       {state.error && (
-        <span className=" text-red-400 font-bold">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           {state.message ? state.message : "Une erreur c&apos;est produite"}
         </span>
       )}
 
       <button
         disabled={loading}
-        className=" bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400"
+        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
         type="submit"
       >
         {type === "create" ? "Créer" : "Modifier"}

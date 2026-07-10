@@ -65,12 +65,12 @@ const ParentForms = ({
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className=" text-xl font-semibold">
+      <h1 className="text-xl font-bold text-gray-800">
         {type === "create"
           ? "Créer un nouveau Parent"
           : "Modifier un Parent"}
       </h1>
-      <span className=" text-xs text-gray-400 font-medium">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
         Information d&apos;authentification
       </span>
       <div className="flex justify-between flex-wrap gap-4">
@@ -98,7 +98,7 @@ const ParentForms = ({
           error={errors.password}
         />
       </div>
-      <span className=" text-xs text-gray-400 font-medium">
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
         Information personnel
       </span>
       <div className="flex justify-between flex-wrap gap-4">
@@ -144,12 +144,12 @@ const ParentForms = ({
       </div>
 
       {state.error && (
-        <span className=" text-red-400 font-bold">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           {state.message ? state.message : "Une erreur c&apos;est produite"}
         </span>
       )}
 
-      <button disabled={loading} className=" bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400" type="submit">
+      <button disabled={loading} className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition" type="submit">
         {type === "create" ? "Créer" : "Modifier"}
       </button>
     </form>

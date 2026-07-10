@@ -81,7 +81,7 @@ const PaymentForm = ({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Encaisser un paiement</h1>
+      <h1 className="text-xl font-bold text-gray-800">Encaisser un paiement</h1>
 
       <input type="hidden" {...register("invoiceId")} />
 
@@ -93,10 +93,10 @@ const PaymentForm = ({
       <div className="flex flex-wrap gap-4">
         {/* Montant */}
         <div className="flex flex-col gap-2 w-full md:w-1/2">
-          <label className="text-xs text-gray-500">Montant (FCFA)</label>
+          <label className="text-xs font-medium text-gray-500">Montant (FCFA)</label>
           <input
             type="number"
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("amount")}
           />
           {errors.amount?.message && (
@@ -108,9 +108,9 @@ const PaymentForm = ({
 
         {/* Méthode */}
         <div className="flex flex-col gap-2 w-full md:w-[45%]">
-          <label className="text-xs text-gray-500">Méthode</label>
+          <label className="text-xs font-medium text-gray-500">Méthode</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("method")}
           >
             {METHODS.map((m) => (
@@ -128,10 +128,10 @@ const PaymentForm = ({
 
         {/* Date */}
         <div className="flex flex-col gap-2 w-full md:w-1/2">
-          <label className="text-xs text-gray-500">Date du paiement</label>
+          <label className="text-xs font-medium text-gray-500">Date du paiement</label>
           <input
             type="date"
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("paidAt")}
           />
           {errors.paidAt?.message && (
@@ -143,13 +143,13 @@ const PaymentForm = ({
 
         {/* Référence (optionnelle) */}
         <div className="flex flex-col gap-2 w-full md:w-[45%]">
-          <label className="text-xs text-gray-500">
+          <label className="text-xs font-medium text-gray-500">
             Référence (facultatif)
           </label>
           <input
             type="text"
             placeholder="N° transaction / chèque"
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("reference")}
           />
         </div>
@@ -168,7 +168,7 @@ const PaymentForm = ({
       <button
         disabled={loading}
         type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400"
+        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
       >
         {loading ? "Enregistrement…" : "Enregistrer le paiement"}
       </button>
