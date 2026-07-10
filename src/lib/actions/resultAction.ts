@@ -94,6 +94,7 @@ export const createResult = async (
     console.log("Note enregistrée avec succès");
 
     revalidatePath("/list/results");
+    revalidatePath("/list/exams");
     return {
       success: true,
       error: false,
@@ -127,6 +128,7 @@ export async function updateResults(currentState: CurrentState2, resultsData: Re
   );
 
     revalidatePath("/list/results");
+    revalidatePath("/list/exams");
     return { success: true, error: false, message: "Notes mises à jour avec succès" };
   } catch (error) {
     console.log(error);
@@ -150,6 +152,7 @@ export const deleteResult = async (
     });
 
     revalidatePath("/list/results");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);

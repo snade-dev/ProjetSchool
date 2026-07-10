@@ -90,8 +90,8 @@ const MENU: MenuEntry[] = [
       visible: ALL,
       items: [
         { icon: Edit, label: "Saisie des notes", href: "/list/gradeEntry", visible: ["admin", "teacher"] },
-        { icon: Award, label: "Résultats & bulletins", href: "/list/results", visible: ALL },
-        { icon: FileText, label: "Examens", href: "/list/exams", visible: ALL },
+        // Fusion : examens + résultats/bulletins sur une seule page à onglets
+        { icon: FileText, label: "Examens & résultats", href: "/list/exams", visible: ALL },
         { icon: Repeat, label: "Rattrapage", href: "/list/makeupSession", visible: ["admin", "teacher", "student"] },
         { icon: MonitorPlay, label: "Examens en ligne", href: "/list/onlineExam", visible: ["admin", "teacher", "student"] },
         { icon: FileText, label: "Résultats en ligne", href: "/list/resultExam", visible: ["admin", "teacher", "student"] },

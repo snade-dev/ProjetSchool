@@ -90,6 +90,7 @@ export async function saveGrades(
     );
 
     revalidatePath("/list/results");
+    revalidatePath("/list/exams");
     revalidatePath("/list/gradeEntry");
 
     return {
