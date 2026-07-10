@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import dynamic from "next/dynamic";
 import { ResultForm } from "./ResultForm";
 import { useState } from "react";
@@ -42,7 +42,6 @@ export default function StudentResultModal({
 }: StudentResultModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   console.log("modal", results);
-  
 
   if (!isOpen) return null;
 

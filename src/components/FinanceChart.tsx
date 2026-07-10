@@ -12,70 +12,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
-  {
-    name: "Jan",
-    income: 4000,
-    expense: 2400,
-  },
-  {
-    name: "Feb",
-    income: 3000,
-    expense: 1398,
-  },
-  {
-    name: "Mar",
-    income: 2000,
-    expense: 9800,
-  },
-  {
-    name: "Apr",
-    income: 2780,
-    expense: 3908,
-  },
-  {
-    name: "May",
-    income: 1890,
-    expense: 4800,
-  },
-  {
-    name: "Jun",
-    income: 2390,
-    expense: 3800,
-  },
-  {
-    name: "Jul",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Aug",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Sep",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Oct",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Nov",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Dec",
-    income: 3490,
-    expense: 4300,
-  },
-];
+export type FinanceChartPoint = {
+  /** Libellé du mois (ex. "Sept."). */
+  name: string;
+  /** Encaissé du mois (FCFA). */
+  income: number;
+  /** Dépenses + salaires du mois (FCFA). */
+  expense: number;
+};
 
-const FinanceChart = () => {
+/**
+ * Graphique finance du dashboard admin — alimenté par les données réelles S16
+ * (via `FinanceChartContainer`). Ne contient plus de série statique.
+ */
+const FinanceChart = ({ data }: { data: FinanceChartPoint[] }) => {
   return (
     <div className="bg-white rounded-xl w-full h-full p-4 pb-6">
       {/* TITLE */}
@@ -110,7 +60,9 @@ const FinanceChart = () => {
             tickLine={false}
             tickMargin={20}
           />
-          <Tooltip />
+          <Tooltip
+            formatter={(value: number) => `${value.toLocaleString("fr-FR")} FCFA`}
+          />
           <Legend
             align="center"
             verticalAlign="top"
@@ -119,12 +71,14 @@ const FinanceChart = () => {
           <Line
             type="monotone"
             dataKey="income"
+            name="Encaissé"
             stroke="#C3EBFA"
             strokeWidth={5}
           />
           <Line
             type="monotone"
             dataKey="expense"
+            name="Dépenses"
             stroke="#CFCEFF"
             strokeWidth={5}
           />

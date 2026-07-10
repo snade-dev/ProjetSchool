@@ -4,36 +4,62 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Attendance, Class, Prisma, Student, Subject } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import {
+  Attendance,
+  Class,
+  Prisma,
+  Student,
+  Subject,
+} from "@/app/generated/prisma";
 import clsx from "clsx";
-import Image from "next/image";
+import Link from "next/link";
+import { ClipboardCheck, Pencil } from "lucide-react";
+import { headers } from "next/headers";
+import AttendanceFilters from "@/components/AttendanceFilters";
 
 type AttendanceList = Attendance & { class: Class } & { student: Student } & {
   subject: Subject;
 };
 
-const AttendanceListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const AttendanceListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { sessionClaims, userId } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const userId = session?.user.id;
 
   // Colonnes du tableau
   const columns = [
     { header: "Date", accessor: "date", className: "hidden md:table-cell" },
     { header: "Présent", accessor: "present" },
-    { header: "Session", accessor: "session", className: "hidden md:table-cell" }, // Nouvelle colonne
-    { header: "Étudiant", accessor: "student.name", className: "hidden md:table-cell" },
-    { header: "class", accessor: "class.name", className: "hidden md:table-cell" },
-    { header: "Matiere", accessor: "subject.name", className: "hidden md:table-cell" },
-    ...(role === "admin" ? [{ header: "Actions", accessor: "action" }] : []),
+    {
+      header: "Session",
+      accessor: "session",
+      className: "hidden md:table-cell",
+    }, // Nouvelle colonne
+    {
+      header: "Étudiant",
+      accessor: "student.name",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "class",
+      accessor: "class.name",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Matiere",
+      accessor: "subject.name",
+      className: "hidden md:table-cell",
+    },
+    ...(role === "admin" || role === "teacher"
+      ? [{ header: "Actions", accessor: "action" }]
+      : []),
   ];
-  
 
   // Génération des lignes
   const renderRow = (item: AttendanceList) => (
@@ -53,32 +79,64 @@ const AttendanceListPage = async (
         {item.present ? "Présent" : "Absent"}
       </td>
       <td className="hidden md:table-cell">
-        {item.session === "MORNING"
+        {item.sessionDay === "MORNING"
           ? "Matin"
-          : item.session === "EVENING"
+          : item.sessionDay === "EVENING"
           ? "Soir"
           : "N/A"}
       </td>
       <td className="hidden md:table-cell">{item.student?.name || "N/A"}</td>
       <td className="hidden md:table-cell">{item.class?.name || "N/A"}</td>
       <td className="hidden md:table-cell">{item.subject?.name || "N/A"}</td>
-      {role === "admin" && (
+      {(role === "admin" || role === "teacher") && (
         <td>
           <div className="flex items-center gap-2">
-            <FormContainer table="attendance" type="update" data={item} />
-            <FormContainer table="attendance" type="delete" id={item.id} />
+            {/* Modifier la présence de CE jour (feuille d'appel préremplie) */}
+            <Link
+              href={`/list/attendances/appel?classId=${item.classId}&subjectId=${
+                item.subjectId
+              }&date=${new Date(item.date)
+                .toISOString()
+                .slice(0, 10)}&session=${item.sessionDay}`}
+              title="Modifier l'appel de ce jour"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky hover:opacity-80"
+            >
+              <Pencil size={14} />
+            </Link>
+            {role === "admin" && (
+              <>
+                <FormContainer table="attendance" type="update" data={item} />
+                <FormContainer table="attendance" type="delete" id={item.id} />
+              </>
+            )}
           </div>
         </td>
       )}
     </tr>
   );
-  
 
   // Gestion des paramètres de recherche
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
   const query: Prisma.AttendanceWhereInput = {};
+
+  // Filtres : classe et jour (params URL)
+  const filterClassId = queryParams.classId
+    ? parseInt(queryParams.classId)
+    : undefined;
+  if (filterClassId) {
+    query.classId = filterClassId;
+  }
+  const filterDate = /^\d{4}-\d{2}-\d{2}$/.test(queryParams.date ?? "")
+    ? (queryParams.date as string)
+    : undefined;
+  if (filterDate) {
+    const day = new Date(`${filterDate}T00:00:00`);
+    const nextDay = new Date(day);
+    nextDay.setDate(nextDay.getDate() + 1);
+    query.date = { gte: day, lt: nextDay };
+  }
 
   // Ajout de filtres basés sur la recherche
   if (queryParams.search) {
@@ -99,19 +157,21 @@ const AttendanceListPage = async (
     ];
   }
 
-  // Ajout de restrictions basées sur le rôle
-  // if (role !== "admin") {
-  //   const roleConditions = {
-  //     teacher: { lesson: { teacherId: currentUserId! } },
-  //     student: { studentId: currentUserId! },
-  //     parent: { student: { parentId: currentUserId! } },
-  //   };
+  // Restrictions par rôle (défense en profondeur) : un élève ne voit que ses
+  // pointages, un parent ceux de ses enfants, un teacher ceux de ses classes.
+  if (!role || !userId) {
+    return null;
+  }
+  if (role === "student") {
+    query.studentId = userId;
+  } else if (role === "parent") {
+    query.student = { parentId: userId };
+  } else if (role === "teacher") {
+    query.class = { lessons: { some: { teacherId: userId } } };
+  }
 
-  //   query.AND = [roleConditions[role as keyof typeof roleConditions] || {}];
-  // }
-
-  // Requête vers la base de données
-  const [data, count] = await prisma.$transaction([
+  // Requête vers la base de données (+ classes pour le filtre)
+  const [data, count, classes] = await prisma.$transaction([
     prisma.attendance.findMany({
       where: query,
       include: {
@@ -119,10 +179,15 @@ const AttendanceListPage = async (
         subject: true, // Inclure les détails de la leçon
         class: true,
       },
+      orderBy: { date: "desc" },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.attendance.count({ where: query }),
+    prisma.class.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (
@@ -133,14 +198,22 @@ const AttendanceListPage = async (
           Liste des présences
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <AttendanceFilters
+            classes={classes}
+            selectedClassId={filterClassId}
+            date={filterDate}
+          />
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
+            {(role === "admin" || role === "teacher") && (
+              <Link
+                href="/list/attendances/appel"
+                className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white text-sm font-semibold rounded-md px-4 py-2 transition"
+              >
+                <ClipboardCheck size={16} />
+                Faire l&apos;appel
+              </Link>
+            )}
             {role === "admin" && (
               <FormContainer table="attendance" type="create" />
             )}

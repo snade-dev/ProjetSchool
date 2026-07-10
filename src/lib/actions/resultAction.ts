@@ -2,6 +2,9 @@
 
 import { ResultFormSchema, ResultMSchema, ResultSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
+import { revalidatePath } from "next/cache";
+import { deleteErrorMessage } from '../actionErrors';
 
 type CurrentState = {
   success: boolean;
@@ -23,16 +26,15 @@ export const createResult = async (
   currentState: ActionResult,
   data: ResultSchema
 ): Promise<ActionResult> => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername },
     });
 
     console.log("Etudiant trouvé:", student);
-    
+
 
     if (!student) {
       return {
@@ -40,6 +42,23 @@ export const createResult = async (
         error: true,
         message: "L'étudiant n'existe pas",
       };
+    }
+
+    if (role === "teacher") {
+      const teacherLesson = await prisma.lesson.findFirst({
+        where: {
+          teacherId: userId,
+          subjectId: data.subjectId,
+          classId: student.classId,
+        },
+      });
+      if (!teacherLesson) {
+        return {
+          success: false,
+          error: true,
+          message: "Vous ne pouvez noter que vos matières",
+        };
+      }
     }
 
     const result = await prisma.result.findUnique({
@@ -74,8 +93,9 @@ export const createResult = async (
     });
 
     console.log("Note enregistrée avec succès");
-    
 
+    revalidatePath("/list/results");
+    revalidatePath("/list/exams");
     return {
       success: true,
       error: false,
@@ -96,7 +116,7 @@ export const createResult = async (
 export async function updateResults(currentState: CurrentState2, resultsData: ResultFormSchema) {
   // Validation des données
   try {
-    
+    await requireRole(["admin", "teacher"]);
 
   // Mise à jour en transaction de tous les résultats
   await prisma.$transaction(
@@ -108,7 +128,9 @@ export async function updateResults(currentState: CurrentState2, resultsData: Re
     )
   );
 
-    return { success: true, error: false, message: "Notes mises à jour avec succès" };  
+    revalidatePath("/list/results");
+    revalidatePath("/list/exams");
+    return { success: true, error: false, message: "Notes mises à jour avec succès" };
   } catch (error) {
     console.log(error);
     return { success: false, error: true, message: "Erreur lors de la mise à jour des notes" };
@@ -122,21 +144,19 @@ export const deleteResult = async (
 ) => {
   const id = data.get("id") as string;
 
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
+    await requireRole(["admin"]);
     await prisma.result.delete({
       where: {
         id: parseInt(id),
-        // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/results");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };

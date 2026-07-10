@@ -2,6 +2,8 @@
 
 import { ComplainSchema, ResultMSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
 
 
 type CurrentState = {
@@ -26,9 +28,14 @@ export const createComplain = async (
     }
   ) => {
 
-  
+
     try {
-  
+      const { userId, role } = await requireRole(["admin", "student"]);
+
+      if (role === "student" && data.studentId !== userId) {
+        return { success: false, error: true, message: "Accès refusé" };
+      }
+
       await prisma.complaint.create({
         data: {
           title: data.title,
@@ -37,8 +44,8 @@ export const createComplain = async (
           studentId: data.studentId
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/reclamation");
       return { success: true, error: false ,message: "" };
     } catch (err) {
       console.log(err);
@@ -51,9 +58,10 @@ export const updateComplain = async (
     data: any
   ) => {
 
-  
+
     try {
-  
+      await requireRole(["admin", "teacher"]);
+
       await prisma.complaint.update({
         where: {
           id: data.id
@@ -62,37 +70,11 @@ export const updateComplain = async (
           ...data
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/reclamation");
       return { success: true, error: false ,message: "reclamation modifier avec success" };
     } catch (err) {
       console.log(err);
       return { success: false, error: true, message: "" };
     }
   };
-  
-  
-  // export const deleteAverage = async (
-  //   currentState: CurrentState,
-  //   data: FormData
-  // ) => {
-  //   const id = data.get("id") as string;
-  
-  //   // const { userId, sessionClaims } = auth();
-  //   // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
-  //   try {
-  //     await prisma.examAverage.delete({
-  //       where: {
-  //         id: parseInt(id),
-  //         // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
-  //       },
-  //     });
-  
-  //     // revalidatePath("/list/subjects");
-  //     return { success: true, error: false };
-  //   } catch (err) {
-  //     console.log(err);
-  //     return { success: false, error: true };
-  //   }
-  // };

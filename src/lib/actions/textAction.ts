@@ -2,13 +2,13 @@
 
 import { Schemas } from "../formsValidationSchema";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
+import { revalidatePath } from "next/cache";
 
 export const updateTuition = async ( curentState: {success: boolean, error: boolean, message: string}, data: {amont: number, id: string, studentId: string, month: number}) => {
     try {
-        console.log("data",data);
-    
-        console.log("en cour");
-        
+        await requireRole(["admin"]);
+
         await prisma.tuitionPayment.upsert({
             where: {
                 id: data.id || ''
@@ -25,7 +25,7 @@ export const updateTuition = async ( curentState: {success: boolean, error: bool
             }
         });
 
-
+        revalidatePath("/list/tuitionPayment");
         return {
             success: true,
             error: false,

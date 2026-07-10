@@ -2,6 +2,9 @@
 
 import { MakeupExamFormSchema, MakeupExamSchema, MakeupSessionSchema, makeupExamFormSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from '../actionErrors';
 
 
 type CurrentState = {
@@ -26,10 +29,12 @@ export const createMakeupExam = async (
       id?: string | undefined;
     }
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
+      const { userId, role } = await requireRole(["admin", "student"]);
+
+      if (role === "student" && data.userId !== userId) {
+        return { success: false, error: true, message: "Accès refusé" };
+      }
 
       const result = await prisma.result.findUnique({
         where: {
@@ -55,7 +60,7 @@ export const createMakeupExam = async (
         },
       });
   
-      // revalidatePath("/list/subjects");
+      revalidatePath("/list/makeupSession");
       return { success: true, error: false, message: "L'inscription à l'examen de rattrapage a été effectuée avec succès" };
     } catch (err) {
       console.log(err);
@@ -67,23 +72,9 @@ export const createMakeupExam = async (
     currentState: CurrentState,
     data: MakeupExamFormSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-      // if (role === "teacher") {
-      //   const teacherLesson = await prisma.lesson.findFirst({
-      //     where: {
-      //       teacherId: userId!,
-      //       id: data.lessonId,
-      //     },
-      //   });
-  
-      //   if (!teacherLesson) {
-      //     return { success: false, error: true };
-      //   }
-      // }
-  
+      await requireRole(["admin", "teacher"]);
+
         // Mise à jour en transaction de tous les résultats
   await prisma.$transaction(
     data.results.map(({ id, score }) =>
@@ -93,8 +84,8 @@ export const createMakeupExam = async (
       })
     )
   );
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/makeupSession");
       return { success: true, error: false, message: "Session de rattrapage modifiée avec succès" };
     } catch (err) {
       console.log(err);
@@ -107,22 +98,19 @@ export const createMakeupExam = async (
     data: FormData
   ) => {
     const id = data.get("id") as string;
-  
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
     try {
+      await requireRole(["admin"]);
       await prisma.makeupSession.delete({
         where: {
           id: id,
-          // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/makeupSession");
       return { success: true, error: false };
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-      return { success: false, error: true };
+      return { success: false, error: true, message: deleteErrorMessage(err) };
     }
   };

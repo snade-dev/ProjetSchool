@@ -1,10 +1,9 @@
 "use server";
 
-import {
-  AttestationSchema,
-  QuizSchema,
-} from "../formsValidationSchema";
+import { AttestationSchema, QuizSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
+import { revalidatePath } from "next/cache";
 
 type CurrentState = {
   success: boolean;
@@ -25,7 +24,11 @@ export const createAttestation = async (
   }
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "student"]);
 
+    if (role === "student" && data.studentId !== userId) {
+      return { success: false, error: true, message: "Accès refusé" };
+    }
 
     const quiz = await prisma.attestation.create({
       data: {
@@ -35,6 +38,7 @@ export const createAttestation = async (
       },
     });
 
+    revalidatePath("/list/demande");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
@@ -44,25 +48,14 @@ export const createAttestation = async (
 
 export const updateAttestation = async (
   currentState: CurrentState,
-  data:  {
+  data: {
     title: string;
     description: string;
     studentId: string;
   }
 ) => {
   try {
-    // const quiz = await prisma.quiz.update({
-    //   where: {
-    //     id: data.id,
-    //   },
-    //   data: {
-    //     title: data.title,
-    //     date: data.date,
-    //     classId: parseInt(data.classId),
-    //     subjectId: parseInt(data.subjectId),
-    //     duration: data.duration
-    //   },
-    // });
+    await requireRole(["admin", "teacher"]);
 
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
@@ -75,7 +68,18 @@ export const deleteQuiz = async (
   data: FormData
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
     const id = data.get("id") as string;
+
+    if (role === "teacher") {
+      const owned = await prisma.quiz.findFirst({
+        where: { id, teacherId: userId },
+      });
+      if (!owned) {
+        return { success: false, error: true };
+      }
+    }
 
     const quiz = await prisma.quiz.delete({
       where: {
@@ -83,6 +87,7 @@ export const deleteQuiz = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false };
   } catch (error) {
     console.log(error);
@@ -92,9 +97,16 @@ export const deleteQuiz = async (
 
 export const createQuestion = async (
   currentState: CurrentState,
-  data: { questionText: string; id?: string | undefined; quizId: string, createdBy: string }
+  data: {
+    questionText: string;
+    id?: string | undefined;
+    quizId: string;
+    createdBy: string;
+  }
 ) => {
   try {
+    const { userId, role } = await requireRole(["admin", "teacher"]);
+
     const quiz = await prisma.quiz.findUnique({
       where: {
         id: data.quizId,
@@ -109,6 +121,10 @@ export const createQuestion = async (
       };
     }
 
+    if (role === "teacher" && quiz.teacherId !== userId) {
+      return { success: false, error: true, message: "Accès refusé" };
+    }
+
     const question = await prisma.question.create({
       data: {
         createdBy: data.createdBy,
@@ -117,6 +133,7 @@ export const createQuestion = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
@@ -125,9 +142,16 @@ export const createQuestion = async (
 };
 export const updateQuestion = async (
   currentState: CurrentState,
-  data: { questionText: string; id?: string | undefined; quizId: string, createdBy: string }
+  data: {
+    questionText: string;
+    id?: string | undefined;
+    quizId: string;
+    createdBy: string;
+  }
 ) => {
   try {
+    await requireRole(["admin", "teacher"]);
+
     const quiz = await prisma.question.findUnique({
       where: {
         id: data.id,
@@ -152,6 +176,7 @@ export const updateQuestion = async (
       },
     });
 
+    revalidatePath("/list/onlineExam");
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
     console.log(error);
@@ -159,7 +184,7 @@ export const updateQuestion = async (
   }
 };
 
-// import { Prisma } from "@prisma/client";
+// import { Prisma }from "@/app/generated/prisma"
 
 // export const updateOption = async (
 //   currentState: CurrentState,

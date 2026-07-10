@@ -1,7 +1,8 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import dynamic from "next/dynamic";
 import { ResultForm } from "./ResultForm";
 import { useState } from "react";
+import type { ReportCardData } from "@/lib/reportCard";
 
 const BulletinButton = dynamic(() => import("@/components/BulletinButton"), {
   ssr: false,
@@ -29,6 +30,8 @@ interface StudentResultModalProps {
   onClose: () => void;
   results: ResultWithDetails[];
   role: string;
+  /** S13 — ReportCardData précalculé par le RSC parent (bulletin PDF complet). */
+  reportCard?: ReportCardData | null;
 }
 
 interface ResultWithSubject {
@@ -43,6 +46,7 @@ export default function StudentResultModal({
   onClose,
   results,
   role,
+  reportCard,
 }: StudentResultModalProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -66,19 +70,8 @@ export default function StudentResultModal({
           </div>
 
           <div className="flex gap-4 mb-6">
-            {typeof window !== "undefined" && (
-              <BulletinButton
-                studentName={results[0].student.name}
-                studentUSurName={results[0].student.surname}
-                grades={results.map((r) => ({
-                  subject: r.subject.name,
-                  score: r.score,
-                  classscore: r.classScore ?? 0, // Ajout au bulletin
-                }))}
-                className={results[0].student.class.name}
-                semesterName={results[0].semester.name}
-              />
-            )}
+            {/* S13 — bulletin complet précalculé côté serveur (rangs, moyennes, mentions) */}
+            {reportCard && <BulletinButton data={reportCard} />}
             {role === "admin" && (
               <button
                 onClick={() => setIsEditing(!isEditing)}

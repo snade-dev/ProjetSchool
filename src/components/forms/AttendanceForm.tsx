@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { attendanceSchema, Attendancechema } from "@/lib/formsValidationSchema";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 import {
   createAttendance,
   updateAttendance,
@@ -77,11 +78,13 @@ const AttendanceForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer une nouvelle présence"
           : "Modifier la présence"}
-      </h1>
+        entity="Présence"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -92,10 +95,10 @@ const AttendanceForm = ({
           error={errors?.studentUsername}
         />
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Présence</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Présence</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("present")}
           >
             <option value="true">Oui</option>
@@ -108,10 +111,10 @@ const AttendanceForm = ({
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">classId</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">classId</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("classId")}
             defaultValue={data?.classId}
           >
@@ -137,10 +140,10 @@ const AttendanceForm = ({
           type="dateTime"
         />
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Matière</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Matière</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("subjectId")}
             defaultValue={data?.subjectId}
           >
@@ -170,9 +173,9 @@ const AttendanceForm = ({
 
         {/* Nouveau champ pour le créneau horaire */}
         <div>
-          <label htmlFor="session" className="text-xs text-gray-500">Session</label>
+          <label htmlFor="session" className="text-xs font-medium text-gray-500">Session</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             id="session"
             {...register("session", {
               required: "Veuillez sélectionner une session",
@@ -182,17 +185,15 @@ const AttendanceForm = ({
             <option value="EVENING">Soir</option>
           </select>
           {errors.session && (
-            <p className="text-red-500">{errors.session.message}</p>
+            <p className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">{errors.session.message}</p>
           )}
         </div>
       </div>
-      <button
-        disabled={loading}
-        type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

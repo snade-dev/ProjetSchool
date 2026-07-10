@@ -4,7 +4,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import {
   Class,
   Prisma,
@@ -12,8 +12,8 @@ import {
   Semester,
   Teacher,
   Subject,
-} from "@prisma/client";
-import Image from "next/image";
+} from "@/app/generated/prisma";
+import { headers } from "next/headers";
 
 type SemesterList = Semester & {
   classes: Class[];
@@ -21,14 +21,14 @@ type SemesterList = Semester & {
   subjects: Subject[];
 };
 
-const SemesterListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const SemesterListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const columns = [
     {
@@ -126,12 +126,6 @@ const SemesterListPage = async (
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-4">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src={"/filter.png"} alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src={"/sort.png"} alt="" width={14} height={14} />
-            </button>
             {role === "admin" && (
               <FormContainer table="semester" type="create" />
             )}

@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
 import { deleteLesson } from "@/lib/actions/lessonAction";
 import { deleteAnnounce } from "@/lib/actions/announceAction";
+import { deleteEvent } from "@/lib/actions/eventAction";
 import { deleteAverage } from "@/lib/actions/averageAction";
 import { deleteResult } from "@/lib/actions/resultAction";
 import { deleteAttendance } from "../lib/actions/attendanceAction";
@@ -30,6 +31,11 @@ import { Edit, Plus, Trash } from "lucide-react";
 import { deleteSemester } from "@/lib/actions/semesterActions";
 import MakeupSessionForm from "./forms/MakeupSessionForm";
 import { deleteMakeupSession } from "@/lib/actions/makeupSessionAction";
+import { deleteSchoolYear } from "@/lib/actions/settingsAction";
+import { deleteFee } from "@/lib/actions/feeAction";
+import { deleteInvoice } from "@/lib/actions/invoiceAction";
+import { deleteExpense } from "@/lib/actions/expenseAction";
+import { deleteEmployee } from "@/lib/actions/employeeAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -73,6 +79,24 @@ const QuizForm = dynamic(() => import("./forms/QuizForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const AttendanceForm = dynamic(() => import("./forms/AttendanceForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const SchoolYearForm = dynamic(() => import("./forms/SchoolYearForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const FeeForm = dynamic(() => import("./forms/FeeForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const InvoiceForm = dynamic(() => import("./forms/InvoiceForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const PaymentForm = dynamic(() => import("./forms/PaymentForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ExpenseForm = dynamic(() => import("./forms/ExpenseForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const EmployeeForm = dynamic(() => import("./forms/EmployeeForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -212,63 +236,106 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  schoolYear: (type, data, setOpen, relatedData) => (
+    <SchoolYearForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  fee: (type, data, setOpen, relatedData) => (
+    <FeeForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  invoice: (type, data, setOpen, relatedData) => (
+    <InvoiceForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  payment: (type, data, setOpen, relatedData) => (
+    <PaymentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  expense: (type, data, setOpen, relatedData) => (
+    <ExpenseForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  employee: (type, data, setOpen, relatedData) => (
+    <EmployeeForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
-const FormModal = ({
+// Form est défini au niveau module (et non dans le corps de FormModal) :
+// un composant recréé à chaque render est démonté/remonté par React,
+// ce qui détruit l'état de useActionState pendant la soumission
+// (le modal ne se fermait jamais après un update réussi).
+const Form = ({
   table,
   type,
   data,
   id,
   relatedData,
-}: FormContainerProps & { relatedData?: any }) => {
-  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
-  const bgColor =
-    type === "create"
-      ? "bg-lamaYellow"
-      : type === "update"
-      ? "bg-lamaSky"
-      : "bg-lamaPurple";
-
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      // document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  const Form = () => {
-    const deleteActionMap = {
+  setOpen,
+}: FormContainerProps & {
+  relatedData?: any;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+}) => {
+  const deleteActionMap = {
       subject: deleteSubject,
       class: deleteClass,
       teacher: deleteTeacher,
       student: deleteStudent,
       exam: deleteExam,
-      // TODO: OTHER DELETE ACTIONS
       parent: deleteParent,
       lesson: deleteLesson,
-      assignment: deleteSubject,
       average: deleteAverage,
       result: deleteResult,
-      event: deleteSubject,
+      // S20 : `event` pointait sur deleteSubject (supprimer un événement
+      // supprimait la MATIÈRE de même id). `assignment` et `attestation`
+      // (mappés eux aussi sur de mauvaises actions) n'ont aucune UI de
+      // suppression : retirés du map.
+      event: deleteEvent,
       announcement: deleteAnnounce,
       attendance: deleteAttendance,
       quiz: deleteQuiz,
-      attestation: deleteQuiz,
       semester:deleteSemester,
-      makeupSession:deleteMakeupSession
+      makeupSession:deleteMakeupSession,
+      schoolYear:deleteSchoolYear,
+      fee:deleteFee,
+      invoice:deleteInvoice,
+      expense:deleteExpense,
+      employee:deleteEmployee
     };
     // si c'est un formulaire de suppression
-    const [state, formAction] = useActionState(deleteActionMap[table], {
-      success: false,
-      error: false,
-    });
+    // (payment n'utilise pas ce chemin : encaissement = création uniquement)
+    const [state, formAction] = useActionState(
+      deleteActionMap[table as keyof typeof deleteActionMap],
+      {
+        success: false,
+        error: false,
+      }
+    );
 
     const router = useRouter();
 
@@ -293,7 +360,8 @@ const FormModal = ({
         </button>
         {state.error && (
           <p className=" font-bold text-red-300">
-            Une erreur c&apos;est proudite lors de la suppression
+            {(state as any).message ||
+              "Une erreur c'est proudite lors de la suppression"}
           </p>
         )}
       </form>
@@ -303,7 +371,41 @@ const FormModal = ({
     ) : (
       "Form not found"
     );
-  };
+};
+
+const FormModal = ({
+  table,
+  type,
+  data,
+  id,
+  relatedData,
+}: FormContainerProps & { relatedData?: any }) => {
+  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
+  const bgColor =
+    type === "create"
+      ? "bg-lamaYellow"
+      : type === "update"
+      ? "bg-lamaSky"
+      : "bg-lamaPurple";
+
+  const [open, setOpen] = useState(false);
+
+  // Échap ferme le panneau ; le scroll de la page est gelé tant qu'il est ouvert
+  useEffect(() => {
+    if (!open) {
+      document.body.style.overflow = "";
+      return;
+    }
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
     <>
@@ -317,16 +419,53 @@ const FormModal = ({
         {type === "update" && <Edit size={16} />}
         {type === "delete" && <Trash size={16} className="font-bold" />}
       </button>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%] max-h-[90vh] overflow-y-auto bg-white p-6 rounded-md">
-            <Form />
-            <div
-              className="absolute top-4 right-4 cursor-pointer"
+      {open && type === "delete" && (
+        // confirmation courte : petite carte centrée
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px]"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="relative w-[92%] max-w-md rounded-2xl bg-white p-8 shadow-xl shadow-gray-900/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Form
+              table={table}
+              type={type}
+              data={data}
+              id={id}
+              relatedData={relatedData}
+              setOpen={setOpen}
+            />
+            <button
+              type="button"
+              aria-label="Fermer"
+              className="absolute top-4 right-4 cursor-pointer text-gray-400 hover:text-gray-600"
               onClick={() => setOpen(false)}
             >
               <Image src="/close.png" alt="" width={14} height={14} />
-            </div>
+            </button>
+          </div>
+        </div>
+      )}
+      {open && type !== "delete" && (
+        // S21 « Registre » : panneau latéral plein-hauteur, liste visible derrière
+        <div
+          className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="animate-drawer-in absolute right-0 top-0 h-full w-full max-w-[540px] overflow-y-auto bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Form
+              table={table}
+              type={type}
+              data={data}
+              id={id}
+              relatedData={relatedData}
+              setOpen={setOpen}
+            />
           </div>
         </div>
       )}

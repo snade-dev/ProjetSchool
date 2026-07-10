@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { attestationSchema, AttestationSchema} from "@/lib/formsValidationSchema";
 import { updateQuiz } from "@/lib/actions/quizAction";
 import { createAttestation, updateAttestation } from "@/lib/actions/attestationAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const AttestationForm = ({
   type,
@@ -72,11 +73,13 @@ const AttestationForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Effectuer une demande d'attestation"
           : "Modifier une demande d'attestation"}
-      </h1>
+        entity="Attestation"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -94,13 +97,11 @@ const AttestationForm = ({
         />
       </div>
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

@@ -4,24 +4,23 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Class, Parent, Prisma, Student } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Class, Parent, Prisma, Student } from "@/app/generated/prisma";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 
-type StudentList = Student & { class: Class , parent: Parent};
+type StudentList = Student & { class: Class; parent: Parent };
 
-
-const StudentListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const StudentListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const { page, ...queryParams } = searchParams;
 
@@ -100,9 +99,9 @@ const StudentListPage = async (
           {role === "admin" && (
             // <button className=" w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
             //   {/* <Image src={"/delete.png"} alt="" width={16} height={16} /> */}
-  
+
             // </button>
-            (<FormContainer table="student" type="delete" id={item.id} />)
+            <FormContainer table="student" type="delete" id={item.id} />
           )}
         </div>
       </td>
@@ -162,12 +161,6 @@ const StudentListPage = async (
         <div className=" flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className=" flex items-center self-end gap-4">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src={"/filter.png"} alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src={"/sort.png"} alt="" width={14} height={14} />
-            </button>
             {role === "admin" && (
               <FormContainer table="student" type="create" />
             )}

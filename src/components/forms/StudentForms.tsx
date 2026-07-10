@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
 import {
   Dispatch,
   SetStateAction,
@@ -14,9 +13,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { CldUploadWidget } from "next-cloudinary";
+import UploadField from "../UploadField";
 import { studentSchema, StudentSchema } from "@/lib/formsValidationSchema";
 import { createStudent, updateStudent } from "@/lib/actions";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const StudentForm = ({
   type,
@@ -32,12 +32,13 @@ const StudentForm = ({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<StudentSchema>({
     resolver: zodResolver(studentSchema),
   });
 
-  const [img, setImg] = useState<any>();
+  const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
 
   const [state, formAction] = useActionState(
@@ -54,7 +55,7 @@ const StudentForm = ({
     // console.log(data);
     setLoading(true);
     startTransition(() => {
-      formAction({ ...data, img: img?.secure_url });
+      formAction({ ...data, img: imgUrl });
     });
   });
 
@@ -75,14 +76,16 @@ const StudentForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouvel étudiant"
           : "Modifier un étudiant"}
-      </h1>
-      <span className="text-xs text-gray-400 font-medium">
-        Information d&apos;authentication
-      </span>
+        name={`${watch("name") ?? data?.name ?? ""} ${watch("surname") ?? data?.surname ?? ""}`}
+        code={watch("username") || data?.username}
+        entity="Élève"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentication</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Nom d'utilisateur"
@@ -107,28 +110,12 @@ const StudentForm = ({
           error={errors?.password}
         />
       </div>
-      <span className="text-xs text-gray-400 font-medium">
-        Personal Information
-      </span>
-      <CldUploadWidget
-        uploadPreset="school"
-        onSuccess={(result, { widget }) => {
-          setImg(result.info);
-          widget.close();
-        }}
-      >
-        {({ open }) => {
-          return (
-            <div
-              className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-              onClick={() => open()}
-            >
-              <Image src="/upload.png" alt="" width={28} height={28} />
-              <span>Télécharger une photo</span>
-            </div>
-          );
-        }}
-      </CldUploadWidget>
+      <FormSection>Personal Information</FormSection>
+      <UploadField
+        label="Téléverser une photo"
+        value={imgUrl}
+        onChange={setImgUrl}
+      />
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Prénom"
@@ -190,10 +177,10 @@ const StudentForm = ({
             hidden
           />
         )}
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Sexe</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Sexe</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("sex")}
             defaultValue={data?.sex}
           >
@@ -206,10 +193,10 @@ const StudentForm = ({
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Classe</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Classe</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("classId")}
             defaultValue={data?.classId}
           >
@@ -236,17 +223,15 @@ const StudentForm = ({
         </div>
       </div>
       {state.error && (
-        <span className="text-red-500">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           {state.message ? state.message : "Une erreur c&apos;est produit"}
         </span>
       )}
-      <button
-        type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md cursor-pointer disabled:bg-slate-400"
-        disabled={loading}
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

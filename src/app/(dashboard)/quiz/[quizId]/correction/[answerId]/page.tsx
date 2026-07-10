@@ -1,13 +1,18 @@
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Correct } from "./components/CorrectionForm";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
-const page = async (props: { params: Promise<{quizId: string, answerId: string }> }) => {
+const page = async (props: {
+  params: Promise<{ quizId: string; answerId: string }>;
+}) => {
   const params = await props.params;
-  const { answerId,quizId } = params;
-  const { userId, sessionClaims} = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const { answerId, quizId } = params;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const questionsWithAnswers = await prisma.question.findMany({
     where: {
@@ -26,6 +31,13 @@ const page = async (props: { params: Promise<{quizId: string, answerId: string }
     return notFound();
   }
 
-  return <Correct questions={questionsWithAnswers} quizId={quizId} studentId={answerId} role={role} />;
+  return (
+    <Correct
+      questions={questionsWithAnswers}
+      quizId={quizId}
+      studentId={answerId}
+      role={role}
+    />
+  );
 };
 export default page;

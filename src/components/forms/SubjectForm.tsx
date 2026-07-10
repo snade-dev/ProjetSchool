@@ -8,6 +8,7 @@ import { createSubject, updateSubject } from "@/lib/actions";
 import { Dispatch, SetStateAction, useEffect, useState, useActionState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const SubjectForms = ({
   type,
@@ -67,14 +68,14 @@ const SubjectForms = ({
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className=" text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouveau Professeur"
           : "Modifier un Professeur"}
-      </h1>
-      <span className=" text-xs text-gray-400 font-medium">
-        Information d&apos;authentification
-      </span>
+        entity="Matière"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentification</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Nom du sujet"
@@ -93,11 +94,11 @@ const SubjectForms = ({
             hidden
           />
         )}
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Teachers</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Teachers</label>
           <select
             multiple
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("teachers")}
             defaultValue={data?.teachers}
           >
@@ -118,14 +119,16 @@ const SubjectForms = ({
       </div>
 
       {state.error && (
-        <span className=" text-red-400 font-bold">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           Une erreur c&apos;est produite
         </span>
       )}
 
-      <button className=" bg-blue-400 text-white p-2 rounded-md" type="submit">
-        {type === "create" ? "Create" : "Update"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Create" : "Update"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

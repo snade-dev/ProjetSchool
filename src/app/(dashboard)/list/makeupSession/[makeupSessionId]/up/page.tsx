@@ -2,19 +2,21 @@ import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
 
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import {
   Exam,
   Prisma,
   Result,
   Student,
   Subject,
-} from "@prisma/client";
+} from "@/app/generated/prisma";
 import FormContainer from "@/components/FormContainer";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ClientFilters from "../../../results/components/ClientFilters";
 import ResultTable from "./components/ResultTable";
+import { headers } from "next/headers";
+
 
 type ResultList = Result & {
   exam: Exam;
@@ -22,16 +24,17 @@ type ResultList = Result & {
   subject: Subject;
 };
 
-export default async function ResultListPage(
-  props: {
-    params: Promise<{ makeupSessionId: string }>;
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) {
+export default async function ResultListPage(props: {
+  params: Promise<{ makeupSessionId: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
   const searchParams = await props.searchParams;
   const params = await props.params;
-  const { sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
 
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
   console.log("Params:", params); // Vérifie si makeupSessionId est présent

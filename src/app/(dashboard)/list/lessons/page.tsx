@@ -4,23 +4,29 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from "@clerk/nextjs/server";
-import { Lesson, Prisma, Subject, Class, Teacher } from "@prisma/client";
-import Image from "next/image";
+import { auth } from "@/lib/auth";
+import {
+  Lesson,
+  Prisma,
+  Subject,
+  Class,
+  Teacher,
+} from "@/app/generated/prisma";
+import { headers } from "next/headers";
 
 type LessonList = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };
 
-const LessonsListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const LessonsListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { userId, sessionClaims } = await auth();
-  // const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const userId = session?.user.id;
   const { page, ...queryParams } = searchParams;
 
   const p = page ? parseInt(page) : 1;
@@ -124,12 +130,6 @@ const LessonsListPage = async (
         <div className=" flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className=" flex items-center self-end gap-4">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src={"/filter.png"} alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src={"/sort.png"} alt="" width={14} height={14} />
-            </button>
             {role === "admin" && <FormContainer table="lesson" type="create" />}
           </div>
         </div>

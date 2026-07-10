@@ -35,7 +35,7 @@ export const teacherSchema = z.object({
   .max(20, { message: "Le nom d'utilisateur doit comporter au maximum 20 caractères !" }),
   password: z
   .string()
-  .min(4, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
+  .min(8, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
   .optional()
   .or(z.literal("")),
   name: z.string().min(1, { message: "Le prénom est requis !" }),
@@ -118,8 +118,230 @@ export const eventSchema = z.object({
 
 export type EventSchema = z.infer<typeof eventSchema>;
 
+// ---- S01 : Année scolaire & paramètres établissement ----
+export const schoolYearSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    name: z
+      .string()
+      .min(4, { message: "Le nom de l'année scolaire est requis (ex : 2025-2026) !" }),
+    startDate: z.coerce.date({ message: "La date de début est requise !" }),
+    endDate: z.coerce.date({ message: "La date de fin est requise !" }),
+    isActive: z.coerce.boolean().optional(),
+  })
+  .refine((data) => data.endDate > data.startDate, {
+    message: "La date de fin doit être postérieure à la date de début !",
+    path: ["endDate"],
+  });
+
+export type SchoolYearSchema = z.infer<typeof schoolYearSchema>;
+
+export const schoolSettingsSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z
+    .string()
+    .min(2, { message: "Le nom de l'établissement est requis !" }),
+  address: z.string().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  email: z
+    .string()
+    .email({ message: "Adresse e-mail invalide !" })
+    .optional()
+    .or(z.literal("")),
+  logo: z.string().optional().or(z.literal("")),
+  currency: z.string().optional().or(z.literal("")),
+  legalFooter: z.string().optional().or(z.literal("")),
+  themePrimary: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
+    .optional()
+    .or(z.literal("")),
+  themeSecondary: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
+    .optional()
+    .or(z.literal("")),
+  themeAccent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
+    .optional()
+    .or(z.literal("")),
+});
+
+export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
+
+// ---- S04 : Grille des frais de scolarité ----
+export const feeStructureSchema = z.object({
+  id: z.coerce.number().optional(),
+  label: z
+    .string()
+    .min(2, { message: "Le libellé du frais est requis (min. 2 caractères) !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  period: z.enum(["MONTHLY", "YEARLY", "ONE_TIME"], {
+    message: "La périodicité est requise !",
+  }),
+  classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
+});
+
+export type FeeStructureSchema = z.infer<typeof feeStructureSchema>;
+
+// ---- S05 : Factures ----
+export const invoiceLineSchema = z.object({
+  label: z
+    .string()
+    .min(1, { message: "Le libellé de la ligne est requis !" }),
+  quantity: z.coerce
+    .number({ message: "La quantité est requise !" })
+    .int({ message: "La quantité doit être un nombre entier !" })
+    .positive({ message: "La quantité doit être supérieure à 0 !" }),
+  unitAmount: z.coerce
+    .number({ message: "Le prix unitaire est requis !" })
+    .int({ message: "Le prix unitaire doit être un nombre entier !" })
+    .positive({ message: "Le prix unitaire doit être supérieur à 0 !" }),
+});
+
+export type InvoiceLineSchema = z.infer<typeof invoiceLineSchema>;
+
+export const invoiceSchema = z.object({
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  dueDate: z.coerce.date({ message: "L'échéance est requise !" }),
+  lines: z
+    .array(invoiceLineSchema)
+    .min(1, { message: "Au moins une ligne est requise !" }),
+});
+
+export type InvoiceSchema = z.infer<typeof invoiceSchema>;
+
+// ---- S07 : Encaissement (paiements) ----
+export const paymentSchema = z.object({
+  invoiceId: z.string().min(1, { message: "La facture est requise !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  method: z.enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"], {
+    message: "La méthode de paiement est requise !",
+  }),
+  paidAt: z.coerce.date({ message: "La date de paiement est requise !" }),
+  reference: z.string().optional().or(z.literal("")),
+});
+
+export type PaymentSchema = z.infer<typeof paymentSchema>;
+
+// ---- S09 : Dépenses & catégories ----
+export const expenseSchema = z.object({
+  id: z.string().optional(),
+  label: z
+    .string()
+    .min(2, { message: "Le libellé est requis (min. 2 caractères) !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  date: z.coerce.date({ message: "La date est requise !" }),
+  categoryId: z.coerce
+    .number({ message: "La catégorie est requise !" })
+    .min(1, { message: "La catégorie est requise !" }),
+  supplier: z.string().optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
+  receiptImg: z.string().optional().or(z.literal("")),
+  method: z.enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"], {
+    message: "La méthode de paiement est requise !",
+  }),
+});
+
+export type ExpenseSchema = z.infer<typeof expenseSchema>;
+
+export const expenseCategorySchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z
+    .string()
+    .min(2, { message: "Le nom de la catégorie est requis (min. 2 caractères) !" }),
+});
+
+export type ExpenseCategorySchema = z.infer<typeof expenseCategorySchema>;
 
 
+
+
+// ---- S10 : Employés (enseignants + staff) ----
+export const employeeSchema = z.object({
+  id: z.string().optional(),
+  // Lien optionnel vers un Teacher. Si fourni, name/surname/email/phone seront
+  // écrasés côté serveur par ceux du Teacher (source de vérité).
+  teacherId: z.string().optional().or(z.literal("")),
+  name: z
+    .string()
+    .min(2, { message: "Le prénom est requis (min. 2 caractères) !" }),
+  surname: z
+    .string()
+    .min(2, { message: "Le nom est requis (min. 2 caractères) !" }),
+  position: z
+    .string()
+    .min(2, { message: "Le poste est requis (min. 2 caractères) !" }),
+  phone: z.string().optional().or(z.literal("")),
+  email: z
+    .string()
+    .email({ message: "Adresse e-mail invalide !" })
+    .optional()
+    .or(z.literal("")),
+  hireDate: z.coerce.date({ message: "La date d'embauche est requise !" }),
+  baseSalary: z.coerce
+    .number({ message: "Le salaire de base est requis !" })
+    .int({ message: "Le salaire doit être un nombre entier !" })
+    .positive({ message: "Le salaire doit être supérieur à 0 !" }),
+  // Le <select> poste "true"/"false" (chaînes) : z.coerce.boolean() rendrait
+  // "false" → true. On normalise explicitement (défaut true si absent).
+  active: z.preprocess(
+    (v) => (v === undefined || v === null ? true : v === "true" || v === true),
+    z.boolean()
+  ),
+});
+
+export type EmployeeSchema = z.infer<typeof employeeSchema>;
+
+// ---- S11 : Paie mensuelle ----
+export const payrollGenerateSchema = z.object({
+  month: z.coerce
+    .number({ message: "Le mois est requis !" })
+    .int()
+    .min(1, { message: "Mois invalide (1-12) !" })
+    .max(12, { message: "Mois invalide (1-12) !" }),
+  year: z.coerce
+    .number({ message: "L'année est requise !" })
+    .int()
+    .min(2020, { message: "Année invalide (2020-2100) !" })
+    .max(2100, { message: "Année invalide (2020-2100) !" }),
+});
+
+export type PayrollGenerateSchema = z.infer<typeof payrollGenerateSchema>;
+
+export const salaryAdjustSchema = z.object({
+  id: z.string().min(1, { message: "Identifiant manquant !" }),
+  bonuses: z.coerce
+    .number({ message: "Les primes sont requises !" })
+    .int({ message: "Les primes doivent être un nombre entier !" })
+    .min(0, { message: "Les primes ne peuvent pas être négatives !" }),
+  deductions: z.coerce
+    .number({ message: "Les retenues sont requises !" })
+    .int({ message: "Les retenues doivent être un nombre entier !" })
+    .min(0, { message: "Les retenues ne peuvent pas être négatives !" }),
+});
+
+export type SalaryAdjustSchema = z.infer<typeof salaryAdjustSchema>;
+
+export const markPaidSchema = z.object({
+  id: z.string().min(1, { message: "Identifiant manquant !" }),
+  method: z.enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"], {
+    message: "La méthode de paiement est requise !",
+  }),
+  paidAt: z.coerce.date({ message: "La date de paiement est requise !" }),
+});
+
+export type MarkPaidSchema = z.infer<typeof markPaidSchema>;
 
 export const parentSchema = z.object({
   id: z.string().optional(),
@@ -129,7 +351,7 @@ export const parentSchema = z.object({
   .max(20, { message: "Le nom d'utilisateur doit comporter au maximum 20 caractères !" }),
   password: z
   .string()
-  .min(4, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
+  .min(8, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
   .optional()
   .or(z.literal("")),
   name: z.string().min(1, { message: "Le prénom est requis !" }),
@@ -162,6 +384,12 @@ export const lessonSchema = z.object({
   subjectId: z.coerce.number().min(1, { message: "La classe est requise !" }),
   classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
   teacherUsername: z.string().min(1, { message: "La classe est requise !" }),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, { message: "Heure de début requise (HH:MM) !" }),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, { message: "Heure de fin requise (HH:MM) !" }),
 });
 
 export type LessonSchema = z.infer<typeof lessonSchema>;
@@ -185,6 +413,30 @@ export const resultSchema = z.object({
 });
 
 export type ResultSchema = z.infer<typeof resultSchema>;
+
+// ---- S12 : Saisie de notes en masse (gradeEntry) ----
+export const gradeEntrySchema = z.object({
+  classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
+  subjectId: z.coerce.number().min(1, { message: "La matière est requise !" }),
+  semesterId: z.coerce.number().min(1, { message: "Le semestre est requis !" }),
+  grades: z.array(
+    z.object({
+      studentId: z.string().min(1, { message: "L'élève est requis !" }),
+      score: z.coerce
+        .number()
+        .min(0, { message: "La note doit être ≥ 0 !" })
+        .max(20, { message: "La note doit être ≤ 20 !" })
+        .optional(),
+      classScore: z.coerce
+        .number()
+        .min(0, { message: "La note de classe doit être ≥ 0 !" })
+        .max(20, { message: "La note de classe doit être ≤ 20 !" })
+        .optional(),
+    })
+  ),
+});
+
+export type GradeEntrySchema = z.infer<typeof gradeEntrySchema>;
 
 export const answerOptionSchema = z.object({
   id: z.coerce.string().optional(),

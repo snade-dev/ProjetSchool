@@ -3,18 +3,22 @@ import BigCalandarContainer from "@/components/BigCalandarContainer";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
-import { Teacher } from "@prisma/client";
+import { auth } from "@/lib/auth";
+import { Teacher } from "@/app/generated/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-const SingleTeacherPage = async (props: { params: Promise<{ id: string }> }) => {
+import { headers } from "next/headers";
+const SingleTeacherPage = async (props: {
+  params: Promise<{ id: string }>;
+}) => {
   const params = await props.params;
   const { id } = params;
-  const { sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
   const teacher:
     | (Teacher & {
         _count: { subjects: number; lessons: number; classes: number };
@@ -65,7 +69,6 @@ const SingleTeacherPage = async (props: { params: Promise<{ id: string }> }) => 
                       table="teacher"
                       type="update"
                       data={teacher}
-
                     />
                   )}
                 </div>
@@ -163,10 +166,12 @@ const SingleTeacherPage = async (props: { params: Promise<{ id: string }> }) => 
               </div>
             </div>
           </div>
-          {/* BOTTOM */}
+          {/* BOTTOM — Emploi du temps de l'enseignant */}
           <div className=" mt-4 bg-white rounded-md p-4 h-[800px]">
-            <h1>Emploi du Temps des enseignants</h1>
-            {/* <BigCalandarContainer type="teacherId" id={teacher.id} /> */}
+            <h1 className="text-lg font-semibold mb-2">Emploi du temps</h1>
+            <div className="h-[730px]">
+              <BigCalandarContainer type="teacherId" id={teacher.id} />
+            </div>
           </div>
         </div>
         {/* RIGHT */}

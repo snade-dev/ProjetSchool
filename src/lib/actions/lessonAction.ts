@@ -2,6 +2,8 @@
 
 import { LessonSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
 
 type CurrentState = {
     success: boolean,
@@ -9,17 +11,20 @@ type CurrentState = {
 }
 
 type CurrentState2 = {
-    success: boolean, 
+    success: boolean,
     error: boolean,
     message: string
 }
+
+/** "HH:MM" → DateTime (date de référence fixe : seule l'heure du jour compte). */
+const timeToDate = (hhmm: string): Date => new Date(`1970-01-05T${hhmm}:00.000Z`);
 
 // Lesson
 export const createLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
 
     try {
+        await requireRole(["admin"]);
 
-        
         const existingLesson = await prisma.lesson.findFirst({
           where: {
             OR: [
@@ -45,29 +50,36 @@ export const createLesson = async (currentState: CurrentState2 ,data: LessonSche
       return {success: false, error: true, message: "L'enseignant n'existe pas."}
     }
         
+    if (data.startTime >= data.endTime) {
+      return { success: false, error: true, message: "L'heure de fin doit être après l'heure de début." };
+    }
+
     await prisma.lesson.create({
       data: {
         name: data.name,
         day: data.day,
         subjectId: Number(data.subjectId),
         classId: Number(data.classId),
-        teacherId: teacher.id
+        teacherId: teacher.id,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime)
       },
     });
 
-        
 
-        // revalidatePath("/list/teache");
+
+        revalidatePath("/list/lessons");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const updateLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
     try {
+      await requireRole(["admin"]);
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
@@ -84,6 +96,10 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
       }
 
 
+      if (data.startTime >= data.endTime) {
+        return { success: false, error: true, message: "L'heure de fin doit être après l'heure de début." };
+      }
+
       await prisma.lesson.update({
         where: {
           id: data.id
@@ -93,22 +109,25 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
         day: data.day,
         subjectId: Number(data.subjectId),
         classId: Number(data.classId),
-        teacherId: teacher.id
+        teacherId: teacher.id,
+        startTime: timeToDate(data.startTime),
+        endTime: timeToDate(data.endTime)
         },
       });
 
-        // revalidatePath("/list/Lesson");
+        revalidatePath("/list/lessons");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const deleteLesson = async (currentState: CurrentState ,data: FormData) => {
     const id = Number(data.get("id") as unknown);
     try {
+      await requireRole(["admin"]);
 
       try {
         await prisma.lesson.delete({
@@ -116,16 +135,16 @@ export const deleteLesson = async (currentState: CurrentState ,data: FormData) =
             id: id
           }
         });
-    } catch (clerkError) {
+    } catch (clerkError: any) {
         console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
     }
 
 
-        // revalidatePath("/list/Lesson");
+        revalidatePath("/list/lessons");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: ""};
     }
-    
+
 }

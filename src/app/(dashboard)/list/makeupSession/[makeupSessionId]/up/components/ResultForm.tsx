@@ -1,6 +1,6 @@
 "use client";
 
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { useForm, useFieldArray } from "react-hook-form";
 import React, { useEffect, useActionState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -96,9 +96,8 @@ export const ResultForm = ({ results }: ResultFormProps) => {
     >
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-2xl font-semibold text-gray-800 mb-2">
-           {results[0].student.name}
+          {results[0].student.name}
         </h3>
-
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">

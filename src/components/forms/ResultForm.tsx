@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { createResult } from "@/lib/actions/resultAction";
 import { ResultSchema } from "@/lib/formsValidationSchema";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 interface ResultFormProps {
   type: "create" | "update";
@@ -232,13 +233,11 @@ const ResultForm = ({ type, data, setOpen, relatedData }: ResultFormProps) => {
         </div>
       )}
 
-      <button
-        disabled={loading}
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        type="submit"
-      >
-        {loading ? "Enregistrement..." : "Enregistrer les notes"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={loading ? "Enregistrement..." : "Enregistrer les notes"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

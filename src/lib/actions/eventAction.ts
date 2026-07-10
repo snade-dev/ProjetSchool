@@ -2,6 +2,9 @@
 
 import { AnnounceSchema, EventSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from '../actionErrors';
 
 
 type CurrentState = {
@@ -20,11 +23,9 @@ export const createEvent = async (
     currentState: CurrentState,
     data: EventSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-  
+      await requireRole(["admin"]);
+
       await prisma.event.create({
         data: {
           title: data.title,
@@ -34,8 +35,8 @@ export const createEvent = async (
           classId: data.classId,
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/events");
       return { success: true, error: false };
     } catch (err) {
       console.log(err);
@@ -47,23 +48,9 @@ export const createEvent = async (
     currentState: CurrentState,
     data: EventSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-      // if (role === "teacher") {
-      //   const teacherLesson = await prisma.lesson.findFirst({
-      //     where: {
-      //       teacherId: userId!,
-      //       id: data.lessonId,
-      //     },
-      //   });
-  
-      //   if (!teacherLesson) {
-      //     return { success: false, error: true };
-      //   }
-      // }
-  
+      await requireRole(["admin"]);
+
       await prisma.event.update({
         where: {
           id: data.id,
@@ -77,36 +64,33 @@ export const createEvent = async (
          
           },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/events");
       return { success: true, error: false };
     } catch (err) {
       console.log(err);
       return { success: false, error: true };
     }
   };
-  
+
   export const deleteEvent = async (
     currentState: CurrentState,
     data: FormData
   ) => {
     const id = data.get("id") as string;
-  
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
     try {
+      await requireRole(["admin"]);
       await prisma.event.delete({
         where: {
           id: parseInt(id),
-          // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/events");
       return { success: true, error: false };
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-      return { success: false, error: true };
+      return { success: false, error: true, message: deleteErrorMessage(err) };
     }
   };

@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export type FormContainerProps = {
   // le nom de la table envoyer en props
@@ -21,16 +22,24 @@ export type FormContainerProps = {
     | "semester"
     | "quiz"
     | "makeupSession"
-    | "attestation";
+    | "attestation"
+    | "schoolYear"
+    | "fee"
+    | "invoice"
+    | "payment"
+    | "expense"
+    | "employee";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
 };
 
 const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
-  const { sessionClaims, userId } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
-  const currentUserID = userId;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserID = session?.user.id;
   let relatedData = {};
   if (type !== "delete") {
     switch (table) {
@@ -90,11 +99,13 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { classes: quizClass, subjects: quizSubjects };
         break;
       case "makeupSession":
-      
         const makeupSessionSemesters = await prisma.semester.findMany({
           select: { id: true, name: true },
         });
-        relatedData = { userId: currentUserID, semesters: makeupSessionSemesters };
+        relatedData = {
+          userId: currentUserID,
+          semesters: makeupSessionSemesters,
+        };
         break;
       case "event":
         const eventClass = await prisma.class.findMany({
@@ -171,8 +182,55 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           classes: AttendanceClass,
         };
         break;
-      case "attestation": 
-        relatedData= {studentId: currentUserID}
+      case "attestation":
+        relatedData = { studentId: currentUserID };
+        break;
+      case "fee":
+        const feeClasses = await prisma.class.findMany({
+          select: { id: true, name: true },
+        });
+        relatedData = { classes: feeClasses };
+        break;
+      case "invoice":
+        const invoiceStudents = await prisma.student.findMany({
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            class: { select: { name: true } },
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        });
+        relatedData = { students: invoiceStudents };
+        break;
+      case "expense":
+        const expenseCategories = await prisma.expenseCategory.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
+        relatedData = { categories: expenseCategories };
+        break;
+      case "employee":
+        // Enseignants SANS fiche employé (relation inverse `employee: null`).
+        // À l'édition d'un employé lié, on inclut aussi son enseignant courant
+        // pour que le <select> verrouillé affiche son nom.
+        const freeTeachers = await prisma.teacher.findMany({
+          where: {
+            OR: [
+              { employee: null },
+              ...(data?.teacherId ? [{ id: data.teacherId }] : []),
+            ],
+          },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            email: true,
+            phone: true,
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        });
+        relatedData = { teachers: freeTeachers };
         break;
 
       default:

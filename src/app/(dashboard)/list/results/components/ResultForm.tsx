@@ -1,6 +1,6 @@
 "use client";
 
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { useForm } from "react-hook-form";
 import React, { useEffect, useActionState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -137,7 +137,7 @@ export const ResultForm = ({ results }: ResultFormProps) => {
 
               {/* Nouveau champ Class Score */}
               <div>
-              <label htmlFor={`results.${index}.score`}>Note d'examen</label>
+                <label htmlFor={`results.${index}.score`}>Note d'examen</label>
 
                 <input
                   id={`results.${index}.classscore`}

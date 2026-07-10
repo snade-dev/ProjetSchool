@@ -2,6 +2,9 @@
 
 import { ResultMSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from '../actionErrors';
 
 
 type CurrentState = {
@@ -20,9 +23,6 @@ export const createAverage = async (
     currentState: CurrentState2,
     data: ResultMSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername}
     })
@@ -31,9 +31,19 @@ export const createAverage = async (
       return { success: false, error: true, message: "L'etudiant n'existe pas" };
 
     }
-  
+
     try {
-  
+      const { userId, role } = await requireRole(["admin", "teacher"]);
+
+      if (role === "teacher") {
+        const teacherExam = await prisma.exam.findFirst({
+          where: { id: data.examId, lesson: { teacherId: userId } },
+        });
+        if (!teacherExam) {
+          return { success: false, error: true, message: "" };
+        }
+      }
+
       await prisma.examAverage.create({
         data: {
           average: data.average,
@@ -41,8 +51,8 @@ export const createAverage = async (
           studentId: student.id,
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/average");
       return { success: true, error: false ,message: "" };
     } catch (err) {
       console.log(err);
@@ -54,24 +64,18 @@ export const createAverage = async (
     currentState: CurrentState2,
     data: ResultMSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-      // if (role === "teacher") {
-      //   const teacherLesson = await prisma.lesson.findFirst({
-      //     where: {
-      //       teacherId: userId!,
-      //       id: data.lessonId,
-      //     },
-      //   });
-  
-      //   if (!teacherLesson) {
-      //     return { success: false, error: true };
-      //   }
-      // }
+      const { userId, role } = await requireRole(["admin", "teacher"]);
 
-      
+      if (role === "teacher") {
+        const teacherExam = await prisma.exam.findFirst({
+          where: { id: data.examId, lesson: { teacherId: userId } },
+        });
+        if (!teacherExam) {
+          return { success: false, error: true, message: "" };
+        }
+      }
+
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername}
     })
@@ -80,7 +84,7 @@ export const createAverage = async (
       return { success: false, error: true, message: "" };
 
     }
-  
+
       await prisma.examAverage.update({
         where: {
           id: data.id,
@@ -91,8 +95,8 @@ export const createAverage = async (
           studentId: student.id,
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/average");
       return { success: true, error: false, message:"" };
     } catch (err) {
       console.log(err);
@@ -105,22 +109,19 @@ export const createAverage = async (
     data: FormData
   ) => {
     const id = data.get("id") as string;
-  
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
     try {
+      await requireRole(["admin"]);
       await prisma.examAverage.delete({
         where: {
           id: parseInt(id),
-          // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/average");
       return { success: true, error: false };
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-      return { success: false, error: true };
+      return { success: false, error: true, message: deleteErrorMessage(err) };
     }
   };

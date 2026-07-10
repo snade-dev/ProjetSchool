@@ -15,6 +15,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { ClassSchema, classSchema } from "@/lib/formsValidationSchema";
 import { createClass, updateClass } from "@/lib/actions";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const ClassForm = ({
   type,
@@ -68,9 +69,11 @@ const ClassForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create" ? "Créer une nouvelle classe" : "Modifier la classe"}
-      </h1>
+      <DrawerHeader
+        title={type === "create" ? "Créer une nouvelle classe" : "Modifier la classe"}
+        entity="Classe"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -97,10 +100,10 @@ const ClassForm = ({
             hidden
           />
         )}
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Superviseur</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Superviseur</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("supervisorId")}
             defaultValue={data?.teachers}
           >
@@ -124,14 +127,16 @@ const ClassForm = ({
         </div>
       </div>
       {state.error && (
-        <span className="text-red-500">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           {state.message ? state.message : "Une erreur c&apos;est produite!"}
         </span>
       )}
 
-      <button className="bg-blue-400 text-white p-2 rounded-md" type="submit">
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={isPending}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

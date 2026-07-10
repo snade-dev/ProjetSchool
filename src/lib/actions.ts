@@ -1,8 +1,11 @@
 "use server";
 
-import { clerkClient } from '@clerk/nextjs/server';
 import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } from './formsValidationSchema';
+import { createAuthUser, removeAuthUser, setAuthUserPassword } from './authAdmin';
 import prisma from './prisma';
+import { requireRole } from './authGuard';
+import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from './actionErrors';
 
 type CurrentState = {
     success: boolean,
@@ -18,6 +21,7 @@ type CurrentState2 = {
 // SUBJECT
 export const createSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
+        await requireRole(["admin"]);
         await prisma.subject.create({
           data: {
             name: data.name,
@@ -25,10 +29,10 @@ export const createSubject = async (currentState: CurrentState ,data: SubjectSch
               connect: data.teachers.map((teacherId) => ({ id: teacherId}))
             }
           },
-          
+
         });
 
-        // revalidatePath("/list/subjects");
+        revalidatePath("/list/subjects");
         return {success: true, error: false};
     } catch (error) {
         console.log(error);
@@ -39,6 +43,7 @@ export const createSubject = async (currentState: CurrentState ,data: SubjectSch
 
 export const updateSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
+        await requireRole(["admin"]);
         await prisma.subject.update({
           where: {
             id: data.id
@@ -51,7 +56,7 @@ export const updateSubject = async (currentState: CurrentState ,data: SubjectSch
           }
         });
 
-        // revalidatePath("/list/subjects");
+        revalidatePath("/list/subjects");
         return {success: true, error: false};
     } catch (error) {
         console.log(error);
@@ -63,17 +68,18 @@ export const updateSubject = async (currentState: CurrentState ,data: SubjectSch
 export const deleteSubject = async (currentState: CurrentState ,data: FormData) => {
     const id =data.get("id") as string;
     try {
+        await requireRole(["admin"]);
         await prisma.subject.delete({
           where: {
             id: parseInt(id)
           }
         });
 
-        // revalidatePath("/list/subjects");
+        revalidatePath("/list/subjects");
         return {success: true, error: false};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true};
+        return { success: false, error: true, message: deleteErrorMessage(error) };
     }
     
 }
@@ -83,6 +89,7 @@ export const deleteSubject = async (currentState: CurrentState ,data: FormData) 
 // CLASS
 export const createClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
+        await requireRole(["admin"]);
 
         const existingClass = await prisma.class.findFirst({
           where: {
@@ -93,12 +100,12 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
         if (existingClass) {
           return {success: false, error: true, message: "La class existe déjà"};
         }
-      
+
         await prisma.class.create({
           data
         });
 
-        // revalidatePath("/list/subjects");
+        revalidatePath("/list/classes");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
@@ -109,6 +116,7 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
 
 export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
+        await requireRole(["admin"]);
         await prisma.class.update({
           where: {
             id: data.id
@@ -116,7 +124,7 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
           data
         });
 
-        // revalidatePath("/list/class");
+        revalidatePath("/list/classes");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
@@ -128,17 +136,18 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
 export const deleteClass = async (currentState: CurrentState ,data: FormData) => {
     const id =data.get("id") as string;
     try {
+        await requireRole(["admin"]);
         await prisma.class.delete({
           where: {
             id: parseInt(id)
           }
         });
 
-        // revalidatePath("/list/class");
+        revalidatePath("/list/classes");
         return {success: true, error: false};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true};
+        return { success: false, error: true, message: deleteErrorMessage(error) };
     }
     
 }
@@ -149,15 +158,21 @@ export const deleteClass = async (currentState: CurrentState ,data: FormData) =>
 export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
 
     try {
-        const client = await clerkClient();
+        await requireRole(["admin"]);
 
-        
+        // S19 : e-mail = identifiant de connexion, mot de passe requis
+        if (!data.email) {
+          return { success: false, error: true, message: "L'adresse e-mail est requise (identifiant de connexion)." };
+        }
+        if (!data.password || data.password.length < 8) {
+          return { success: false, error: true, message: "Le mot de passe est requis (8 caractères minimum)." };
+        }
+
         const existingTeacher = await prisma.teacher.findFirst({
           where: {
             OR: [
               { username: data.username},
               { phone: data.phone },
-              { id: data.id },
               { email: data.email }
             ]
           }
@@ -176,29 +191,22 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
       }
     }
 
-        let user: any = {}
-
+        let userId: string;
         try {
-          user = await client.users.createUser({
-            username: data.username,
-            emailAddress: [`${data.email}`],
+          userId = await createAuthUser({
+            email: data.email,
             password: data.password,
-            firstName: data.name,
-            lastName: data.surname,
-            publicMetadata: {role: "teacher"}
+            name: data.username,
+            role: "teacher",
           });
-
-
-
-        } catch (clerkError) {
-          console.warn(`Une erreur c'est prouite Clerk. ${clerkError}`);
-          return {success: false, error: true, message: "Une erreur c'est produite"};
+        } catch (err: any) {
+          return { success: false, error: true, message: err.message };
         }
 
-        
+        try {
         await prisma.teacher.create({
           data: {
-            id: user.id,
+            id: userId,
             username: data.username,
             name: data.name,
             surname: data.surname,
@@ -216,36 +224,44 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
             },
           },
         });
+        } catch (err) {
+          // compensation : ne pas laisser un compte de connexion orphelin
+          await removeAuthUser(userId);
+          throw err;
+        }
 
-        
-
-        // revalidatePath("/list/teache");
+        revalidatePath("/list/teachers");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
     try {
-      const client = await clerkClient();
+      await requireRole(["admin"]);
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
 
+      // Compte de connexion : nom/email dans User, mot de passe via l'API
+      // admin (S19). Toléré si l'enseignant (seedé) n'a pas de compte.
       try {
-        const user = await client.users.updateUser(data.id, {
-          username: data.username,
-          ...(data.password !== "" && {password: data.password}),
-          firstName: data.name,
-          lastName: data.surname,
-          publicMetadata: {role: "teacher"}
-        })
-       } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${data.id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
+        await prisma.user.update({
+          where: { id: data.id },
+          data: {
+            name: data.username,
+            ...(data.email && { email: data.email }),
+          },
+        });
+        if (data.password && data.password !== "") {
+          await setAuthUserPassword(data.id, data.password);
+        }
+       } catch (err) {
+        console.warn(`Compte better-auth ${data.id} non mis à jour (probablement inexistant) : ${err}`);
        }
 
 
@@ -254,7 +270,8 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
           id: data.id
         },
         data: {
-          ...(data.password !== "" && {password: data.password}),
+          // Bug corrigé : le modèle Teacher n'a PAS de colonne password
+          // (mot de passe géré par better-auth plus haut).
           username: data.username,
           name: data.name,
           surname: data.surname,
@@ -273,48 +290,49 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
         },
       });
 
-        // revalidatePath("/list/teacher");
+        revalidatePath("/list/teachers");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const deleteTeacher = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
+      await requireRole(["admin"]);
 
-      const client = await clerkClient();
-      try {
-        await client.users.deleteUser(id);
-        
-    } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
-    }
+    // Transaction : si la suppression de l'enseignant échoue (contrainte FK
+    // quiz/questions…), ses leçons ne doivent pas avoir été supprimées.
+    await prisma.$transaction([
+      prisma.lesson.deleteMany({
+        where: {
+          teacherId: id,
+        },
+      }),
+      prisma.teacher.delete({
+        where: {
+          id: id,
+        },
+      }),
+    ]);
 
-    await prisma.lesson.deleteMany({
-      where: {
-        teacherId: id, // Replace teacherId with the actual teacher's ID
-      },
-    });
-    
-    await prisma.teacher.delete({
-      where: {
-        id: id, // Replace with the actual teacher's ID
-      },
-    });
-    
+    // Compte de connexion en dernier (S19)
+    await removeAuthUser(id);
 
-
-        // revalidatePath("/list/teacher");
+        revalidatePath("/list/teachers");
         return {success: true, error: false};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true};
+        const message =
+          error?.code === "P2003"
+            ? "Impossible : des quiz, questions ou corrections référencent encore cet enseignant."
+            : `${error?.message ?? error}`;
+        return {success: false, error: true, message};
     }
-    
+
 }
 
 
@@ -323,14 +341,21 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
 //Student
 export const createStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      const client = await clerkClient();
+      await requireRole(["admin"]);
+
+      // S19 : e-mail = identifiant de connexion, mot de passe requis
+      if (!data.email) {
+        return { success: false, error: true, message: "L'adresse e-mail est requise (identifiant de connexion)." };
+      }
+      if (!data.password || data.password.length < 8) {
+        return { success: false, error: true, message: "Le mot de passe est requis (8 caractères minimum)." };
+      }
 
       const existingStudent = await prisma.student.findFirst({
         where: {
           OR: [
             { username: data.username},
             { phone: data.phone },
-            { id: data.id },
             { email: data.email }
           ]
         }
@@ -368,28 +393,22 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
          return { success: false, error: true, message: "Parent n'existe pas" };
       }
 
-         let user: any = {}
-
+         let userId: string;
          try {
-           user = await client.users.createUser({
-             username: data.username,
-             emailAddress: [`${data.email}`],
+           userId = await createAuthUser({
+             email: data.email,
              password: data.password,
-             firstName: data.name,
-             lastName: data.surname,
-             publicMetadata: {role: "student"}
+             name: data.username,
+             role: "student",
            });
- 
- 
- 
-         } catch (clerkError) {
-           console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
-           return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
+         } catch (err: any) {
+           return { success: false, error: true, message: err.message };
          }
 
+        try {
         await prisma.student.create({
           data: {
-            id: user.id,
+            id: userId,
             username: data.username,
             name: data.name,
             surname: data.surname,
@@ -404,19 +423,24 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
             parentId: parent.id
           },
         });
+        } catch (err) {
+          // compensation : ne pas laisser un compte de connexion orphelin
+          await removeAuthUser(userId);
+          throw err;
+        }
 
-        // revalidatePath("/list/teache");
+        revalidatePath("/list/students");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true, message: ""};
+        return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const updateStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      const client =  await clerkClient();
+      await requireRole(["admin"]);
       if (!data.id) {
         return {success: false, error: true, message: "l'etudiant n'existe pas"}
       }
@@ -430,20 +454,32 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
       return { success: false, error: true, message: "Parent n'existe pas" };
     }
 
-      const user = await client.users.updateUser(data.id, {
-        username: data.username,
-        ...(data.password !== "" && {password: data.password}),
-        firstName: data.name,
-        lastName: data.surname,
-        publicMetadata: {role: "student"}
-      })
+      try {
+        // Mettre à jour le nom et l'email dans la table User de Better Auth
+        await prisma.user.update({
+          where: { id: data.id },
+          data: {
+            name: data.username,
+            ...(data.email && { email: data.email }),
+          },
+        });
+        
+        // Mot de passe via l'API admin AVEC la session de la requête (S19 :
+        // l'ancien appel sans headers échouait silencieusement)
+        if (data.password && data.password !== "") {
+          await setAuthUserPassword(data.id, data.password);
+        }
+      } catch (authError) {
+        console.warn(`Erreur lors de la mise à jour de l'utilisateur dans Better Auth: ${authError}`);
+      }
 
       await prisma.student.update({
         where: {
           id: data.id
         },
         data: {
-          ...(data.password !== "" && {password: data.password}),
+          // Bug corrigé : le modèle Student n'a PAS de colonne password
+          // (mot de passe géré par better-auth plus haut).
           username: data.username,
           name: data.name,
           surname: data.surname,
@@ -459,41 +495,41 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
         },
       });
 
-        // revalidatePath("/list/student");
+        revalidatePath("/list/students");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: ""};
     }
-    
+
 }
 
 export const deleteStudent = async (currentState: CurrentState, data: FormData) => {
   const id = data.get("id") as string;
 
   try {
-      const client = await clerkClient();
+      await requireRole(["admin"]);
 
-      // Essayer de supprimer l'utilisateur dans Clerk
-      try {
-          await client.users.deleteUser(id);
-      } catch (clerkError) {
-          console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
-      }
-
-      // Supprimer l'utilisateur dans Prisma
+      // Prisma d'abord : si la suppression échoue (contrainte FK…), on ne
+      // touche pas au compte et on remonte une vraie erreur (S19).
       await prisma.student.delete({
           where: {
               id: id,
           },
       });
 
-      // revalidatePath("/list/student");
+      await removeAuthUser(id);
+
+      revalidatePath("/list/students");
       return { success: true, error: false };
 
-  } catch (error) {
+  } catch (error: any) {
       console.error("Erreur lors de la suppression :", error);
-      return { success: false, error: true };
+      const message =
+        error?.code === "P2003"
+          ? "Impossible : des réponses de quiz ou réclamations référencent encore cet élève."
+          : `${error?.message ?? error}`;
+      return { success: false, error: true, message };
   }
 };
 
@@ -502,22 +538,21 @@ export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
+    const { userId, role } = await requireRole(["admin", "teacher"]);
 
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
+    if (role === "teacher") {
+      const teacherLesson = await prisma.lesson.findFirst({
+        where: {
+          teacherId: userId,
+          id: data.lessonId,
+        },
+      });
+
+      if (!teacherLesson) {
+        return { success: false, error: true };
+      }
+    }
 
     await prisma.exam.create({
       data: {
@@ -529,7 +564,7 @@ export const createExam = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -541,22 +576,21 @@ export const updateExam = async (
   currentState: CurrentState,
   data: ExamSchema
 ) => {
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
-    // if (role === "teacher") {
-    //   const teacherLesson = await prisma.lesson.findFirst({
-    //     where: {
-    //       teacherId: userId!,
-    //       id: data.lessonId,
-    //     },
-    //   });
+    const { userId, role } = await requireRole(["admin", "teacher"]);
 
-    //   if (!teacherLesson) {
-    //     return { success: false, error: true };
-    //   }
-    // }
+    if (role === "teacher") {
+      const teacherLesson = await prisma.lesson.findFirst({
+        where: {
+          teacherId: userId,
+          id: data.lessonId,
+        },
+      });
+
+      if (!teacherLesson) {
+        return { success: false, error: true };
+      }
+    }
 
     await prisma.exam.update({
       where: {
@@ -570,7 +604,7 @@ export const updateExam = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -584,21 +618,18 @@ export const deleteExam = async (
 ) => {
   const id = data.get("id") as string;
 
-  // const { userId, sessionClaims } = auth();
-  // const role = (sessionClaims?.metadata as { role?: string })?.role;
-
   try {
+    await requireRole(["admin"]);
     await prisma.exam.delete({
       where: {
         id: parseInt(id),
-        // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
     });
 
-    // revalidatePath("/list/subjects");
+    revalidatePath("/list/exams");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };

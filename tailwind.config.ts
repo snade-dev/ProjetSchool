@@ -14,12 +14,12 @@ const config: Config = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       colors: {
-        lamaSky: "#A6D8F7",        // Un bleu doux mais plus saturé
-        lamaSkyLight: "#C8E9F8",   // Un bleu pâle et lumineux
-        lamaPurple: "#B5A4F1",     // Un violet doux avec un ton plus prononcé
-        lamaPurpleLight: "#D4C9FF",// Un violet très clair et apaisant
-        lamaYellow: "#F1D76D",     // Un jaune plus doux, moins intense
-        lamaYellowLight: "#F9F0B5" // Un jaune pâle mais encore lumineux
+        lamaSky: "rgb(var(--lama-sky) / <alpha-value>)",
+        lamaSkyLight: "rgb(var(--lama-sky-light) / <alpha-value>)",
+        lamaPurple: "rgb(var(--lama-purple) / <alpha-value>)",
+        lamaPurpleLight: "rgb(var(--lama-purple-light) / <alpha-value>)",
+        lamaYellow: "rgb(var(--lama-yellow) / <alpha-value>)",
+        lamaYellowLight: "rgb(var(--lama-yellow-light) / <alpha-value>)"
       },
     },
   },

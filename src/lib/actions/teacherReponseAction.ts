@@ -1,6 +1,8 @@
 "use server";
 
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
+import { revalidatePath } from "next/cache";
 
 type CurrentState = {
   success: boolean;
@@ -21,6 +23,7 @@ export async function teacherReponseAction(
   console.log("Réponses reçues :", JSON.stringify(answers, null, 2));
 
   try {
+    await requireRole(["admin", "teacher"]);
     // Logique de mise à jour des réponses
     console.log(`Début de la mise à jour de ${answers.length} réponses`);
     for (const [index, answer] of answers.entries()) {
@@ -88,10 +91,11 @@ export async function teacherReponseAction(
     }
 
     console.log("Opération terminée avec succès");
-    return { 
-      success: true, 
-      error: false, 
-      message: "Notes enregistrées avec succès" 
+    revalidatePath("/list/resultExam");
+    return {
+      success: true,
+      error: false,
+      message: "Notes enregistrées avec succès"
     };
 
   } catch (error) {

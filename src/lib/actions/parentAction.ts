@@ -1,8 +1,10 @@
 "use server";
 
-import { clerkClient } from '@clerk/nextjs/server';
 import { ParentSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { createAuthUser, removeAuthUser, setAuthUserPassword } from '../authAdmin';
+import { revalidatePath } from 'next/cache';
 
 
 type CurrentState = {
@@ -11,7 +13,7 @@ type CurrentState = {
 }
 
 type CurrentState2 = {
-    success: boolean, 
+    success: boolean,
     error: boolean,
     message: string
 }
@@ -20,15 +22,22 @@ type CurrentState2 = {
 export const createParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
 
     try {
-        const client = await clerkClient();
+        await requireRole(["admin"]);
 
-        
+        // L'e-mail est l'identifiant de connexion et le mot de passe est
+        // nécessaire à la création du compte (S19 : plus de défaut littéral).
+        if (!data.email) {
+          return { success: false, error: true, message: "L'adresse e-mail est requise (identifiant de connexion)." };
+        }
+        if (!data.password || data.password.length < 8) {
+          return { success: false, error: true, message: "Le mot de passe est requis (8 caractères minimum)." };
+        }
+
         const existingParent = await prisma.parent.findFirst({
           where: {
             OR: [
               { username: data.username},
               { phone: data.phone },
-              { id: data.id },
               { email: data.email }
             ]
           }
@@ -47,74 +56,76 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
       }
     }
 
-        let user: any = {}
-
+        let userId: string;
         try {
-          user = await client.users.createUser({
-            username: data.username,
-            emailAddress: [`${data.email}`],
+          userId = await createAuthUser({
+            email: data.email,
             password: data.password,
-            firstName: data.name,
-            lastName: data.surname,
-            publicMetadata: {role: "parent"}
+            name: data.username,
+            role: "parent",
           });
-
-        } catch (clerkError) {
-          console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
-          return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
+        } catch (err: any) {
+          return { success: false, error: true, message: err.message };
         }
 
-        
-        await prisma.parent.create({
-          data: {
-            id: user.id,
-            username: data.username,
-            name: data.name,
-            surname: data.surname,
-            email: data.email || null,
-            phone: data.phone || null,
-            address: data.address,
-          }
-        });
+        try {
+          await prisma.parent.create({
+            data: {
+              id: userId,
+              username: data.username,
+              name: data.name,
+              surname: data.surname,
+              email: data.email || null,
+              phone: data.phone || null,
+              address: data.address,
+            }
+          });
+        } catch (err) {
+          // compensation : ne pas laisser un compte de connexion orphelin
+          await removeAuthUser(userId);
+          throw err;
+        }
 
-        
-
-        // revalidatePath("/list/teache");
+        revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const updateParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
     try {
-      const client = await clerkClient();
-
+      await requireRole(["admin"]);
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
 
+      // Compte de connexion : nom/email dans User, mot de passe via l'API
+      // admin. Toléré si le parent (seedé) n'a pas de compte.
       try {
-        const user = await client.users.updateUser(data.id, {
-          username: data.username,
-          ...(data.password !== "" && {password: data.password}),
-          firstName: data.name,
-          lastName: data.surname,
-          publicMetadata: {role: "Parent"}
-        })
-       } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${data.id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
-       }
-
+        await prisma.user.update({
+          where: { id: data.id },
+          data: {
+            name: data.username,
+            ...(data.email && { email: data.email }),
+          },
+        });
+        if (data.password && data.password !== "") {
+          await setAuthUserPassword(data.id, data.password);
+        }
+      } catch (err) {
+        console.warn(`Compte better-auth ${data.id} non mis à jour (probablement inexistant) : ${err}`);
+      }
 
       await prisma.parent.update({
         where: {
           id: data.id
         },
         data: {
-          ...(data.password !== "" && {password: data.password}),
+          // le modèle Parent n'a PAS de colonne password
+          // (mot de passe géré par better-auth ci-dessus).
           username: data.username,
           name: data.name,
           surname: data.surname,
@@ -124,37 +135,47 @@ export const updateParent = async (currentState: CurrentState2 ,data: ParentSche
         },
       });
 
-        // revalidatePath("/list/Parent");
+        revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: `${error}`};
     }
-    
+
 }
 
 export const deleteParent = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
+      await requireRole(["admin"]);
 
-      const client = await clerkClient();
-      try {
-        await client.users.deleteUser(id);
-        await prisma.parent.delete({
-          where: {
-            id: id
-          }
-        });
-    } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
-    }
+      // Les élèves du parent sont supprimés en cascade (schema) : retenir
+      // leurs ids pour supprimer aussi leurs comptes de connexion.
+      const students = await prisma.student.findMany({
+        where: { parentId: id },
+        select: { id: true },
+      });
 
+      // Prisma d'abord : si la suppression échoue (contrainte FK…), on ne
+      // touche à aucun compte et on remonte une vraie erreur (S19).
+      await prisma.parent.delete({
+        where: { id },
+      });
 
-        // revalidatePath("/list/Parent");
+      await removeAuthUser(id);
+      for (const s of students) {
+        await removeAuthUser(s.id);
+      }
+
+        revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true, message: ""};
+        const message =
+          error?.code === "P2003"
+            ? "Impossible : des données (quiz, réponses…) référencent encore ce parent ou ses enfants."
+            : `${error?.message ?? error}`;
+        return {success: false, error: true, message};
     }
-    
+
 }

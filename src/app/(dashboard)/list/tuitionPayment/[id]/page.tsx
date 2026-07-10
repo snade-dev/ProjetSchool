@@ -1,19 +1,21 @@
 // pages/scolarite/[studentId].tsx
 
 import prisma from "@/lib/prisma";
-import { TuitionPayment } from "@prisma/client";
+import { TuitionPayment } from "@/app/generated/prisma";
 import { Edit } from "lucide-react";
 import { notFound } from "next/navigation";
 import React from "react";
 import { EditButton } from "./components/EditButton";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 const Tuition = async (props: { params: Promise<{ id: string }> }) => {
   const params = await props.params;
   const year = new Date().getFullYear();
-  const { userId, sessionClaims } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   const student = await prisma.student.findUnique({
     where: {
@@ -68,11 +70,13 @@ const Tuition = async (props: { params: Promise<{ id: string }> }) => {
                 </td>
                 <td className="border border-gray-200 p-2 flex items-center justify-center gap-2">
                   {payment ? `${payment.amount} FCFA` : "Non payé"}
-                  {(role === "teacher" || role === "admin") && <EditButton
-                    TuitionId={payment?.id}
-                    studentId={student.id}
-                    month={month}
-                  />}
+                  {(role === "teacher" || role === "admin") && (
+                    <EditButton
+                      TuitionId={payment?.id}
+                      studentId={student.id}
+                      month={month}
+                    />
+                  )}
                 </td>
                 <td className="border border-gray-200 p-2">
                   {payment

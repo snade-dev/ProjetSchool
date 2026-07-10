@@ -8,7 +8,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Question } from "@prisma/client";
+import { Question } from "@/app/generated/prisma";
 import { submitStudentAnswers } from "@/lib/actions/submitStudentAnswer";
 import { useForm } from "react-hook-form";
 import {

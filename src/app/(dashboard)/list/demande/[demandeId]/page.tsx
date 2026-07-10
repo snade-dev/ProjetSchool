@@ -1,20 +1,22 @@
 import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
-import { Attestation, Student } from "@prisma/client";
-import { auth } from "@clerk/nextjs/server";
-import UpdateDate  from "./components/UpdateDate";
+import { auth } from "@/lib/auth";
+import UpdateDate from "./components/UpdateDate";
+import { headers } from "next/headers";
+import { Student } from "@/app/generated/prisma/client";
+import { Attestation } from "@/app/generated/prisma";
 
 type AttestationDetail = Attestation & { student: Student };
 
-export default async function DemandeDetailsPage(
-  props: {
-    params: Promise<{ demandeId: string }>;
-  }
-) {
+export default async function DemandeDetailsPage(props: {
+  params: Promise<{ demandeId: string }>;
+}) {
   const params = await props.params;
   const { demandeId } = params;
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
 
   // Fetch complaint details
   const attestation = await prisma.attestation.findUnique({
@@ -26,7 +28,6 @@ export default async function DemandeDetailsPage(
 
   if (!attestation) notFound();
 
-
   if (!role) {
     notFound();
   }
@@ -35,7 +36,7 @@ export default async function DemandeDetailsPage(
   //   ? !!(await prisma.teacher.findUnique({ where: { userId } }))
   //   : false;
 
-  const isTeacher = (role === "admin");
+  const isTeacher = role === "admin";
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 space-y-8">
@@ -192,13 +193,15 @@ export default async function DemandeDetailsPage(
             {/* Copie de l'étudiant */}
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
               {/* <Result questions={questionsWithAnswers} score={result.totalScore} /> */}
-                {attestation.status === null ? (
+              {attestation.status === null ? (
                 <UpdateDate attestationId={demandeId} role={role} />
-                ) : attestation.status === "REJECTED" ? (
+              ) : attestation.status === "REJECTED" ? (
                 <p>Cette réclamation a été rejetée</p>
-                ) : attestation.status === "COMPLETED" && (
-                <p>Votre demande a été acceptée</p>
-                )}
+              ) : (
+                attestation.status === "COMPLETED" && (
+                  <p>Votre demande a été acceptée</p>
+                )
+              )}
             </div>
           </div>
         </div>

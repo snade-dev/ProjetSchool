@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Quiz, Question, AnswerOption } from "@prisma/client";
-import { getQuiz } from "@/actions/getQuiz";
+import { Quiz, Question } from "@/app/generated/prisma";
+import { getQuiz } from "@/lib/actions/getQuizAction";
 
 type QuizAppProps = {
   chapterId: string;
@@ -13,7 +13,11 @@ export const QuizApp = ({ chapterId }: QuizAppProps) => {
   const [showScore, setShowScore] = useState(false);
   const [score, setScore] = useState(0);
   const [dataQuiz, setDataQuiz] = useState<
-    | (Quiz & { questions: (Question & { answerOptions: AnswerOption[] })[] })
+    | (Quiz & {
+        questions: (Question & {
+          answerOptions?: { answerText: string; isCorrect: boolean }[];
+        })[];
+      })
     | null
   >(null);
 
@@ -62,8 +66,7 @@ export const QuizApp = ({ chapterId }: QuizAppProps) => {
               Bravos ✅✅✅✅✅ Ton score est de {score} sur{" "}
               {dataQuiz?.questions.length}
             </p>
-          )
-          }
+          )}
 
           <button onClick={Repeat}>Reprendre le quiz</button>
         </div>
@@ -80,7 +83,7 @@ export const QuizApp = ({ chapterId }: QuizAppProps) => {
             </div>
           </div>
           <div className=" mt-1 flex gap-1">
-            {dataQuiz?.questions[currentQuestion].answerOptions.map(
+            {(dataQuiz?.questions[currentQuestion]?.answerOptions ?? []).map(
               (answerOption) => (
                 <button
                   onClick={() =>
@@ -90,7 +93,7 @@ export const QuizApp = ({ chapterId }: QuizAppProps) => {
                 >
                   {answerOption.answerText}
                 </button>
-              )
+              ),
             )}
           </div>
         </>

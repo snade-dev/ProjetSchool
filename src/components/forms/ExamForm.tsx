@@ -15,6 +15,7 @@ import { createExam, updateExam } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { examSchema, ExamSchema } from "@/lib/formsValidationSchema";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const ExamForm = ({
   type,
@@ -69,9 +70,11 @@ const ExamForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create" ? "Créer un nouvel examen" : "Modifier un examen"}
-      </h1>
+      <DrawerHeader
+        title={type === "create" ? "Créer un nouvel examen" : "Modifier un examen"}
+        entity="Examen"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -111,10 +114,10 @@ const ExamForm = ({
       )}
 
       {/* Sélection de la leçon */}
-      <div className="flex flex-col gap-2 w-full md:w-1/4">
-        <label className="text-xs text-gray-500">Leçon</label>
+      <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+        <label className="text-xs font-medium text-gray-500">Leçon</label>
         <select
-          className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+          className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
           {...register("lessonId")}
           defaultValue={data?.lessons}
         >
@@ -130,10 +133,10 @@ const ExamForm = ({
       </div>
 
       {/* Sélection du semestre */}
-      <div className="flex flex-col gap-2 w-full md:w-1/4">
-        <label className="text-xs text-gray-500">Semestre</label>
+      <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+        <label className="text-xs font-medium text-gray-500">Semestre</label>
         <select
-          className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+          className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
           {...register("semesterId")}
           defaultValue={data?.semesters}
         >
@@ -149,16 +152,14 @@ const ExamForm = ({
       </div>
 
       {state.error && (
-        <span className="text-red-500">Une erreur s&apos;est produite !</span>
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">Une erreur s&apos;est produite !</span>
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

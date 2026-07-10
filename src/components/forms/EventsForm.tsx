@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { eventSchema, EventSchema } from "@/lib/formsValidationSchema";
 import { createEvent, updateEvent } from "@/lib/actions/eventAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const EventForm = ({
   type,
@@ -74,14 +75,14 @@ const EventForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouvel évènement"
           : "Modifier un évènement"}
-      </h1>
-      <span className="text-xs text-gray-400 font-medium">
-        Information d&apos;authentication
-      </span>
+        entity="Événement"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentication</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Titre de l'évènement"
@@ -115,10 +116,10 @@ const EventForm = ({
           error={errors?.endTime}
           type="dateTime-local"
         />
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Classe</label>
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Classe</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("classId")}
             defaultValue={data?.classId}
           >
@@ -153,13 +154,11 @@ const EventForm = ({
         />
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-500"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

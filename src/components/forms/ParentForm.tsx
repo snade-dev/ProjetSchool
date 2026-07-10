@@ -9,6 +9,7 @@ import { parentSchema, ParentSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { createParent, updateParent } from "@/lib//actions/parentAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const ParentForms = ({
   type,
@@ -24,6 +25,7 @@ const ParentForms = ({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ParentSchema>({
     resolver: zodResolver(parentSchema),
@@ -65,14 +67,16 @@ const ParentForms = ({
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className=" text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouveau Parent"
           : "Modifier un Parent"}
-      </h1>
-      <span className=" text-xs text-gray-400 font-medium">
-        Information d&apos;authentification
-      </span>
+        name={`${watch("name") ?? data?.name ?? ""} ${watch("surname") ?? data?.surname ?? ""}`}
+        code={watch("username") || data?.username}
+        entity="Parent"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentification</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="nom d'utlisateur"
@@ -98,9 +102,7 @@ const ParentForms = ({
           error={errors.password}
         />
       </div>
-      <span className=" text-xs text-gray-400 font-medium">
-        Information personnel
-      </span>
+      <FormSection>Information personnel</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
       {data && (
           <InputField
@@ -144,14 +146,16 @@ const ParentForms = ({
       </div>
 
       {state.error && (
-        <span className=" text-red-400 font-bold">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           {state.message ? state.message : "Une erreur c&apos;est produite"}
         </span>
       )}
 
-      <button disabled={loading} className=" bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400" type="submit">
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

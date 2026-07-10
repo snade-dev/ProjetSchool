@@ -5,22 +5,21 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
-import { auth } from '@clerk/nextjs/server';
-import { Announcement, Class, Prisma } from "@prisma/client";
-import Image from "next/image";
+import { Announcement, Class, Prisma } from "@/app/generated/prisma";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 type AnnouncementList = Announcement & { class: Class };
 
-
-const AnnouncementsListPage = async (
-  props: {
-    searchParams: Promise<{ [key: string]: string | undefined }>;
-  }
-) => {
+const AnnouncementsListPage = async (props: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) => {
   const searchParams = await props.searchParams;
-  const { sessionClaims, userId } = await auth();
-  const currentUserId = userId;
-  const role = (sessionClaims?.metadata as { role: string })?.role;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const role = session?.user.role;
+  const currentUserId = session?.user.id;
 
   const columns = [
     {
@@ -36,10 +35,14 @@ const AnnouncementsListPage = async (
       accessor: "date",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin" ? [{
-      header: "Actions",
-      accessor: "action",
-    }] : []),
+    ...(role === "admin"
+      ? [
+          {
+            header: "Actions",
+            accessor: "action",
+          },
+        ]
+      : []),
   ];
 
   const renderRow = (item: AnnouncementList) => (
@@ -100,7 +103,6 @@ const AnnouncementsListPage = async (
 
   if (role === "admin") {
     // L'admin peut tout voir, pas besoin de filtrer par classe
-  
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques
     query.OR = [
@@ -108,7 +110,6 @@ const AnnouncementsListPage = async (
       { class: roleConditions[role as keyof typeof roleConditions] || {} },
     ];
   }
-
 
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
@@ -125,7 +126,6 @@ const AnnouncementsListPage = async (
 
   console.log(data);
 
-
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -136,12 +136,6 @@ const AnnouncementsListPage = async (
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
             {role === "admin" && (
               <FormContainer table="announcement" type="create" />
             )}

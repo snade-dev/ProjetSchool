@@ -2,6 +2,9 @@
 
 import {  MakeupSessionSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
+import { requireRole } from '../authGuard';
+import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from '../actionErrors';
 
 
 type CurrentState = {
@@ -27,13 +30,13 @@ export const createMakeupSession = async (
     id?: string | undefined;
     }
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-      console.log("userId", data.userId);
-      
-  
+      const { userId, role } = await requireRole(["admin", "teacher"]);
+
+      if (role === "teacher" && data.userId !== userId) {
+        return { success: false, error: true, message: "Accès refusé" };
+      }
+
       await prisma.makeupSession.create({
         data: {
           title: data.title,
@@ -44,7 +47,7 @@ export const createMakeupSession = async (
         },
       });
   
-      // revalidatePath("/list/subjects");
+      revalidatePath("/list/makeupSession");
       return { success: true, error: false, message: "Session de rattrapage créée avec succès" };
     } catch (err) {
       console.log(err);
@@ -56,23 +59,9 @@ export const createMakeupSession = async (
     currentState: CurrentState,
     data: MakeupSessionSchema
   ) => {
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
     try {
-      // if (role === "teacher") {
-      //   const teacherLesson = await prisma.lesson.findFirst({
-      //     where: {
-      //       teacherId: userId!,
-      //       id: data.lessonId,
-      //     },
-      //   });
-  
-      //   if (!teacherLesson) {
-      //     return { success: false, error: true };
-      //   }
-      // }
-  
+      await requireRole(["admin", "teacher"]);
+
       await prisma.makeupSession.update({
         where: {
           id: data.id,
@@ -84,8 +73,8 @@ export const createMakeupSession = async (
             semesterId: parseInt(data.semesterId),
           },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/makeupSession");
       return { success: true, error: false, message: "Session de rattrapage modifiée avec succès" };
     } catch (err) {
       console.log(err);
@@ -98,22 +87,19 @@ export const createMakeupSession = async (
     data: FormData
   ) => {
     const id = data.get("id") as string;
-  
-    // const { userId, sessionClaims } = auth();
-    // const role = (sessionClaims?.metadata as { role?: string })?.role;
-  
+
     try {
+      await requireRole(["admin"]);
       await prisma.makeupSession.delete({
         where: {
           id: id,
-          // ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
         },
       });
-  
-      // revalidatePath("/list/subjects");
+
+      revalidatePath("/list/makeupSession");
       return { success: true, error: false };
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-      return { success: false, error: true };
+      return { success: false, error: true, message: deleteErrorMessage(err) };
     }
   };

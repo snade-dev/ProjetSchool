@@ -1,74 +1,50 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Download } from "lucide-react";
+import BulletinPDF from "./BulletinPDF";
+import type { ReportCardData } from "@/lib/reportCard";
 
-// Import dynamique de react-pdf
+// PDFDownloadLink est client-only : import dynamique sans SSR (même parade que S07/S11).
 const PDFDownloadLink = dynamic(
   () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
   {
     ssr: false,
-    loading: () => <p>Loading...</p>,
+    loading: () => (
+      <span className="text-xs text-gray-400">Préparation du bulletin…</span>
+    ),
   }
 );
-import React, { useEffect, useState } from "react";
-import BulletinPDF from "./BulletinPDF";
 
-// Définition des types
-// Définition des types pour les props
-interface Grade {
-  subject: string;
-  score: number;
-  classscore: number;
-}
+const sanitize = (s: string) => s.replace(/\s+/g, "_");
 
-interface BulletinButtonProps {
-  studentName: string;
-  studentUSurName: string;
-  grades: Grade[];
-  className: string;
-  semesterName: string;
-}
-
-const BulletinButton = ({
-  studentName,
-  grades,
-  className,
-  semesterName,
-  studentUSurName
-}: BulletinButtonProps) => {
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  return isClient ? (
-    <div>
-      <PDFDownloadLink
-        document={
-          <BulletinPDF
-          studentUserName={studentUSurName}
-            studentName={studentName}
-            grades={grades}
-            className={className}
-            semesterName={semesterName}
-          />
-        }
-        fileName={`${studentName.replace(
-          " ",
-          "_"
-        )}_Bulletin_${semesterName}.pdf`}
+/**
+ * S13 — Bouton de téléchargement du bulletin.
+ * Reçoit un ReportCardData DÉJÀ calculé par le RSC parent (aucun accès DB ici).
+ */
+const BulletinButton = ({ data }: { data: ReportCardData }) => (
+  <PDFDownloadLink
+    // key = remount forcé quand (élève, semestre) change : le chemin « update »
+    // du reconciler react-pdf crashe en build minifié quand la structure du
+    // document change (ex. bulletin avec notes → bulletin vide).
+    key={`${data.student.id}-${data.semester.id}`}
+    document={<BulletinPDF data={data} />}
+    fileName={`bulletin_${sanitize(data.student.surname)}_${sanitize(
+      data.student.name
+    )}_${sanitize(data.semester.name)}.pdf`}
+  >
+    {({ loading }) => (
+      <button
+        type="button"
+        disabled={loading}
+        title={`Télécharger le bulletin — ${data.semester.name}`}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-400 text-white rounded-md text-sm hover:bg-blue-500 disabled:bg-gray-300"
       >
-        <button className="group relative font-bold text-[17px] bg-black rounded-[0.75em] border-0 cursor-pointer">
-          <span className="block box-border border-2 border-black rounded-[0.75em] bg-[#e8e8e8] text-black py-3 px-6 translate-y-[-0.2em] transition-transform ease-linear duration-100 group-hover:translate-y-[-0.33em] group-active:translate-y-0">
-            Télécharger le bulletin
-          </span>
-        </button>
-      </PDFDownloadLink>
-    </div>
-  ) : (
-    <p>...Loading</p>
-  );
-};
+        <Download size={16} />
+        Télécharger le bulletin
+      </button>
+    )}
+  </PDFDownloadLink>
+);
 
 export default BulletinButton;

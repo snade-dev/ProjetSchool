@@ -29,9 +29,14 @@ yarn-error.log*
 .env
 .env*.local
 
+# images téléversées (stockage local, données d'exploitation)
+/uploads/
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+src/app/generated   

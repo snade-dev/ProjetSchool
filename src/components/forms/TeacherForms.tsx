@@ -3,7 +3,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
-import Image from "next/image";
 import {
   Dispatch,
   SetStateAction,
@@ -15,8 +14,9 @@ import { teacherSchema, TeacherSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { createTeacher, updateTeacher } from "@/lib/actions";
-import { CldUploadWidget } from "next-cloudinary";
+import UploadField from "../UploadField";
 import { useTransition } from "react";
+import { ChipsField, DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const TeacherForms = ({
   type,
@@ -32,13 +32,21 @@ const TeacherForms = ({
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TeacherSchema>({
     resolver: zodResolver(teacherSchema),
+    // chips de matières : les ids sont pilotés via setValue (S21)
+    defaultValues: {
+      subjects: data?.subjects?.map((s: any) => String(s.id ?? s)) ?? [],
+    },
   });
 
+  const subjectValues = ((watch("subjects") as string[] | undefined) ?? []).map(String);
+
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
-  const [img, setImg] = useState<any>();
+  const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
 
   const [state, formAction] = useActionState(
     type === "create" ? createTeacher : updateTeacher,
@@ -54,7 +62,7 @@ const TeacherForms = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     startTransition(() => {
-      formAction({ ...data, img: img?.secure_url });
+      formAction({ ...data, img: imgUrl });
     });
   });
 
@@ -74,14 +82,16 @@ const TeacherForms = ({
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className=" text-xl font-semibold">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouveau Professeur"
           : "Modifier un Professeur"}
-      </h1>
-      <span className=" text-xs text-gray-400 font-medium">
-        Information d&apos;authentification
-      </span>
+        name={`${watch("name") ?? data?.name ?? ""} ${watch("surname") ?? data?.surname ?? ""}`}
+        code={watch("username") || data?.username}
+        entity="Enseignant"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentification</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="nom d'utlisateur"
@@ -107,9 +117,7 @@ const TeacherForms = ({
           error={errors.password}
         />
       </div>
-      <span className=" text-xs text-gray-400 font-medium">
-        Information personnel
-      </span>
+      <FormSection>Information personnel</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         {data && (
           <InputField
@@ -164,30 +172,28 @@ const TeacherForms = ({
           error={errors.birthday}
           type="date"
         />
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sujet</label>
+        <ChipsField
+          label="Matières enseignées"
+          options={subjects.map((subject: { id: string; name: string }) => ({
+            value: String(subject.id),
+            label: subject.name,
+          }))}
+          values={subjectValues}
+          onToggle={(v) =>
+            setValue(
+              "subjects",
+              subjectValues.includes(v)
+                ? subjectValues.filter((x) => x !== v)
+                : [...subjectValues, v],
+              { shouldValidate: true }
+            )
+          }
+          error={errors.subjects?.message?.toString()}
+        />
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Sex</label>
           <select
-            multiple
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
-            {...register("subjects")}
-            defaultValue={data?.subjects}
-          >
-            {subjects.map((subject: { id: string; name: string }) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          {errors.subjects?.message && (
-            <p className=" text-red-400 text-xs">
-              {errors.subjects?.message.toString()}
-            </p>
-          )}
-        </div>
-        <div className=" flex flex-col gap-2 w-full md:w-1/4">
-          <label className=" text-xs text-gray-500">Sex</label>
-          <select
-            className=" ring-[1.5px] ring-gray-300 rounded-md text-sm p-2 w-full"
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
             {...register("sex")}
             defaultValue={data?.sex}
           >
@@ -201,40 +207,24 @@ const TeacherForms = ({
           )}
         </div>
 
-        <CldUploadWidget
-          uploadPreset="school"
-          onSuccess={(result, { widget }) => {
-            setImg(result.info);
-            widget.close();
-          }}
-        >
-          {({ open }) => {
-            return (
-              <div
-                className=" text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-                onClick={() => open()}
-              >
-                <Image src="/upload.png" alt="" width={28} height={28} />
-                <span>Téléverser une photo</span>
-              </div>
-            );
-          }}
-        </CldUploadWidget>
+        <UploadField
+          label="Téléverser une photo"
+          value={imgUrl}
+          onChange={setImgUrl}
+        />
       </div>
 
       {state.error && (
-        <span className=" text-red-400 font-bold">
+        <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">
           {state.message ? state.message : "Une erreur c&apos;est produite"}
         </span>
       )}
 
-      <button
-        disabled={loading}
-        className=" bg-blue-400 text-white p-2 rounded-md disabled:bg-slate-400"
-        type="submit"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

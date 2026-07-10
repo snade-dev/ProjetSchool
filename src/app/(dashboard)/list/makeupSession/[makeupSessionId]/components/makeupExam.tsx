@@ -2,7 +2,13 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Dispatch, SetStateAction, useEffect, useState, useActionState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useActionState,
+} from "react";
 import {
   makeupExamSchema,
   MakeupExamSchema,
@@ -16,14 +22,14 @@ import {
   createMakeupExam,
   updateMakeupExam,
 } from "@/lib/actions/makeupExamAction";
-import { Subject } from "@prisma/client";
+import { Subject } from "@/app/generated/prisma";
 
 const MakeupExamForm = ({
   subjects,
   userId,
   sessionId,
   data,
-  semesterId
+  semesterId,
 }: {
   subjects: Subject[];
   userId: string;
@@ -51,7 +57,12 @@ const MakeupExamForm = ({
   const onSubmit = handleSubmit((data) => {
     setLoading(true);
     // console.log(data);
-    formAction({ ...data, userId: userId, sessionId: sessionId,semesterId: semesterId });
+    formAction({
+      ...data,
+      userId: userId,
+      sessionId: sessionId,
+      semesterId: semesterId,
+    });
   });
 
   const router = useRouter();
@@ -73,7 +84,6 @@ const MakeupExamForm = ({
       </h1>
 
       <div className="flex justify-between flex-wrap gap-4">
-
         {data && (
           <InputField
             label="Id"

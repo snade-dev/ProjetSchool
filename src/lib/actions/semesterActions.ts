@@ -2,6 +2,9 @@
 
 import { SemesterSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
+import { requireRole } from "../authGuard";
+import { revalidatePath } from "next/cache";
+import { deleteErrorMessage } from '../actionErrors';
 
 type CurrentState = {
   success: boolean;
@@ -19,6 +22,7 @@ export const createSemester = async (
   data: SemesterSchema
 ) => {
   try {
+    await requireRole(["admin"]);
     console.log("🟡 createSemester appelé avec :", data);
 
     const existingSemester = await prisma.semester.findFirst({
@@ -44,6 +48,7 @@ export const createSemester = async (
     });
 
     console.log("✅ Semestre créé avec succès !");
+    revalidatePath("/list/semester");
     return {
       success: true,
       error: false,
@@ -61,6 +66,7 @@ export const updateSemester = async (
   data: SemesterSchema
 ) => {
   try {
+    await requireRole(["admin"]);
     await prisma.semester.update({
       where: {
         id: data.id,
@@ -73,7 +79,7 @@ export const updateSemester = async (
       },
     });
 
-    // revalidatePath("/list/semesters");
+    revalidatePath("/list/semester");
     return { success: true, error: false, message: "" };
   } catch (error) {
     console.log(error);
@@ -87,16 +93,17 @@ export const deleteSemester = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    await requireRole(["admin"]);
     await prisma.semester.delete({
       where: {
         id: parseInt(id),
       },
     });
 
-    // revalidatePath("/list/semesters");
+    revalidatePath("/list/semester");
     return { success: true, error: false };
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(error) };
   }
 };
