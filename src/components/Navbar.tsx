@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Bell, MessageSquare, Search } from "lucide-react";
+import UserMenu from "./UserMenu";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "administrateur",
@@ -74,14 +75,10 @@ const Navbar = async () => {
             </span>
           )}
         </Link>
-        <div className="flex flex-col">
-          <span className="text-xs leading-3 font-medium">
-            {session?.user.name || ""}
-          </span>
-          <span className="text-[10px] text-gray-500 text-right">
-            {ROLE_LABELS[role] ?? ""}
-          </span>
-        </div>
+        <UserMenu
+          name={session?.user.name || "Utilisateur"}
+          roleLabel={ROLE_LABELS[role] ?? role}
+        />
       </div>
     </header>
   );
