@@ -1,11 +1,11 @@
 "use server";
 
-import { authClient } from './auth-client';
-import { auth } from './auth';
 import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } from './formsValidationSchema';
+import { createAuthUser, removeAuthUser, setAuthUserPassword } from './authAdmin';
 import prisma from './prisma';
 import { requireRole } from './authGuard';
 import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from './actionErrors';
 
 type CurrentState = {
     success: boolean,
@@ -77,9 +77,9 @@ export const deleteSubject = async (currentState: CurrentState ,data: FormData) 
 
         revalidatePath("/list/subjects");
         return {success: true, error: false};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true};
+        return { success: false, error: true, message: deleteErrorMessage(error) };
     }
     
 }
@@ -145,9 +145,9 @@ export const deleteClass = async (currentState: CurrentState ,data: FormData) =>
 
         revalidatePath("/list/classes");
         return {success: true, error: false};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true};
+        return { success: false, error: true, message: deleteErrorMessage(error) };
     }
     
 }
@@ -160,12 +160,19 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
     try {
         await requireRole(["admin"]);
 
+        // S19 : e-mail = identifiant de connexion, mot de passe requis
+        if (!data.email) {
+          return { success: false, error: true, message: "L'adresse e-mail est requise (identifiant de connexion)." };
+        }
+        if (!data.password || data.password.length < 8) {
+          return { success: false, error: true, message: "Le mot de passe est requis (8 caractères minimum)." };
+        }
+
         const existingTeacher = await prisma.teacher.findFirst({
           where: {
             OR: [
               { username: data.username},
               { phone: data.phone },
-              { id: data.id },
               { email: data.email }
             ]
           }
@@ -184,29 +191,22 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
       }
     }
 
-        let user: any = {}
-
+        let userId: string;
         try {
-          user = await authClient.admin.createUser({
+          userId = await createAuthUser({
+            email: data.email,
+            password: data.password,
             name: data.username,
-            email: data.email ?? "",
-            password: data?.password  ?? "<PASSWORD>",
             role: "teacher",
-            // firstName: data.name,
-            // lastName: data.surname,x
-            // publicMetadata: {role: "teacher"}
           });
-
-
-        } catch (clerkError) {
-          console.warn(`Une erreur c'est prouite Clerk. ${clerkError}`);
-          return {success: false, error: true, message: "Une erreur c'est produite"};
+        } catch (err: any) {
+          return { success: false, error: true, message: err.message };
         }
 
-        
+        try {
         await prisma.teacher.create({
           data: {
-            id: user.id,
+            id: userId,
             username: data.username,
             name: data.name,
             surname: data.surname,
@@ -224,8 +224,11 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
             },
           },
         });
-
-
+        } catch (err) {
+          // compensation : ne pas laisser un compte de connexion orphelin
+          await removeAuthUser(userId);
+          throw err;
+        }
 
         revalidatePath("/list/teachers");
         return {success: true, error: false, message: ""};
@@ -244,14 +247,21 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
         return {success: false, error: true, message: ""}
       }
 
+      // Compte de connexion : nom/email dans User, mot de passe via l'API
+      // admin (S19). Toléré si l'enseignant (seedé) n'a pas de compte.
       try {
-        const user = await authClient.updateUser({
-          name: data.username,
-          ...(data.password !== "" && {password: data.password}),
-        
-        })
-       } catch (clerkError) {
-        console.warn(`Utilisateur avec l'id ${data.id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
+        await prisma.user.update({
+          where: { id: data.id },
+          data: {
+            name: data.username,
+            ...(data.email && { email: data.email }),
+          },
+        });
+        if (data.password && data.password !== "") {
+          await setAuthUserPassword(data.id, data.password);
+        }
+       } catch (err) {
+        console.warn(`Compte better-auth ${data.id} non mis à jour (probablement inexistant) : ${err}`);
        }
 
 
@@ -293,30 +303,34 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
     const id = data.get("id") as string;
     try {
       await requireRole(["admin"]);
-      try {
-        await (authClient.admin as any).deleteUser({ userId: id });
-      } catch (err) {
-        console.warn(`Utilisateur avec l'id ${id} introuvable dans better-auth. Suppression ignorée.`);
-      }
 
-    await prisma.lesson.deleteMany({
-      where: {
-        teacherId: id, // Replace teacherId with the actual teacher's ID
-      },
-    });
-    
-    await prisma.teacher.delete({
-      where: {
-        id: id, // Replace with the actual teacher's ID
-      },
-    });
+    // Transaction : si la suppression de l'enseignant échoue (contrainte FK
+    // quiz/questions…), ses leçons ne doivent pas avoir été supprimées.
+    await prisma.$transaction([
+      prisma.lesson.deleteMany({
+        where: {
+          teacherId: id,
+        },
+      }),
+      prisma.teacher.delete({
+        where: {
+          id: id,
+        },
+      }),
+    ]);
 
+    // Compte de connexion en dernier (S19)
+    await removeAuthUser(id);
 
         revalidatePath("/list/teachers");
         return {success: true, error: false};
-    } catch (error) {
+    } catch (error: any) {
         console.log(error);
-        return {success: false, error: true};
+        const message =
+          error?.code === "P2003"
+            ? "Impossible : des quiz, questions ou corrections référencent encore cet enseignant."
+            : `${error?.message ?? error}`;
+        return {success: false, error: true, message};
     }
 
 }
@@ -328,12 +342,20 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
 export const createStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
       await requireRole(["admin"]);
+
+      // S19 : e-mail = identifiant de connexion, mot de passe requis
+      if (!data.email) {
+        return { success: false, error: true, message: "L'adresse e-mail est requise (identifiant de connexion)." };
+      }
+      if (!data.password || data.password.length < 8) {
+        return { success: false, error: true, message: "Le mot de passe est requis (8 caractères minimum)." };
+      }
+
       const existingStudent = await prisma.student.findFirst({
         where: {
           OR: [
             { username: data.username},
             { phone: data.phone },
-            { id: data.id },
             { email: data.email }
           ]
         }
@@ -371,30 +393,22 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
          return { success: false, error: true, message: "Parent n'existe pas" };
       }
 
-         let user: any = {}
-
+         let userId: string;
          try {
-           user = await authClient.admin.createUser({
+           userId = await createAuthUser({
+             email: data.email,
+             password: data.password,
              name: data.username,
-             email: data.email ?? "",
-             password: data.password ?? "<PASSWORD>",
              role: "student",
-             data: {
-               firstName: data.name,
-               lastName: data.surname,
-             }
            });
- 
- 
- 
-         } catch (clerkError) {
-           console.warn(`L'un des utilisateurs existe déjà dans Clerk. Creation ignorée dans Clerk. ${clerkError}`);
-           return {success: false, error: true, message: "Le nom d'utilisateur existe déjà"};
+         } catch (err: any) {
+           return { success: false, error: true, message: err.message };
          }
 
+        try {
         await prisma.student.create({
           data: {
-            id: user.id,
+            id: userId,
             username: data.username,
             name: data.name,
             surname: data.surname,
@@ -409,12 +423,17 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
             parentId: parent.id
           },
         });
+        } catch (err) {
+          // compensation : ne pas laisser un compte de connexion orphelin
+          await removeAuthUser(userId);
+          throw err;
+        }
 
         revalidatePath("/list/students");
         return {success: true, error: false, message: ""};
     } catch (error) {
         console.log(error);
-        return {success: false, error: true, message: ""};
+        return {success: false, error: true, message: `${error}`};
     }
 
 }
@@ -445,22 +464,10 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
           },
         });
         
-        // Mettre à jour le mot de passe si fourni
-        // Utiliser l'API admin Better Auth pour mettre à jour le mot de passe
-        if (data.password !== "") {
-          // Utiliser auth.api pour appeler l'endpoint admin set-user-password
-          // L'endpoint nécessite une session admin active
-          try {
-            await (auth.api as any).setUserPassword({
-              body: {
-                userId: data.id,
-                newPassword: data.password,
-              },
-            });
-          } catch (passwordError: any) {
-            // Si l'API n'est pas disponible, essayer via fetch avec les cookies
-            console.warn(`Impossible de mettre à jour le mot de passe via l'API: ${passwordError?.message || passwordError}`);
-          }
+        // Mot de passe via l'API admin AVEC la session de la requête (S19 :
+        // l'ancien appel sans headers échouait silencieusement)
+        if (data.password && data.password !== "") {
+          await setAuthUserPassword(data.id, data.password);
         }
       } catch (authError) {
         console.warn(`Erreur lors de la mise à jour de l'utilisateur dans Better Auth: ${authError}`);
@@ -501,26 +508,28 @@ export const deleteStudent = async (currentState: CurrentState, data: FormData) 
   const id = data.get("id") as string;
 
   try {
-    await requireRole(["admin"]);
-    try {
-      await (authClient.admin as any).deleteUser({ userId: id });
-    } catch (err) {
-      console.warn(`Utilisateur avec l'id ${id} introuvable dans better-auth. Suppression ignorée.`);
-    }
+      await requireRole(["admin"]);
 
-      // Supprimer l'utilisateur dans Prisma
+      // Prisma d'abord : si la suppression échoue (contrainte FK…), on ne
+      // touche pas au compte et on remonte une vraie erreur (S19).
       await prisma.student.delete({
           where: {
               id: id,
           },
       });
 
+      await removeAuthUser(id);
+
       revalidatePath("/list/students");
       return { success: true, error: false };
 
-  } catch (error) {
+  } catch (error: any) {
       console.error("Erreur lors de la suppression :", error);
-      return { success: false, error: true };
+      const message =
+        error?.code === "P2003"
+          ? "Impossible : des réponses de quiz ou réclamations référencent encore cet élève."
+          : `${error?.message ?? error}`;
+      return { success: false, error: true, message };
   }
 };
 
@@ -619,8 +628,8 @@ export const deleteExam = async (
 
     revalidatePath("/list/exams");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };

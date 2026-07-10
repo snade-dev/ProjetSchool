@@ -35,7 +35,7 @@ export const teacherSchema = z.object({
   .max(20, { message: "Le nom d'utilisateur doit comporter au maximum 20 caractères !" }),
   password: z
   .string()
-  .min(4, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
+  .min(8, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
   .optional()
   .or(z.literal("")),
   name: z.string().min(1, { message: "Le prénom est requis !" }),
@@ -351,7 +351,7 @@ export const parentSchema = z.object({
   .max(20, { message: "Le nom d'utilisateur doit comporter au maximum 20 caractères !" }),
   password: z
   .string()
-  .min(4, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
+  .min(8, { message: "Le mot de passe doit comporter au moins 8 caractères !" })
   .optional()
   .or(z.literal("")),
   name: z.string().min(1, { message: "Le prénom est requis !" }),
