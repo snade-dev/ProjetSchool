@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { lessonSchema, LessonSchema } from "@/lib/formsValidationSchema";
 import { createLesson, updateLesson } from "@/lib/actions/lessonAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const LessonForm = ({
   type,
@@ -84,9 +85,11 @@ const LessonForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create" ? "Créer un nouvel lesson" : "Modifier un lesson"}
-      </h1>
+      <DrawerHeader
+        title={type === "create" ? "Créer un nouvel lesson" : "Modifier un lesson"}
+        entity="Leçon"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -208,13 +211,11 @@ const LessonForm = ({
         </span>
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {loading ? "Chargement..." : type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={loading ? "Chargement..." : type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

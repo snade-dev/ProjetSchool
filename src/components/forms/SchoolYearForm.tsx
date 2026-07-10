@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 import {
   schoolYearSchema,
   SchoolYearSchema,
@@ -83,11 +84,13 @@ const SchoolYearForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer une année scolaire"
           : "Modifier l'année scolaire"}
-      </h1>
+        entity="Année scolaire"
+        onClose={() => setOpen(false)}
+      />
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Nom (ex : 2025-2026)"
@@ -130,13 +133,11 @@ const SchoolYearForm = ({
         </span>
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

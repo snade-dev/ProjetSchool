@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { announceSchema, AnnounceSchema } from "@/lib/formsValidationSchema";
 import { createAnnounce, updateAnnounce } from "@/lib/actions/announceAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const AnnouncementForm = ({
   type,
@@ -68,12 +69,12 @@ const AnnouncementForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create" ? "Créer un nouvel annonce" : "Modifier un annonce"}
-      </h1>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Information d&apos;authentication
-      </span>
+      <DrawerHeader
+        title={type === "create" ? "Créer un nouvel annonce" : "Modifier un annonce"}
+        entity="Annonce"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentication</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Titre de l'annonce"
@@ -139,13 +140,11 @@ const AnnouncementForm = ({
         />
       )}
       
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

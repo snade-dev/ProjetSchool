@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { attendanceSchema, Attendancechema } from "@/lib/formsValidationSchema";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 import {
   createAttendance,
   updateAttendance,
@@ -77,11 +78,13 @@ const AttendanceForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer une nouvelle présence"
           : "Modifier la présence"}
-      </h1>
+        entity="Présence"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -186,13 +189,11 @@ const AttendanceForm = ({
           )}
         </div>
       </div>
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

@@ -15,6 +15,7 @@ import { createExam, updateExam } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { examSchema, ExamSchema } from "@/lib/formsValidationSchema";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const ExamForm = ({
   type,
@@ -69,9 +70,11 @@ const ExamForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create" ? "Créer un nouvel examen" : "Modifier un examen"}
-      </h1>
+      <DrawerHeader
+        title={type === "create" ? "Créer un nouvel examen" : "Modifier un examen"}
+        entity="Examen"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -152,13 +155,11 @@ const ExamForm = ({
         <span className="rounded-md bg-red-50 p-3 text-xs leading-relaxed text-red-600 ring-1 ring-red-100">Une erreur s&apos;est produite !</span>
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

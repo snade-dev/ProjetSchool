@@ -19,6 +19,7 @@ import {
 } from "@/lib/formsValidationSchema";
 import { createInvoice } from "@/lib/actions/invoiceAction";
 import { formatFCFA } from "@/lib/finance";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 type StudentOption = {
   id: string;
@@ -101,7 +102,11 @@ const InvoiceForm = ({
 
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">Nouvelle facture</h1>
+      <DrawerHeader
+        title="Nouvelle facture"
+        entity="Facture"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex flex-wrap gap-4">
         {/* Élève */}
@@ -148,9 +153,7 @@ const InvoiceForm = ({
       {/* Lignes dynamiques */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Lignes de la facture
-          </span>
+          <FormSection>Lignes de la facture</FormSection>
           <button
             type="button"
             onClick={() => append({ label: "", quantity: 1, unitAmount: 0 })}
@@ -240,13 +243,11 @@ const InvoiceForm = ({
         </div>
       </div>
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        Créer la facture
-      </button>
+      <FormFooter
+        loading={loading}
+        label="Créer la facture"
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

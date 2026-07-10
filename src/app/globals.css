@@ -12,6 +12,31 @@
   --lama-yellow-light: 249 240 181;
 }
 
+/* S21 — formulaires « Registre » : panneau latéral + en-tête thème */
+@keyframes drawer-in {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to   { transform: none; opacity: 1; }
+}
+.animate-drawer-in {
+  animation: drawer-in 0.28s cubic-bezier(0.32, 0.72, 0.33, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-drawer-in { animation: none; }
+}
+/* Fond de l'en-tête : couleur principale assombrie pour rester lisible en
+   blanc, quel que soit le thème choisi (même pastel). */
+.drawer-hero-bg {
+  background: linear-gradient(
+    118deg,
+    color-mix(in srgb, rgb(var(--lama-sky)) 82%, #16161c),
+    color-mix(in srgb, rgb(var(--lama-sky)) 48%, #16161c)
+  );
+}
+/* Couleur principale assombrie pour du texte lisible sur fond clair */
+.text-theme-deep {
+  color: color-mix(in srgb, rgb(var(--lama-sky)) 55%, #1f1f24);
+}
+
 /* Emploi du temps (react-big-calendar) : événements lisibles, texte non écrasé */
 .rbc-event {
   font-size: 11px !important;

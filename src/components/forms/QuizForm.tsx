@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { quizSchema, QuizSchema } from "@/lib/formsValidationSchema";
 import { createQuiz, updateQuiz } from "@/lib/actions/quizAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const QuizForm = ({
   type,
@@ -78,11 +79,13 @@ const QuizForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouvel examen en ligne"
           : "Modifier un examen en ligne"}
-      </h1>
+        entity="Quiz"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -178,13 +181,11 @@ const QuizForm = ({
         />
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

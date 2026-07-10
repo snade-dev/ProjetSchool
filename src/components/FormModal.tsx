@@ -390,15 +390,20 @@ const FormModal = ({
 
   const [open, setOpen] = useState(false);
 
+  // Échap ferme le panneau ; le scroll de la page est gelé tant qu'il est ouvert
   useEffect(() => {
-    if (open) {
-      // document.body.style.overflow = "hidden";
-    } else {
+    if (!open) {
       document.body.style.overflow = "";
+      return;
     }
-    // Cleanup on unmount
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
@@ -414,9 +419,16 @@ const FormModal = ({
         {type === "update" && <Edit size={16} />}
         {type === "delete" && <Trash size={16} className="font-bold" />}
       </button>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%] max-h-[90vh] overflow-y-auto bg-white p-8 rounded-2xl shadow-xl shadow-gray-900/20">
+      {open && type === "delete" && (
+        // confirmation courte : petite carte centrée
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px]"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="relative w-[92%] max-w-md rounded-2xl bg-white p-8 shadow-xl shadow-gray-900/20"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Form
               table={table}
               type={type}
@@ -425,12 +437,35 @@ const FormModal = ({
               relatedData={relatedData}
               setOpen={setOpen}
             />
-            <div
-              className="absolute top-4 right-4 cursor-pointer"
+            <button
+              type="button"
+              aria-label="Fermer"
+              className="absolute top-4 right-4 cursor-pointer text-gray-400 hover:text-gray-600"
               onClick={() => setOpen(false)}
             >
               <Image src="/close.png" alt="" width={14} height={14} />
-            </div>
+            </button>
+          </div>
+        </div>
+      )}
+      {open && type !== "delete" && (
+        // S21 « Registre » : panneau latéral plein-hauteur, liste visible derrière
+        <div
+          className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="animate-drawer-in absolute right-0 top-0 h-full w-full max-w-[540px] overflow-y-auto bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Form
+              table={table}
+              type={type}
+              data={data}
+              id={id}
+              relatedData={relatedData}
+              setOpen={setOpen}
+            />
           </div>
         </div>
       )}

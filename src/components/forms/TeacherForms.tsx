@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import UploadField from "../UploadField";
 import { useTransition } from "react";
+import { ChipsField, DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const TeacherForms = ({
   type,
@@ -31,10 +32,18 @@ const TeacherForms = ({
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<TeacherSchema>({
     resolver: zodResolver(teacherSchema),
+    // chips de matières : les ids sont pilotés via setValue (S21)
+    defaultValues: {
+      subjects: data?.subjects?.map((s: any) => String(s.id ?? s)) ?? [],
+    },
   });
+
+  const subjectValues = ((watch("subjects") as string[] | undefined) ?? []).map(String);
 
   const [loading, setLoading] = useState(false); // Ajout de l'état local "loading"
   const [imgUrl, setImgUrl] = useState<string | undefined>(data?.img);
@@ -73,14 +82,16 @@ const TeacherForms = ({
 
   return (
     <form className=" flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouveau Professeur"
           : "Modifier un Professeur"}
-      </h1>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Information d&apos;authentification
-      </span>
+        name={`${watch("name") ?? data?.name ?? ""} ${watch("surname") ?? data?.surname ?? ""}`}
+        code={watch("username") || data?.username}
+        entity="Enseignant"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentification</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="nom d'utlisateur"
@@ -106,9 +117,7 @@ const TeacherForms = ({
           error={errors.password}
         />
       </div>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Information personnel
-      </span>
+      <FormSection>Information personnel</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         {data && (
           <InputField
@@ -163,26 +172,24 @@ const TeacherForms = ({
           error={errors.birthday}
           type="date"
         />
-        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
-          <label className="text-xs font-medium text-gray-500">Sujet</label>
-          <select
-            multiple
-            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
-            {...register("subjects")}
-            defaultValue={data?.subjects}
-          >
-            {subjects.map((subject: { id: string; name: string }) => (
-              <option key={subject.id} value={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          {errors.subjects?.message && (
-            <p className=" text-red-400 text-xs">
-              {errors.subjects?.message.toString()}
-            </p>
-          )}
-        </div>
+        <ChipsField
+          label="Matières enseignées"
+          options={subjects.map((subject: { id: string; name: string }) => ({
+            value: String(subject.id),
+            label: subject.name,
+          }))}
+          values={subjectValues}
+          onToggle={(v) =>
+            setValue(
+              "subjects",
+              subjectValues.includes(v)
+                ? subjectValues.filter((x) => x !== v)
+                : [...subjectValues, v],
+              { shouldValidate: true }
+            )
+          }
+          error={errors.subjects?.message?.toString()}
+        />
         <div className="flex flex-col gap-1.5 w-full md:w-1/4">
           <label className="text-xs font-medium text-gray-500">Sex</label>
           <select
@@ -213,13 +220,11 @@ const TeacherForms = ({
         </span>
       )}
 
-      <button
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-        type="submit"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

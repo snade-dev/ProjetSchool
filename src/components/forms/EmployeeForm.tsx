@@ -14,6 +14,7 @@ import {
 import { employeeSchema, EmployeeSchema } from "@/lib/formsValidationSchema";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 import {
   createEmployee,
   updateEmployee,
@@ -125,11 +126,13 @@ const EmployeeForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Enregistrer un employé"
           : "Modifier un employé"}
-      </h1>
+        entity="Employé"
+        onClose={() => setOpen(false)}
+      />
 
       {/* Toggle : lier à un enseignant existant (création uniquement) */}
       {type === "create" && (
@@ -261,13 +264,11 @@ const EmployeeForm = ({
         </span>
       )}
 
-      <button
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-        type="submit"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

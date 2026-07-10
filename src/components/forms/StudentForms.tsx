@@ -16,6 +16,7 @@ import { toast } from "react-toastify";
 import UploadField from "../UploadField";
 import { studentSchema, StudentSchema } from "@/lib/formsValidationSchema";
 import { createStudent, updateStudent } from "@/lib/actions";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const StudentForm = ({
   type,
@@ -31,6 +32,7 @@ const StudentForm = ({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<StudentSchema>({
     resolver: zodResolver(studentSchema),
@@ -74,14 +76,16 @@ const StudentForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouvel étudiant"
           : "Modifier un étudiant"}
-      </h1>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Information d&apos;authentication
-      </span>
+        name={`${watch("name") ?? data?.name ?? ""} ${watch("surname") ?? data?.surname ?? ""}`}
+        code={watch("username") || data?.username}
+        entity="Élève"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentication</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Nom d'utilisateur"
@@ -106,9 +110,7 @@ const StudentForm = ({
           error={errors?.password}
         />
       </div>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Personal Information
-      </span>
+      <FormSection>Personal Information</FormSection>
       <UploadField
         label="Téléverser une photo"
         value={imgUrl}
@@ -225,13 +227,11 @@ const StudentForm = ({
           {state.message ? state.message : "Une erreur c&apos;est produit"}
         </span>
       )}
-      <button
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-        disabled={loading}
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

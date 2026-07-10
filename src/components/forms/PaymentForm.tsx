@@ -17,6 +17,7 @@ import {
 } from "@/lib/formsValidationSchema";
 import { createPayment } from "@/lib/actions/paymentAction";
 import { formatFCFA, PAYMENT_METHOD_LABELS } from "@/lib/finance";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"] as const;
 
@@ -81,7 +82,11 @@ const PaymentForm = ({
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">Encaisser un paiement</h1>
+      <DrawerHeader
+        title="Encaisser un paiement"
+        entity="Paiement"
+        onClose={() => setOpen(false)}
+      />
 
       <input type="hidden" {...register("invoiceId")} />
 
@@ -165,13 +170,11 @@ const PaymentForm = ({
         <p className="text-sm font-medium text-red-500">{errorMsg}</p>
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {loading ? "Enregistrement…" : "Enregistrer le paiement"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={loading ? "Enregistrement…" : "Enregistrer le paiement"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

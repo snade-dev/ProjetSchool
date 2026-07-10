@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { resultMSchema, ResultMSchema } from "@/lib/formsValidationSchema";
 import { createAverage, updateAverage } from "@/lib/actions/averageAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const AverageForm = ({
   type,
@@ -70,11 +71,13 @@ const AverageForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer une nouvelle moyenne"
           : "Modifier la moyenne"}
-      </h1>
+        entity="Moyenne"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
@@ -129,13 +132,11 @@ const AverageForm = ({
         </span>
       )}
 
-      <button
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-        type="submit"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

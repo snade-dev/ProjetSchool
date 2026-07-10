@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { createExpense, updateExpense } from "@/lib/actions/expenseAction";
 import UploadField from "../UploadField";
 import { PAYMENT_METHOD_LABELS } from "@/lib/finance";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"] as const;
 
@@ -77,11 +78,13 @@ const ExpenseForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Enregistrer une dépense"
           : "Modifier une dépense"}
-      </h1>
+        entity="Dépense"
+        onClose={() => setOpen(false)}
+      />
 
       <div className="flex justify-between flex-wrap gap-4">
         {data && (
@@ -201,13 +204,11 @@ const ExpenseForm = ({
         </span>
       )}
 
-      <button
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-        type="submit"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

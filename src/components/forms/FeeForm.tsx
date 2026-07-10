@@ -18,6 +18,7 @@ import {
   FeeStructureSchema,
 } from "@/lib/formsValidationSchema";
 import { createFee, updateFee } from "@/lib/actions/feeAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const FeeForm = ({
   type,
@@ -76,12 +77,12 @@ const FeeForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create" ? "Ajouter un frais" : "Modifier un frais"}
-      </h1>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Informations du frais
-      </span>
+      <DrawerHeader
+        title={type === "create" ? "Ajouter un frais" : "Modifier un frais"}
+        entity="Frais"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Informations du frais</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Libellé"
@@ -147,13 +148,11 @@ const FeeForm = ({
         />
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };

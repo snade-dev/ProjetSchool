@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { eventSchema, EventSchema } from "@/lib/formsValidationSchema";
 import { createEvent, updateEvent } from "@/lib/actions/eventAction";
+import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const EventForm = ({
   type,
@@ -74,14 +75,14 @@ const EventForm = ({
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-bold text-gray-800">
-        {type === "create"
+      <DrawerHeader
+        title={type === "create"
           ? "Créer un nouvel évènement"
           : "Modifier un évènement"}
-      </h1>
-      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-        Information d&apos;authentication
-      </span>
+        entity="Événement"
+        onClose={() => setOpen(false)}
+      />
+      <FormSection>Information d&apos;authentication</FormSection>
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
           label="Titre de l'évènement"
@@ -153,13 +154,11 @@ const EventForm = ({
         />
       )}
 
-      <button
-        disabled={loading}
-        type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-blue-400 hover:bg-blue-500 disabled:bg-gray-300 text-white text-sm font-semibold rounded-md p-2.5 transition"
-      >
-        {type === "create" ? "Créer" : "Modifier"}
-      </button>
+      <FormFooter
+        loading={loading}
+        label={type === "create" ? "Créer" : "Modifier"}
+        onCancel={() => setOpen(false)}
+      />
     </form>
   );
 };
