@@ -6,7 +6,6 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
 import { Exam, ExamAverage, Prisma, Student } from "@/app/generated/prisma";
-import Image from "next/image";
 import { title } from "process";
 import FormContainer from "@/components/FormContainer";
 import { headers } from "next/headers";
@@ -164,12 +163,6 @@ const AverageListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
             {(role === "admin" || role === "teacher") && (
               <FormContainer table="average" type="create" />
             )}

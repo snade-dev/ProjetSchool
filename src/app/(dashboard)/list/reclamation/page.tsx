@@ -7,7 +7,6 @@ import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
 import { Complaint, Prisma, Quiz } from "@/app/generated/prisma";
 import { Eye } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { headers } from "next/headers";
 
@@ -204,12 +203,6 @@ const ReclamationListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
           </div>
         </div>
       </div>
