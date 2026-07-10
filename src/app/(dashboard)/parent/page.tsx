@@ -1,17 +1,209 @@
 import Annoucement from "@/components/Annoucement";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
+import ChildSubjectCompareChart from "@/components/stats/ChildSubjectCompareChart";
+import ChildTrendChart from "@/components/stats/ChildTrendChart";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import {
+  buildChildSuggestions,
+  getChildOverview,
+  type ChildOverview,
+  type Suggestion,
+} from "@/lib/stats/childStats";
+import { getMention } from "@/lib/setting";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Award, CheckSquare, FileText, GraduationCap } from "lucide-react";
+import {
+  AlertTriangle,
+  Award,
+  CheckCircle2,
+  CheckSquare,
+  FileText,
+  GraduationCap,
+  Lightbulb,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 
 /**
- * Espace parent (refonte) : un bloc par enfant — identité, raccourcis
- * (bulletin, résultats, présences, factures) et emploi du temps de sa classe.
+ * Espace parent : un bloc par enfant — identité et raccourcis, moyennes et
+ * rang, progression entre les semestres, comparaison par matière avec la
+ * classe, conseils dérivés des chiffres, puis emploi du temps de la classe.
  */
+
+const fmtNote = (n: number) => n.toFixed(2).replace(".", ",");
+const pct = (v: number | null) => (v == null ? "—" : `${Math.round(v * 100)} %`);
+
+function StatTile({
+  value,
+  label,
+  sub,
+  bg,
+}: {
+  value: string;
+  label: string;
+  sub?: string;
+  bg: string;
+}) {
+  return (
+    <div className={`rounded-2xl ${bg} p-4 flex-1 min-w-[130px]`}>
+      <div className="text-xl font-semibold text-gray-800">{value}</div>
+      <div className="text-xs font-medium text-gray-600">{label}</div>
+      {sub && <div className="text-[11px] text-gray-500 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+/** Badge de progression entre les deux derniers semestres notés. */
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta == null) return <span className="text-gray-400">—</span>;
+  if (Math.abs(delta) < 0.05)
+    return <span className="text-gray-600">stable</span>;
+  const up = delta > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 ${
+        up ? "text-green-700" : "text-red-600"
+      }`}
+    >
+      {up ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+      {up ? "+" : "−"}
+      {fmtNote(Math.abs(delta))} pt
+    </span>
+  );
+}
+
+const SUGGESTION_STYLE: Record<
+  Suggestion["tone"],
+  { bg: string; icon: React.ReactNode }
+> = {
+  warn: {
+    bg: "bg-red-50 text-red-800 ring-1 ring-red-100",
+    icon: <AlertTriangle size={15} className="mt-0.5 flex-none" />,
+  },
+  info: {
+    bg: "bg-lamaSkyLight/60 text-sky-900 ring-1 ring-lamaSky/40",
+    icon: <Lightbulb size={15} className="mt-0.5 flex-none" />,
+  },
+  good: {
+    bg: "bg-green-50 text-green-800 ring-1 ring-green-100",
+    icon: <CheckCircle2 size={15} className="mt-0.5 flex-none" />,
+  },
+};
+
+function ChildStats({ overview }: { overview: ChildOverview }) {
+  const { latest, delta, rank, trend, subjects, attendance } = overview;
+  const suggestions = buildChildSuggestions(overview);
+
+  return (
+    <>
+      {/* Tuiles : moyenne, rang, progression, présence */}
+      <div className="mt-4 flex flex-wrap gap-3">
+        <StatTile
+          bg="bg-lamaPurpleLight"
+          value={latest ? `${fmtNote(latest.average)} / 20` : "—"}
+          label="Moyenne générale"
+          sub={
+            latest ? `${latest.semesterName} · ${getMention(latest.average)}` : "Pas encore de note"
+          }
+        />
+        <StatTile
+          bg="bg-lamaSkyLight"
+          value={
+            rank
+              ? `${rank.rank === 1 ? "1ᵉʳ" : `${rank.rank}ᵉ`} / ${rank.of}`
+              : "—"
+          }
+          label="Rang dans la classe"
+          sub={latest?.semesterName}
+        />
+        <div className="rounded-2xl bg-lamaYellowLight p-4 flex-1 min-w-[130px]">
+          <div className="text-xl font-semibold">
+            <DeltaBadge delta={delta} />
+          </div>
+          <div className="text-xs font-medium text-gray-600">Progression</div>
+          <div className="text-[11px] text-gray-500 mt-0.5">
+            {trend.length > 1
+              ? `${trend[trend.length - 2].semesterName} → ${
+                  trend[trend.length - 1].semesterName
+                }`
+              : "Un seul semestre noté"}
+          </div>
+        </div>
+        <StatTile
+          bg="bg-green-100"
+          value={pct(attendance.rate)}
+          label="Présence"
+          sub={
+            attendance.total > 0
+              ? `${attendance.present}/${attendance.total} pointages`
+              : "Aucun pointage"
+          }
+        />
+      </div>
+
+      {/* Graphiques : évolution + comparaison matière/classe */}
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="border border-gray-100 rounded-2xl p-4 h-72 flex flex-col">
+          <h4 className="text-sm font-semibold text-gray-600 mb-2">
+            Évolution de la moyenne générale
+          </h4>
+          <div className="flex-1">
+            {trend.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                Aucune moyenne enregistrée pour l&apos;instant.
+              </p>
+            ) : (
+              <ChildTrendChart data={trend} />
+            )}
+          </div>
+        </div>
+        <div className="border border-gray-100 rounded-2xl p-4 h-72 flex flex-col">
+          <h4 className="text-sm font-semibold text-gray-600 mb-2">
+            Par matière — votre enfant face à la classe
+            {latest ? ` (${latest.semesterName})` : ""}
+          </h4>
+          <div className="flex-1">
+            {subjects.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                Aucune note par matière sur le dernier semestre.
+              </p>
+            ) : (
+              <ChildSubjectCompareChart
+                data={subjects.map((s) => ({
+                  subjectName: s.subjectName,
+                  enfant: s.studentAvg,
+                  classe: s.classAvg,
+                }))}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Conseils */}
+      <div className="mt-4 border border-gray-100 rounded-2xl p-4">
+        <h4 className="text-sm font-semibold text-gray-600 mb-3">
+          Conseils pour progresser
+        </h4>
+        <ul className="flex flex-col gap-2">
+          {suggestions.map((s, i) => (
+            <li
+              key={i}
+              className={`flex items-start gap-2 rounded-xl px-3 py-2.5 text-[13px] leading-relaxed ${SUGGESTION_STYLE[s.tone].bg}`}
+            >
+              {SUGGESTION_STYLE[s.tone].icon}
+              <span>{s.text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
+
 const ParentPage = async () => {
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user.role;
@@ -33,6 +225,10 @@ const ParentPage = async () => {
     },
     orderBy: { name: "asc" },
   });
+
+  const overviews = await Promise.all(
+    children.map((c) => getChildOverview(c.id, c.classId))
+  );
 
   const links = (childId: string) => [
     {
@@ -71,7 +267,7 @@ const ParentPage = async () => {
             l&apos;administration.
           </div>
         ) : (
-          children.map((child) => (
+          children.map((child, i) => (
             <div key={child.id} className="bg-white p-4 rounded-md">
               {/* Identité + raccourcis */}
               <div className="flex flex-wrap items-center gap-4">
@@ -103,6 +299,9 @@ const ParentPage = async () => {
                   ))}
                 </div>
               </div>
+
+              {/* Notes, progression, comparaison, conseils */}
+              <ChildStats overview={overviews[i]} />
 
               {/* Emploi du temps de la classe de l'enfant */}
               <div className="mt-4 h-[560px]">

@@ -56,14 +56,23 @@ type MenuEntry =
 
 const ALL = ["admin", "teacher", "student", "parent"];
 
+/** Accueil selon le rôle : le tableau de bord de chacun, pas la landing. */
+const ROLE_HOME: Record<string, string> = {
+  admin: "/admin",
+  teacher: "/teacher",
+  student: "/student",
+  parent: "/parent",
+};
+
 /**
  * Navigation regroupée par domaine (dropdowns) — refonte UI.
  * Chaque lien pointe vers une route EXISTANTE (les liens morts ont été retirés).
+ * Le href "/" est résolu au rendu vers ROLE_HOME[role].
  */
 const MENU: MenuEntry[] = [
   {
     kind: "link",
-    link: { icon: Home, label: "Accueil", href: "/", visible: ALL },
+    link: { icon: Home, label: "Tableau de bord", href: "/", visible: ALL },
   },
   {
     kind: "group",
@@ -231,10 +240,14 @@ const MenuComp = ({ role }: { role: string }) => {
       {MENU.map((entry) => {
         if (entry.kind === "link") {
           if (!entry.link.visible.includes(role)) return null;
+          const href =
+            entry.link.href === "/"
+              ? ROLE_HOME[role] ?? "/"
+              : entry.link.href;
           return (
             <LinKed
               key={entry.link.label}
-              href={entry.link.href}
+              href={href}
               label={entry.link.label}
               icon={entry.link.icon}
             />
