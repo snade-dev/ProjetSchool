@@ -7,6 +7,7 @@ import {
 } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
+import { deleteErrorMessage } from '../actionErrors';
 
 type CurrentState = {
   success: boolean;
@@ -118,10 +119,10 @@ export const deleteSchoolYear = async (
 
     revalidatePath("/settings");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     // Violation de contrainte FK (année liée à des données) → échec propre
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };
 

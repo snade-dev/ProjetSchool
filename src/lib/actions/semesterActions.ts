@@ -4,6 +4,7 @@ import { SemesterSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { revalidatePath } from "next/cache";
+import { deleteErrorMessage } from '../actionErrors';
 
 type CurrentState = {
   success: boolean;
@@ -101,8 +102,8 @@ export const deleteSemester = async (
 
     revalidatePath("/list/semester");
     return { success: true, error: false };
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(error) };
   }
 };

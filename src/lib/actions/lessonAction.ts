@@ -135,7 +135,7 @@ export const deleteLesson = async (currentState: CurrentState ,data: FormData) =
             id: id
           }
         });
-    } catch (clerkError) {
+    } catch (clerkError: any) {
         console.warn(`Utilisateur avec l'id ${id} introuvable dans Clerk. Suppression ignorée dans Clerk.`);
     }
 

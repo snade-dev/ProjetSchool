@@ -4,6 +4,7 @@ import { ResultMSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
 import { requireRole } from '../authGuard';
 import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from '../actionErrors';
 
 
 type CurrentState = {
@@ -119,8 +120,8 @@ export const createAverage = async (
 
       revalidatePath("/list/average");
       return { success: true, error: false };
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-      return { success: false, error: true };
+      return { success: false, error: true, message: deleteErrorMessage(err) };
     }
   };

@@ -10,10 +10,12 @@ import {
   InvoiceSchema,
   InvoiceLineSchema,
 } from "../formsValidationSchema";
+import { deleteErrorMessage } from "../actionErrors";
 
 type CurrentState = {
   success: boolean;
   error: boolean;
+  message?: string;
 };
 
 // Pattern CurrentState2 (déjà présent dans le repo) : action + message affichable.
@@ -185,9 +187,9 @@ export const deleteInvoiceLine = async (
 
     revalidatePath("/list/invoices");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };
 
@@ -208,16 +210,16 @@ export const deleteInvoice = async (
       where: { invoiceId: id },
     });
     if (paymentCount > 0) {
-      return { success: false, error: true };
+      return { success: false, error: true, message: "Impossible : des paiements sont rattachés à cette facture (annulez-la plutôt)." };
     }
 
     await prisma.invoice.delete({ where: { id } });
 
     revalidatePath("/list/invoices");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };
 

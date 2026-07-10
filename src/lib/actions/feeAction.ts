@@ -5,6 +5,7 @@ import { FeeStructureSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { getActiveSchoolYear } from "../schoolYear";
+import { deleteErrorMessage } from '../actionErrors';
 
 type CurrentState = {
   success: boolean;
@@ -79,9 +80,9 @@ export const deleteFee = async (
 
     revalidatePath("/list/fees");
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };
 

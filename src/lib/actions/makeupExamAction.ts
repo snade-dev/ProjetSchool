@@ -4,6 +4,7 @@ import { MakeupExamFormSchema, MakeupExamSchema, MakeupSessionSchema, makeupExam
 import prisma from '../prisma';
 import { requireRole } from '../authGuard';
 import { revalidatePath } from 'next/cache';
+import { deleteErrorMessage } from '../actionErrors';
 
 
 type CurrentState = {
@@ -108,8 +109,8 @@ export const createMakeupExam = async (
 
       revalidatePath("/list/makeupSession");
       return { success: true, error: false };
-    } catch (err) {
+    } catch (err: any) {
       console.log(err);
-      return { success: false, error: true };
+      return { success: false, error: true, message: deleteErrorMessage(err) };
     }
   };

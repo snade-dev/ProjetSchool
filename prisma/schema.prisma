@@ -265,9 +265,10 @@ model Question {
   id           String  @id @default(uuid())
   questionText String
   createdBy    String
+  // Restrict volontaire : un enseignant avec des questions ne se supprime pas
   teacher      Teacher @relation(fields: [createdBy], references: [id])
   quizId       String
-  quiz         Quiz    @relation(fields: [quizId], references: [id])
+  quiz         Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   StudentAnswer StudentAnswer[]
 }
@@ -275,17 +276,17 @@ model Question {
 model StudentAnswer {
   id          String   @id @default(uuid())
   studentId   String
-  student     Student  @relation(fields: [studentId], references: [id])
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   questionId  String
-  question    Question @relation(fields: [questionId], references: [id])
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
   answerText  String
   score       Float? // Note attribuée par l'enseignant pour cette réponse
   submittedAt DateTime @default(now())
 
   quizResultId String? // Clé étrangère vers QuizResult
-  quizResult   QuizResult? @relation(fields: [quizResultId], references: [id]) // Relation avec QuizResult
+  quizResult   QuizResult? @relation(fields: [quizResultId], references: [id], onDelete: SetNull) // Relation avec QuizResult
 
   // Contrainte pour éviter les doublons
   @@unique([studentId, quizId, questionId])
@@ -297,9 +298,9 @@ model StudentAnswer {
 model QuizResult {
   id         String  @id @default(uuid())
   studentId  String
-  student    Student @relation(fields: [studentId], references: [id])
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   quizId     String
-  quiz       Quiz    @relation(fields: [quizId], references: [id])
+  quiz       Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
   totalScore Float // Note totale sur 20 pour l'étudiant
 
   studentAnswers StudentAnswer[] // Relation avec StudentAnswer
@@ -311,8 +312,9 @@ model QuizResult {
 model ExamCorrection {
   id              String   @id @default(uuid())
   quizId          String
-  quiz            Quiz     @relation(fields: [quizId], references: [id])
+  quiz            Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   correctedBy     String
+  // Restrict volontaire : un enseignant avec des corrections ne se supprime pas
   teacher         Teacher  @relation(fields: [correctedBy], references: [id])
   anonymousReview Boolean  @default(true)
   correctionDate  DateTime @default(now())
@@ -327,11 +329,11 @@ model Complaint {
 
   // Auteur obligatoire (étudiant uniquement)
   studentId String
-  student   Student @relation(fields: [studentId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   // Cible obligatoire (quiz concerné)
   quizId String
-  quiz   Quiz   @relation(fields: [quizId], references: [id])
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
   @@index([quizId])

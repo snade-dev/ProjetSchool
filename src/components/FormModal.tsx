@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
 import { deleteLesson } from "@/lib/actions/lessonAction";
 import { deleteAnnounce } from "@/lib/actions/announceAction";
+import { deleteEvent } from "@/lib/actions/eventAction";
 import { deleteAverage } from "@/lib/actions/averageAction";
 import { deleteResult } from "@/lib/actions/resultAction";
 import { deleteAttendance } from "../lib/actions/attendanceAction";
@@ -306,17 +307,18 @@ const Form = ({
       teacher: deleteTeacher,
       student: deleteStudent,
       exam: deleteExam,
-      // TODO: OTHER DELETE ACTIONS
       parent: deleteParent,
       lesson: deleteLesson,
-      assignment: deleteSubject,
       average: deleteAverage,
       result: deleteResult,
-      event: deleteSubject,
+      // S20 : `event` pointait sur deleteSubject (supprimer un événement
+      // supprimait la MATIÈRE de même id). `assignment` et `attestation`
+      // (mappés eux aussi sur de mauvaises actions) n'ont aucune UI de
+      // suppression : retirés du map.
+      event: deleteEvent,
       announcement: deleteAnnounce,
       attendance: deleteAttendance,
       quiz: deleteQuiz,
-      attestation: deleteQuiz,
       semester:deleteSemester,
       makeupSession:deleteMakeupSession,
       schoolYear:deleteSchoolYear,

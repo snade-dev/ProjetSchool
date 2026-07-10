@@ -5,6 +5,7 @@ import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { PaymentSchema } from "../formsValidationSchema";
 import { InvoiceStatus } from "@/app/generated/prisma";
+import { deleteErrorMessage } from '../actionErrors';
 
 /**
  * Statut dérivé d'une facture après (dé)paiement — jamais fourni par le client :
@@ -28,6 +29,7 @@ const deriveInvoiceStatus = (
 type CurrentState = {
   success: boolean;
   error: boolean;
+  message?: string;
 };
 
 // Pattern CurrentState2 (déjà présent dans le repo) : action + message affichable.
@@ -168,8 +170,8 @@ export const deletePayment = async (
     revalidatePath("/list/invoices");
     revalidatePath(`/list/invoices/${invoiceId}`);
     return { success: true, error: false };
-  } catch (err) {
+  } catch (err: any) {
     console.log(err);
-    return { success: false, error: true };
+    return { success: false, error: true, message: deleteErrorMessage(err) };
   }
 };
