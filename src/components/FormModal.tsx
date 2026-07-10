@@ -285,37 +285,22 @@ const forms: {
   ),
 };
 
-const FormModal = ({
+// Form est défini au niveau module (et non dans le corps de FormModal) :
+// un composant recréé à chaque render est démonté/remonté par React,
+// ce qui détruit l'état de useActionState pendant la soumission
+// (le modal ne se fermait jamais après un update réussi).
+const Form = ({
   table,
   type,
   data,
   id,
   relatedData,
-}: FormContainerProps & { relatedData?: any }) => {
-  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
-  const bgColor =
-    type === "create"
-      ? "bg-lamaYellow"
-      : type === "update"
-      ? "bg-lamaSky"
-      : "bg-lamaPurple";
-
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      // document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  const Form = () => {
-    const deleteActionMap = {
+  setOpen,
+}: FormContainerProps & {
+  relatedData?: any;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+}) => {
+  const deleteActionMap = {
       subject: deleteSubject,
       class: deleteClass,
       teacher: deleteTeacher,
@@ -384,7 +369,36 @@ const FormModal = ({
     ) : (
       "Form not found"
     );
-  };
+};
+
+const FormModal = ({
+  table,
+  type,
+  data,
+  id,
+  relatedData,
+}: FormContainerProps & { relatedData?: any }) => {
+  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
+  const bgColor =
+    type === "create"
+      ? "bg-lamaYellow"
+      : type === "update"
+      ? "bg-lamaSky"
+      : "bg-lamaPurple";
+
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      // document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   return (
     <>
@@ -401,7 +415,14 @@ const FormModal = ({
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
           <div className="relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%] max-h-[90vh] overflow-y-auto bg-white p-6 rounded-md">
-            <Form />
+            <Form
+              table={table}
+              type={type}
+              data={data}
+              id={id}
+              relatedData={relatedData}
+              setOpen={setOpen}
+            />
             <div
               className="absolute top-4 right-4 cursor-pointer"
               onClick={() => setOpen(false)}
