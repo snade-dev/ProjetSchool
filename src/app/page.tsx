@@ -11,8 +11,8 @@ import {
   CalendarCheck,
   CalendarDays,
   Check,
-  FileText,
   GraduationCap,
+  Home,
   LayoutDashboard,
   Mail,
   MapPin,
@@ -24,8 +24,10 @@ import {
   Wallet,
 } from "lucide-react";
 
-// Landing publique : identité de l'établissement (nom, logo, thème, contact)
-// lue dans SchoolSettings ; un visiteur connecté est renvoyé vers son espace.
+// Landing publique — version « Produit » : héros centré, aperçu du tableau de
+// bord en vitrine, fonctionnalités en bento grid. Identité (nom, logo, thème,
+// contact) lue dans SchoolSettings ; un visiteur connecté est renvoyé vers son
+// espace.
 
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
@@ -34,46 +36,63 @@ const ROLE_HOME: Record<string, string> = {
   parent: "/parent",
 };
 
+// wide = carte double largeur du bento ; tint = fond pastel du thème
 const FEATURES = [
   {
     icon: GraduationCap,
     title: "Notes & bulletins",
     text: "Saisie des notes par classe, moyennes et rangs automatiques, bulletins PDF prêts à imprimer par semestre.",
-  },
-  {
-    icon: CalendarCheck,
-    title: "Présence & appel",
-    text: "L'appel se fait en un écran ; l'historique par élève, classe et jour reste consultable à tout moment.",
+    wide: true,
+    tint: "bg-lamaSkyLight",
   },
   {
     icon: Wallet,
     title: "Finance en FCFA",
     text: "Frais de scolarité, factures, encaissements, dépenses et paie du personnel — avec exports CSV.",
+    wide: true,
+    tint: "",
   },
   {
-    icon: CalendarDays,
-    title: "Emplois du temps",
-    text: "Cours, examens et événements planifiés sur un calendrier clair, visible par chaque classe.",
+    icon: CalendarCheck,
+    title: "Présence & appel",
+    text: "L'appel se fait en un écran ; l'historique par élève, classe et jour reste consultable à tout moment.",
+    wide: false,
+    tint: "",
   },
   {
     icon: BookOpenCheck,
     title: "Quiz & examens en ligne",
-    text: "Évaluations en ligne chronométrées, correction assistée et résultats publiés directement aux élèves.",
+    text: "Évaluations chronométrées, correction assistée et résultats publiés directement aux élèves.",
+    wide: false,
+    tint: "bg-lamaYellowLight",
   },
   {
     icon: BellRing,
     title: "Annonces & événements",
-    text: "Communiquez avec toute l'école ou une classe précise : chacun voit les annonces qui le concernent.",
-  },
-  {
-    icon: MessageSquareWarning,
-    title: "Réclamations & demandes",
-    text: "Contestations de notes, demandes administratives et séances de rattrapage suivies de bout en bout.",
+    text: "Toute l'école ou une classe précise : chacun voit les annonces qui le concernent.",
+    wide: false,
+    tint: "",
   },
   {
     icon: BarChart3,
     title: "Statistiques",
     text: "Tableaux de bord finance, élèves et enseignants pour piloter l'établissement avec des chiffres à jour.",
+    wide: true,
+    tint: "bg-lamaPurpleLight",
+  },
+  {
+    icon: MessageSquareWarning,
+    title: "Réclamations & demandes",
+    text: "Contestations de notes, demandes administratives et séances de rattrapage suivies de bout en bout.",
+    wide: true,
+    tint: "",
+  },
+  {
+    icon: CalendarDays,
+    title: "Emplois du temps",
+    text: "Cours, examens et événements planifiés sur un calendrier clair, visible par chaque classe.",
+    wide: false,
+    tint: "",
   },
 ];
 
@@ -81,7 +100,8 @@ const ROLES = [
   {
     icon: ShieldCheck,
     name: "Direction",
-    text: "Pilote tout l'établissement.",
+    tagline: "Pilote tout l'établissement.",
+    tint: "bg-lamaSkyLight text-sky-900",
     points: [
       "Comptes, classes et matières",
       "Finance, paie et exports",
@@ -91,7 +111,8 @@ const ROLES = [
   {
     icon: Users,
     name: "Enseignants",
-    text: "Gèrent leurs classes au quotidien.",
+    tagline: "Gèrent leurs classes au quotidien.",
+    tint: "bg-lamaYellowLight text-yellow-900",
     points: [
       "Appel et présence",
       "Saisie des notes et quiz",
@@ -101,7 +122,8 @@ const ROLES = [
   {
     icon: GraduationCap,
     name: "Élèves",
-    text: "Suivent leur scolarité en direct.",
+    tagline: "Suivent leur scolarité en direct.",
+    tint: "bg-lamaPurpleLight text-purple-900",
     points: [
       "Notes, moyennes et bulletins",
       "Examens en ligne",
@@ -111,7 +133,8 @@ const ROLES = [
   {
     icon: LayoutDashboard,
     name: "Parents",
-    text: "Gardent un œil sur leurs enfants.",
+    tagline: "Gardent un œil sur leurs enfants.",
+    tint: "bg-gray-100 text-gray-700",
     points: [
       "Résultats et présence",
       "Frais et paiements",
@@ -154,6 +177,9 @@ const FAQ = [
   },
 ];
 
+// hauteurs du graphique décoratif de l'aperçu
+const CHART_BARS = [35, 55, 40, 70, 52, 85, 62, 90, 48, 66, 78, 58];
+
 export default async function LandingPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user.role ?? null;
@@ -166,39 +192,29 @@ export default async function LandingPage() {
     phone: string | null;
     email: string | null;
   } | null = null;
-  let counts: { students: number; teachers: number; classes: number; subjects: number } | null =
+  let counts: { students: number; teachers: number; classes: number } | null =
     null;
   try {
     school = await prisma.schoolSettings.findUnique({
       where: { id: 1 },
       select: { name: true, logo: true, address: true, phone: true, email: true },
     });
-    const [students, teachers, classes, subjects] = await Promise.all([
+    const [students, teachers, classes] = await Promise.all([
       prisma.student.count(),
       prisma.teacher.count(),
       prisma.class.count(),
-      prisma.subject.count(),
     ]);
-    counts = { students, teachers, classes, subjects };
+    counts = { students, teachers, classes };
   } catch {
     counts = null;
   }
   const schoolName = school?.name || "LS_School";
   const year = new Date().getFullYear();
 
-  const STATS = counts
-    ? [
-        { value: counts.students, label: "Élèves" },
-        { value: counts.teachers, label: "Enseignants" },
-        { value: counts.classes, label: "Classes" },
-        { value: counts.subjects, label: "Matières" },
-      ]
-    : null;
-
   const primaryCta = dashboardHref ? (
     <Link
       href={dashboardHref}
-      className="drawer-hero-bg flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+      className="drawer-hero-bg flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-gray-300/60 transition hover:brightness-110"
     >
       Ouvrir mon tableau de bord
       <ArrowRight size={16} />
@@ -207,14 +223,14 @@ export default async function LandingPage() {
     <>
       <Link
         href="/sign-in"
-        className="drawer-hero-bg flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+        className="drawer-hero-bg flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-gray-300/60 transition hover:brightness-110"
       >
         Se connecter
         <ArrowRight size={16} />
       </Link>
       <Link
         href="/sign-up"
-        className="rounded-xl border-[1.5px] border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300"
+        className="rounded-xl border-[1.5px] border-gray-200 bg-white px-7 py-3.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300"
       >
         Créer un compte
       </Link>
@@ -222,9 +238,9 @@ export default async function LandingPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#F7F8FA] text-gray-800">
+    <main className="min-h-screen bg-white text-gray-800">
       {/* ---------- barre de navigation ---------- */}
-      <header className="sticky top-0 z-20 border-b border-gray-100/80 bg-[#F7F8FA]/85 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-gray-100 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <Image
@@ -263,7 +279,7 @@ export default async function LandingPage() {
               <>
                 <Link
                   href="/sign-in"
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-white"
+                  className="rounded-lg border-[1.5px] border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:border-gray-300"
                 >
                   Se connecter
                 </Link>
@@ -279,103 +295,123 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      {/* ---------- héros ---------- */}
-      <section className="relative mx-auto max-w-6xl overflow-hidden px-6 pb-16 pt-14">
-        {/* décor : cercles doux du design system */}
-        <div
-          aria-hidden
-          className="absolute -left-32 -top-24 h-96 w-96 rounded-full bg-lamaSkyLight opacity-60 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-lamaPurpleLight opacity-60 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="absolute left-1/3 top-1/2 h-64 w-64 rounded-full bg-lamaYellowLight opacity-40 blur-3xl"
-        />
+      {/* ---------- héros centré ---------- */}
+      <section className="mx-auto max-w-4xl px-6 pb-6 pt-20 text-center">
+        <span className="text-theme-deep mx-auto flex w-max items-center gap-1.5 rounded-full bg-lamaSkyLight px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em]">
+          <Sparkles size={13} />
+          Gestion scolaire · {schoolName}
+        </span>
+        <h1 className="mx-auto mt-7 max-w-3xl text-4xl font-extrabold leading-[1.06] tracking-tight text-gray-900 md:text-6xl">
+          La gestion de votre école,{" "}
+          <span className="drawer-hero-bg bg-clip-text text-transparent">
+            simple et complète.
+          </span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-500">
+          Élèves, enseignants, notes, bulletins, présence et finance — tout
+          votre établissement dans un seul tableau de bord, aux couleurs de
+          votre école.
+        </p>
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
+          {primaryCta}
+        </div>
+        <ul className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+          {["Bulletins PDF", "Finance en FCFA", "4 espaces par rôle"].map(
+            (item) => (
+              <li key={item} className="flex items-center gap-1.5">
+                <Check size={15} className="text-theme-deep" />
+                {item}
+              </li>
+            )
+          )}
+        </ul>
+      </section>
 
-        <div className="relative grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="flex flex-col gap-7">
-            <span className="text-theme-deep flex w-max items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] shadow-sm">
-              <Sparkles size={13} />
-              Gestion scolaire · {schoolName}
-            </span>
-            <h1 className="max-w-xl text-4xl font-bold leading-tight tracking-tight text-gray-900 md:text-5xl">
-              La gestion de votre école,
-              <br />
-              <span className="text-theme-deep">simple et complète.</span>
-            </h1>
-            <p className="max-w-lg text-lg text-gray-500">
-              Élèves, enseignants, notes, bulletins, présence et finance — tout
-              votre établissement dans un seul tableau de bord, aux couleurs de
-              votre école.
-            </p>
-            <div className="flex flex-wrap items-center gap-4">{primaryCta}</div>
-            <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500">
-              {["Bulletins PDF", "Finance en FCFA", "4 espaces par rôle"].map((item) => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <Check size={15} className="text-theme-deep" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* aperçu stylisé du tableau de bord */}
-          <div className="relative">
-            <div
-              aria-hidden
-              className="drawer-hero-bg absolute -inset-2 rounded-[28px] opacity-15 blur-xl"
-            />
-            <div className="relative rounded-3xl border border-gray-100 bg-white p-5 shadow-2xl shadow-gray-200/80">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">
-                  Aperçu du tableau de bord
-                </span>
-                <BarChart3 size={16} className="text-gray-300" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-lamaPurpleLight p-4">
-                  <div className="text-2xl font-bold text-gray-800">
-                    {counts?.students ?? 7}
+      {/* ---------- vitrine : aperçu du tableau de bord ---------- */}
+      <section className="mx-auto max-w-5xl px-6 pb-20 pt-10">
+        <div className="rounded-3xl border border-gray-100 bg-gradient-to-b from-[#f2f7fb] to-white p-4 shadow-2xl shadow-gray-200/70 sm:p-5">
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+            {/* barre de fenêtre */}
+            <div className="flex items-center gap-1.5 border-b border-gray-100 px-4 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-200" />
+              <span className="ml-3 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-300">
+                Aperçu du tableau de bord
+              </span>
+            </div>
+            <div className="grid sm:grid-cols-[160px_1fr]">
+              {/* menu latéral factice */}
+              <div
+                aria-hidden
+                className="hidden border-r border-gray-100 p-3 text-xs text-gray-500 sm:block"
+              >
+                {[
+                  { icon: Home, label: "Accueil", on: true },
+                  { icon: GraduationCap, label: "Élèves", on: false },
+                  { icon: Users, label: "Enseignants", on: false },
+                  { icon: CalendarCheck, label: "Présence", on: false },
+                  { icon: Wallet, label: "Finance", on: false },
+                  { icon: BarChart3, label: "Statistiques", on: false },
+                ].map(({ icon: Icon, label, on }) => (
+                  <div
+                    key={label}
+                    className={`mb-0.5 flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${
+                      on
+                        ? "bg-lamaSkyLight font-semibold text-gray-800"
+                        : ""
+                    }`}
+                  >
+                    <Icon size={13} />
+                    {label}
                   </div>
-                  <div className="text-xs text-gray-600">Élèves</div>
-                </div>
-                <div className="rounded-2xl bg-lamaYellowLight p-4">
-                  <div className="text-2xl font-bold text-gray-800">
-                    {counts?.teachers ?? 4}
+                ))}
+              </div>
+              {/* contenu factice avec les vrais chiffres */}
+              <div className="flex flex-col gap-3 p-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl bg-lamaSkyLight p-3.5">
+                    <div className="text-2xl font-bold text-gray-800">
+                      {counts?.students ?? 128}
+                    </div>
+                    <div className="text-xs text-gray-600">Élèves</div>
                   </div>
-                  <div className="text-xs text-gray-600">Enseignants</div>
+                  <div className="rounded-xl bg-lamaYellowLight p-3.5">
+                    <div className="text-2xl font-bold text-gray-800">
+                      {counts?.teachers ?? 14}
+                    </div>
+                    <div className="text-xs text-gray-600">Enseignants</div>
+                  </div>
+                  <div className="rounded-xl bg-lamaPurpleLight p-3.5">
+                    <div className="text-2xl font-bold text-gray-800">
+                      {counts?.classes ?? 8}
+                    </div>
+                    <div className="text-xs text-gray-600">Classes</div>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-3 rounded-2xl bg-gray-50 p-4">
-                <div className="mb-1 text-xs text-gray-500">CA encaissé (ce mois)</div>
-                <div className="text-xl font-bold text-gray-800">
-                  50 000 <span className="text-sm font-semibold text-gray-500">FCFA</span>
-                </div>
-                <div className="mt-3 flex h-16 items-end gap-1.5" aria-hidden>
-                  {[35, 55, 40, 70, 52, 85, 62, 90, 48, 66].map((h, i) => (
-                    <div
-                      key={i}
-                      style={{ height: `${h}%` }}
-                      className={`flex-1 rounded-t ${i % 2 ? "bg-lamaSkyLight" : "drawer-hero-bg opacity-80"}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-3 rounded-2xl border border-gray-100 p-3.5">
-                <FileText size={18} className="text-theme-deep flex-none" />
-                <div className="text-xs text-gray-600">
-                  Bulletin du 1<sup>er</sup> semestre —{" "}
-                  <span className="font-semibold text-gray-800">prêt à imprimer</span>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center gap-3 rounded-2xl border border-gray-100 p-3.5">
-                <CalendarCheck size={18} className="text-theme-deep flex-none" />
-                <div className="text-xs text-gray-600">
-                  Appel de la 6<sup>e</sup> A —{" "}
-                  <span className="font-semibold text-gray-800">fait ce matin</span>
+                <div className="rounded-xl border border-gray-100 p-3.5">
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <span className="text-xs text-gray-500">
+                      CA encaissé (ce mois)
+                    </span>
+                    <span className="text-sm font-bold text-gray-800">
+                      50 000{" "}
+                      <span className="text-xs font-semibold text-gray-500">
+                        FCFA
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex h-24 items-end gap-1.5" aria-hidden>
+                    {CHART_BARS.map((h, i) => (
+                      <div
+                        key={i}
+                        style={{ height: `${h}%` }}
+                        className={`flex-1 rounded-t ${
+                          i % 2 ? "bg-lamaSky" : "drawer-hero-bg opacity-80"
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -383,24 +419,11 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ---------- chiffres de l'établissement ---------- */}
-      {STATS && (
-        <section className="mx-auto max-w-6xl px-6 pb-16">
-          <div className="grid grid-cols-2 gap-4 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm sm:grid-cols-4">
-            {STATS.map(({ value, label }) => (
-              <div key={label} className="flex flex-col items-center gap-1 py-2">
-                <span className="text-theme-deep text-3xl font-bold">{value}</span>
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ---------- fonctionnalités ---------- */}
-      <section id="fonctionnalites" className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-20">
+      {/* ---------- fonctionnalités en bento ---------- */}
+      <section
+        id="fonctionnalites"
+        className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-20"
+      >
         <div className="mb-10 max-w-2xl">
           <span className="text-theme-deep text-xs font-semibold uppercase tracking-[0.14em]">
             Fonctionnalités
@@ -413,24 +436,33 @@ export default async function LandingPage() {
             son écran — sans classeurs ni fichiers éparpillés.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {FEATURES.map(({ icon: Icon, title, text, wide, tint }) => (
             <div
               key={title}
-              className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className={`rounded-2xl p-6 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gray-200/70 ${
+                tint || "border border-gray-100 bg-white shadow-sm"
+              } ${wide ? "lg:col-span-3" : "lg:col-span-2"}`}
             >
               <span className="drawer-hero-bg mb-4 grid h-10 w-10 place-items-center rounded-xl text-white">
                 <Icon size={19} />
               </span>
-              <h3 className="mb-1.5 text-sm font-bold text-gray-800">{title}</h3>
-              <p className="text-[13px] leading-relaxed text-gray-500">{text}</p>
+              <h3 className="mb-1.5 text-sm font-bold text-gray-800">
+                {title}
+              </h3>
+              <p className="text-[13px] leading-relaxed text-gray-600">
+                {text}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ---------- un espace par rôle ---------- */}
-      <section id="espaces" className="scroll-mt-24 border-y border-gray-100 bg-white">
+      <section
+        id="espaces"
+        className="scroll-mt-24 border-y border-gray-100 bg-[#f6f9fb]"
+      >
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="mb-10 max-w-2xl">
             <span className="text-theme-deep text-xs font-semibold uppercase tracking-[0.14em]">
@@ -440,28 +472,33 @@ export default async function LandingPage() {
               Chacun voit ce qui le concerne
             </h2>
             <p className="mt-3 text-gray-500">
-              Quatre espaces distincts, un seul compte par personne : les données
-              sont partagées, les accès ne le sont pas.
+              Quatre espaces distincts, un seul compte par personne : les
+              données sont partagées, les accès ne le sont pas.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {ROLES.map(({ icon: Icon, name, text, points }) => (
+            {ROLES.map(({ icon: Icon, name, tagline, tint, points }) => (
               <div
                 key={name}
-                className="flex flex-col rounded-2xl border border-gray-100 bg-[#F7F8FA] p-6"
+                className="flex flex-col rounded-2xl border border-gray-100 bg-white p-6"
               >
-                <span className="text-theme-deep mb-4 grid h-10 w-10 place-items-center rounded-xl bg-white shadow-sm">
-                  <Icon size={19} />
+                <span
+                  className={`mb-4 flex w-max items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${tint}`}
+                >
+                  <Icon size={13} />
+                  {name}
                 </span>
-                <h3 className="text-sm font-bold text-gray-800">{name}</h3>
-                <p className="mb-4 mt-1 text-[13px] text-gray-500">{text}</p>
+                <p className="mb-4 text-[13px] text-gray-500">{tagline}</p>
                 <ul className="mt-auto flex flex-col gap-2">
                   {points.map((point) => (
                     <li
                       key={point}
                       className="flex items-start gap-1.5 text-[13px] text-gray-600"
                     >
-                      <Check size={14} className="text-theme-deep mt-0.5 flex-none" />
+                      <Check
+                        size={14}
+                        className="text-theme-deep mt-0.5 flex-none"
+                      />
                       {point}
                     </li>
                   ))}
@@ -473,7 +510,10 @@ export default async function LandingPage() {
       </section>
 
       {/* ---------- comment démarrer ---------- */}
-      <section id="demarrer" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20">
+      <section
+        id="demarrer"
+        className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20"
+      >
         <div className="mb-10 max-w-2xl">
           <span className="text-theme-deep text-xs font-semibold uppercase tracking-[0.14em]">
             Démarrer
@@ -491,15 +531,19 @@ export default async function LandingPage() {
               <span className="drawer-hero-bg mb-4 grid h-9 w-9 place-items-center rounded-full text-sm font-bold text-white">
                 {i + 1}
               </span>
-              <h3 className="mb-1.5 text-sm font-bold text-gray-800">{title}</h3>
-              <p className="text-[13px] leading-relaxed text-gray-500">{text}</p>
+              <h3 className="mb-1.5 text-sm font-bold text-gray-800">
+                {title}
+              </h3>
+              <p className="text-[13px] leading-relaxed text-gray-500">
+                {text}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ---------- FAQ ---------- */}
-      <section id="faq" className="border-y border-gray-100 bg-white">
+      <section id="faq" className="border-y border-gray-100 bg-[#f6f9fb]">
         <div className="mx-auto max-w-3xl scroll-mt-24 px-6 py-20">
           <div className="mb-10 text-center">
             <span className="text-theme-deep text-xs font-semibold uppercase tracking-[0.14em]">
@@ -513,7 +557,7 @@ export default async function LandingPage() {
             {FAQ.map(({ q, a }) => (
               <details
                 key={q}
-                className="group rounded-2xl border border-gray-100 bg-[#F7F8FA] px-6 py-4 open:bg-white open:shadow-sm"
+                className="group rounded-2xl border border-gray-100 bg-white px-6 py-4 open:shadow-sm"
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-gray-800 [&::-webkit-details-marker]:hidden">
                   {q}
@@ -521,7 +565,9 @@ export default async function LandingPage() {
                     <ArrowRight size={16} />
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-gray-500">{a}</p>
+                <p className="mt-3 text-sm leading-relaxed text-gray-500">
+                  {a}
+                </p>
               </details>
             ))}
           </div>
@@ -591,7 +637,10 @@ export default async function LandingPage() {
             </h3>
             <ul className="flex flex-col gap-2 text-sm text-gray-600">
               <li>
-                <a href="#fonctionnalites" className="transition hover:text-gray-900">
+                <a
+                  href="#fonctionnalites"
+                  className="transition hover:text-gray-900"
+                >
                   Fonctionnalités
                 </a>
               </li>
