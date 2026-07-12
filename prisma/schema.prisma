@@ -626,6 +626,7 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   expenseCategories ExpenseCategory[]
   feeStructures     FeeStructure[]
   quizzes           Quiz[]
+  subscription      SchoolSubscription? // V05
 
   @@map("SchoolSettings")
 }
@@ -788,4 +789,53 @@ model SalaryPayment {
   schoolYearId Int
   schoolYear   SchoolYear    @relation(fields: [schoolYearId], references: [id])
   @@unique([employeeId, month, year])
+}
+
+// ---------------------------------------------------------------------------
+// V05 — Abonnements SaaS : les écoles paient pour utiliser la plateforme.
+// Encaissement MANUEL (espèces, Orange Money, virement) par le superadmin.
+// ---------------------------------------------------------------------------
+
+model SubscriptionPlan {
+  id           Int     @id @default(autoincrement())
+  name         String  @unique          // « Essentiel », « Premium »…
+  priceMonthly Int                      // FCFA / mois (entiers, H01)
+  maxStudents  Int?                     // plafond d'élèves (null = illimité)
+  active       Boolean @default(true)   // un plan coupé n'est plus proposable
+  createdAt    DateTime @default(now())
+
+  subscriptions SchoolSubscription[]
+}
+
+enum SubscriptionStatus {
+  TRIAL      // essai gratuit (jusqu'à trialEndsAt)
+  ACTIVE     // payé (paidUntil dans le futur)
+  PAST_DUE   // échu depuis moins de 15 jours (grâce)
+  SUSPENDED  // échu au-delà de la grâce → blocage (V06)
+}
+
+model SchoolSubscription {
+  id          Int                @id @default(autoincrement())
+  schoolId    Int                @unique
+  school      School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  planId      Int
+  plan        SubscriptionPlan   @relation(fields: [planId], references: [id])
+  status      SubscriptionStatus @default(TRIAL)
+  trialEndsAt DateTime?          // fin d'essai (attribution initiale : +30 j)
+  paidUntil   DateTime?          // couvert jusqu'à cette date par les paiements
+  createdAt   DateTime           @default(now())
+
+  payments SubscriptionPayment[]
+}
+
+model SubscriptionPayment {
+  id             Int                @id @default(autoincrement())
+  subscriptionId Int
+  subscription   SchoolSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount         Int                // FCFA réellement reçus
+  months         Int                // nombre de mois couverts
+  method         String             // CASH / ORANGE_MONEY / BANK_TRANSFER…
+  reference      String?            // n° de transaction / reçu
+  note           String?
+  paidAt         DateTime           @default(now())
 }
