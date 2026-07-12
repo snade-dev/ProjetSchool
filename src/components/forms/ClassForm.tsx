@@ -100,6 +100,25 @@ const ClassForm = ({
             hidden
           />
         )}
+        {/* V01 — régime d'évaluation : détermine les périodes (notes, bulletins) */}
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">
+            Régime d&apos;évaluation
+          </label>
+          <select
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
+            {...register("evaluationSystem")}
+            defaultValue={data?.evaluationSystem ?? "TRIMESTER"}
+          >
+            <option value="TRIMESTER">Trimestres (3 périodes/an)</option>
+            <option value="MONTHLY">Compositions mensuelles</option>
+          </select>
+          {errors.evaluationSystem?.message && (
+            <p className="text-xs text-red-400 font-bold">
+              {errors.evaluationSystem.message.toString()}
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-1.5 w-full md:w-1/4">
           <label className="text-xs font-medium text-gray-500">Superviseur</label>
           <select

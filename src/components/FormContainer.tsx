@@ -72,10 +72,16 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           where: {
             ...(role === "teacher" ? { teacherId: currentUserID! } : {}),
           },
-          select: { id: true, name: true },
+          // V01 — le régime de la classe de la leçon filtre les périodes du formulaire
+          select: {
+            id: true,
+            name: true,
+            class: { select: { evaluationSystem: true } },
+          },
         });
         const examSemester = await prisma.semester.findMany({
-          select: { id: true, name: true },
+          select: { id: true, name: true, system: true },
+          orderBy: [{ system: "asc" }, { order: "asc" }],
         });
 
         relatedData = { lessons: examLessons, semesters: examSemester };

@@ -133,9 +133,21 @@ export default async function StudentStatsPage(props: {
     });
   }
 
+  // V01 — les périodes proposées suivent le régime de la classe affichée.
+  // La classe effective est résolue plus bas ; on la pré-résout ici pour filtrer.
+  const preClassId = searchParams.classId
+    ? parseInt(searchParams.classId)
+    : classOptions[0]?.id;
+  const preClass = preClassId
+    ? await prisma.class.findUnique({
+        where: { id: preClassId },
+        select: { evaluationSystem: true },
+      })
+    : null;
   const semesters = await prisma.semester.findMany({
+    where: preClass ? { system: preClass.evaluationSystem } : {},
     select: { id: true, name: true },
-    orderBy: { id: "asc" },
+    orderBy: [{ system: "asc" }, { order: "asc" }],
   });
 
   // Aucune donnée de base : sortie propre.

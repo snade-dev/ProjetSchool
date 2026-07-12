@@ -59,11 +59,13 @@ const SingleStudentPage = async (props: {
     return notFound();
   }
 
-  // S13 — Bulletin : semestre sélectionné (?semesterId=) + ReportCardData précalculé
+  // S13 — Bulletin : période sélectionnée (?semesterId=) + ReportCardData précalculé
   // côté serveur (le bouton PDF ne fait AUCUN accès DB).
+  // V01 — seules les périodes du régime de la classe de l'élève sont proposées.
   const semesters = await prisma.semester.findMany({
+    where: { system: student.class.evaluationSystem },
     select: { id: true, name: true },
-    orderBy: { id: "asc" },
+    orderBy: { order: "asc" },
   });
   const requestedSemesterId = searchParams.semesterId
     ? parseInt(searchParams.semesterId)

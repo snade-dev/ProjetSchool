@@ -1,4 +1,5 @@
 import FormContainer from "@/components/FormContainer";
+import GeneratePeriodsButton from "./components/GeneratePeriodsButton";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -36,8 +37,23 @@ const SemesterListPage = async (props: {
       accessor: "name",
     },
     {
+      header: "Régime",
+      accessor: "system",
+    },
+    {
+      header: "Ordre",
+      accessor: "order",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Libellé bulletin",
+      accessor: "label",
+      className: "hidden md:table-cell",
+    },
+    {
       header: "Matières",
-      accessor: "subjects", // Ajoute une colonne pour les matières
+      accessor: "subjects",
+      className: "hidden lg:table-cell",
     },
     ...(role === "admin"
       ? [
@@ -54,16 +70,24 @@ const SemesterListPage = async (props: {
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
     >
-      <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="flex items-center gap-4 p-4 font-medium">{item.name}</td>
       <td>
-        {/* Affichage des matières associées au semestre */}
-        <ul className="list-disc pl-5 text-sm">
-          {item.subjects.map((subject) => (
-            <li className="list-none" key={subject.id}>
-              {subject.name}
-            </li>
-          ))}
-        </ul>
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+            item.system === "MONTHLY"
+              ? "bg-lamaYellowLight text-yellow-800"
+              : "bg-lamaSkyLight text-sky-800"
+          }`}
+        >
+          {item.system === "MONTHLY" ? "Composition" : "Trimestre"}
+        </span>
+      </td>
+      <td className="hidden md:table-cell">{item.order}</td>
+      <td className="hidden md:table-cell text-gray-500">
+        {item.label ?? "—"}
+      </td>
+      <td className="hidden lg:table-cell text-gray-500">
+        {item.subjects.length} matière{item.subjects.length > 1 ? "s" : ""}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -110,6 +134,7 @@ const SemesterListPage = async (props: {
         exams: true, // Inclure les examens associés à ce semestre
         subjects: true, // Inclure les matières associées à ce semestre
       },
+      orderBy: [{ system: "asc" }, { order: "asc" }],
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
@@ -121,13 +146,16 @@ const SemesterListPage = async (props: {
       {/* TOP */}
       <div className="flex items-center justify-between">
         <h1 className="hidden md:block text-lg font-semibold">
-          Tous les semestres
+          Périodes d&apos;évaluation
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-4">
             {role === "admin" && (
-              <FormContainer table="semester" type="create" />
+              <>
+                <GeneratePeriodsButton />
+                <FormContainer table="semester" type="create" />
+              </>
             )}
           </div>
         </div>

@@ -98,6 +98,8 @@ model Class {
   id       Int    @id @default(autoincrement())
   name     String @unique
   capacity Int
+  // V01 — régime d'évaluation de la classe (trimestres ou compositions mensuelles)
+  evaluationSystem EvaluationSystem @default(TRIMESTER)
 
   supervisorId  String?
   supervisor    Teacher?       @relation(fields: [supervisorId], references: [id], onDelete: SetNull)
@@ -380,9 +382,19 @@ enum ComplaintStatus {
   REJECTED @map("Rejeté")
 }
 
+// V01 — régime d'évaluation : trimestres (3/an) ou compositions mensuelles.
+enum EvaluationSystem {
+  TRIMESTER
+  MONTHLY
+}
+
 model Semester {
   id       Int       @id @default(autoincrement())
   name     String    @unique
+  // V01 — « période d'évaluation » : régime + ordre chronologique + libellé bulletin
+  system   EvaluationSystem @default(TRIMESTER)
+  order    Int              @default(1)
+  label    String?
   results  Result[]
   exams    Exam[]
   subjects Subject[]

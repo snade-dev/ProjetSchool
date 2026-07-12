@@ -64,18 +64,34 @@ export default async function GradeEntryPage(props: {
     subjectOptions = subjects;
   }
 
+  const classId = searchParams.classId ? parseInt(searchParams.classId) : undefined;
+
+  // V01 — les périodes proposées suivent le régime de la classe choisie
+  // (toutes tant qu'aucune classe n'est sélectionnée).
+  const selectedClass = classId
+    ? await prisma.class.findUnique({
+        where: { id: classId },
+        select: { evaluationSystem: true },
+      })
+    : null;
   const semesters = await prisma.semester.findMany({
+    where: selectedClass ? { system: selectedClass.evaluationSystem } : {},
     select: { id: true, name: true },
-    orderBy: { id: "asc" },
+    orderBy: [{ system: "asc" }, { order: "asc" }],
   });
 
-  const classId = searchParams.classId ? parseInt(searchParams.classId) : undefined;
   const subjectId = searchParams.subjectId
     ? parseInt(searchParams.subjectId)
     : undefined;
-  const semesterId = searchParams.semesterId
+  const requestedSemesterId = searchParams.semesterId
     ? parseInt(searchParams.semesterId)
     : undefined;
+  // V01 — période d'un autre régime restée dans l'URL après changement de classe
+  const semesterId =
+    requestedSemesterId != null &&
+    semesters.some((s) => s.id === requestedSemesterId)
+      ? requestedSemesterId
+      : undefined;
 
   const allChosen = !!classId && !!subjectId && !!semesterId;
 
