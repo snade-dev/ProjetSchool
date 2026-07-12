@@ -303,9 +303,7 @@ export default async function LandingPage() {
         </span>
         <h1 className="mx-auto mt-7 max-w-3xl text-4xl font-extrabold leading-[1.06] tracking-tight text-gray-900 md:text-6xl">
           La gestion de votre école,{" "}
-          <span className="drawer-hero-bg bg-clip-text text-transparent">
-            simple et complète.
-          </span>
+          <span className="text-theme-gradient">simple et complète.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-500">
           Élèves, enseignants, notes, bulletins, présence et finance — tout

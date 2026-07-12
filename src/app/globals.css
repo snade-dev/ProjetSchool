@@ -36,6 +36,19 @@
 .text-theme-deep {
   color: color-mix(in srgb, rgb(var(--lama-sky)) 55%, #1f1f24);
 }
+/* Texte en dégradé du thème (landing). Clip déclaré APRÈS le raccourci
+   background dans la même règle : insensible à l'ordre des feuilles CSS
+   (le raccourci réinitialise background-clip, d'où le rectangle en prod). */
+.text-theme-gradient {
+  background: linear-gradient(
+    118deg,
+    color-mix(in srgb, rgb(var(--lama-sky)) 82%, #16161c),
+    color-mix(in srgb, rgb(var(--lama-sky)) 48%, #16161c)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 /* Emploi du temps (react-big-calendar) : événements lisibles, texte non écrasé */
 .rbc-event {
