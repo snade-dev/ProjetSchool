@@ -41,6 +41,9 @@ export const createSemester = async (
     await prisma.semester.create({
       data: {
         name: data.name,
+        system: data.system,
+        order: data.order,
+        label: data.label || null,
         subjects: {
           connect: data.subjects.map((id) => ({ id: Number(id) })), // Vérifier le type ici
         },
@@ -73,6 +76,9 @@ export const updateSemester = async (
       },
       data: {
         name: data.name,
+        system: data.system,
+        order: data.order,
+        label: data.label || null,
         subjects: {
           set: data.subjects.map((id) => ({ id })), // Remplace les matières
         },
@@ -84,6 +90,68 @@ export const updateSemester = async (
   } catch (error) {
     console.log(error);
     return { success: false, error: true, message: "" };
+  }
+};
+
+/**
+ * V01 — Génère les périodes manquantes d'un régime : 3 trimestres, ou les
+ * compositions mensuelles d'octobre à juin. Une période est « manquante » si
+ * aucune n'existe déjà avec le même couple (régime, ordre) ; les matières
+ * existantes sont toutes rattachées (ajustable ensuite dans le formulaire).
+ */
+export const generatePeriods = async (system: "TRIMESTER" | "MONTHLY") => {
+  const TRIMESTERS = [
+    { order: 1, name: "Trimestre 1", label: "1er trimestre" },
+    { order: 2, name: "Trimestre 2", label: "2e trimestre" },
+    { order: 3, name: "Trimestre 3", label: "3e trimestre" },
+  ];
+  const MONTHS = [
+    "octobre", "novembre", "décembre", "janvier",
+    "février", "mars", "avril", "mai", "juin",
+  ].map((m, i) => ({
+    order: i + 1,
+    name: `Composition ${m}`,
+    label: `Composition de ${m}`,
+  }));
+
+  try {
+    await requireRole(["admin"]);
+    const wanted = system === "TRIMESTER" ? TRIMESTERS : MONTHS;
+
+    const [existing, subjects] = await Promise.all([
+      prisma.semester.findMany({
+        where: { system },
+        select: { order: true },
+      }),
+      prisma.subject.findMany({ select: { id: true } }),
+    ]);
+    const taken = new Set(existing.map((s) => s.order));
+    const toCreate = wanted.filter((w) => !taken.has(w.order));
+
+    for (const w of toCreate) {
+      await prisma.semester.create({
+        data: {
+          name: w.name,
+          system,
+          order: w.order,
+          label: w.label,
+          subjects: { connect: subjects.map((s) => ({ id: s.id })) },
+        },
+      });
+    }
+
+    revalidatePath("/list/semester");
+    return {
+      success: true,
+      error: false,
+      message:
+        toCreate.length === 0
+          ? "Toutes les périodes de ce régime existent déjà."
+          : `${toCreate.length} période(s) créée(s).`,
+    };
+  } catch (error) {
+    console.error("generatePeriods:", error);
+    return { success: false, error: true, message: "Génération impossible." };
   }
 };
 

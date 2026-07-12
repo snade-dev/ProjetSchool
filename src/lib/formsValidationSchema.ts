@@ -23,6 +23,10 @@ export const classSchema = z.object({
       "La capacité de la classe est requise et doit être d'au moins 3 caractères",
   }),
   supervisorId: z.coerce.string().optional(),
+  // V01 — régime d'évaluation de la classe
+  evaluationSystem: z.enum(["TRIMESTER", "MONTHLY"], {
+    message: "Choisissez le régime d'évaluation",
+  }),
 });
 
 export type ClassSchema = z.infer<typeof classSchema>;
@@ -546,7 +550,13 @@ export type Schemas = z.infer<typeof schemas>;
 
 export const semesterSchema = z.object({
   id: z.coerce.number().optional(),
-  name: z.string().min(1, { message: "Le nom du semestre est requis !" }),
+  name: z.string().min(1, { message: "Le nom de la période est requis !" }),
+  // V01 — régime de la période + ordre chronologique + libellé bulletin
+  system: z.enum(["TRIMESTER", "MONTHLY"], {
+    message: "Choisissez le régime de la période",
+  }),
+  order: z.coerce.number().int().min(1, { message: "L'ordre doit être ≥ 1" }),
+  label: z.string().optional(),
   subjects: z
     .array(z.coerce.number()) // Assure que subjects est bien un tableau de nombres
     .min(1, { message: "Sélectionnez au moins une matière" }),

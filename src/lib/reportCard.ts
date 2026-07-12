@@ -45,7 +45,12 @@ export type ReportCardData = {
   className: string;
   /** Effectif total de la classe. */
   classSize: number;
-  semester: { id: number; name: string };
+  semester: {
+    id: number;
+    name: string;
+    /** V01 — titre complet du document selon le régime de la période. */
+    title: string;
+  };
   /** Nom de l'année scolaire active ("2025-2026"), null si aucune configurée. */
   schoolYearName: string | null;
   school: {
@@ -125,7 +130,7 @@ export async function buildClassReportCards(
     }),
     prisma.semester.findUnique({
       where: { id: semesterId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, label: true, system: true },
     }),
     prisma.schoolSettings.findUnique({ where: { id: 1 } }),
     prisma.schoolYear.findFirst({
@@ -267,7 +272,16 @@ export async function buildClassReportCards(
       },
       className: klass.name,
       classSize: klass.students.length,
-      semester: { id: semester.id, name: semester.name },
+      // V01 — titre selon le régime : « Bulletin du 1er trimestre » /
+      // « Bulletin — Composition de novembre »
+      semester: {
+        id: semester.id,
+        name: semester.label ?? semester.name,
+        title:
+          semester.system === "MONTHLY"
+            ? `Bulletin — ${semester.label ?? semester.name}`
+            : `Bulletin du ${semester.label ?? semester.name}`,
+      },
       schoolYearName: activeYear?.name ?? null,
       school: schoolData,
       subjects,

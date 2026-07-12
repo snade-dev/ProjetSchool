@@ -48,10 +48,23 @@ export default async function ResultsSection({
 
   const page = searchParams.page ? parseInt(searchParams.page) : 1;
 
-  // Récupération des données initiales pour les filtres
+  // Récupération des données initiales pour les filtres.
+  // V01 — si une classe est filtrée, seules les périodes de son régime sont proposées.
+  const filterClassId = searchParams.classId
+    ? parseInt(searchParams.classId)
+    : undefined;
+  const filterClass = filterClassId
+    ? await prisma.class.findUnique({
+        where: { id: filterClassId },
+        select: { evaluationSystem: true },
+      })
+    : null;
   const [classes, semesters, exams] = await Promise.all([
     prisma.class.findMany(),
-    prisma.semester.findMany(),
+    prisma.semester.findMany({
+      where: filterClass ? { system: filterClass.evaluationSystem } : {},
+      orderBy: [{ system: "asc" }, { order: "asc" }],
+    }),
     prisma.exam.findMany(),
   ]);
 

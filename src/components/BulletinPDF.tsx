@@ -172,7 +172,7 @@ const BulletinPDF = ({ data }: { data: ReportCardData }) => {
         </View>
 
         <Text style={styles.title}>
-          Bulletin du {data.semester.name}
+          {data.semester.title}
           {data.schoolYearName ? ` — ${data.schoolYearName}` : ""}
         </Text>
 

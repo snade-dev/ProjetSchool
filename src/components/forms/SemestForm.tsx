@@ -75,15 +75,15 @@ const SemesterForm = ({
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <DrawerHeader
         title={type === "create"
-          ? "Créer un nouveau semestre"
-          : "Modifier le semestre"}
-        entity="Semestre"
+          ? "Créer une période d'évaluation"
+          : "Modifier la période"}
+        entity="Période"
         onClose={() => setOpen(false)}
       />
 
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Nom du semestre"
+          label="Nom de la période"
           name="name"
           defaultValue={data?.name}
           register={register}
@@ -99,6 +99,36 @@ const SemesterForm = ({
             hidden
           />
         )}
+        {/* V01 — régime de la période : trimestre ou composition mensuelle */}
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Régime</label>
+          <select
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
+            {...register("system")}
+            defaultValue={data?.system ?? "TRIMESTER"}
+          >
+            <option value="TRIMESTER">Trimestre</option>
+            <option value="MONTHLY">Composition mensuelle</option>
+          </select>
+          {errors.system && (
+            <p className="text-red-400 text-xs">{errors.system.message}</p>
+          )}
+        </div>
+        <InputField
+          label="Ordre dans l'année"
+          name="order"
+          type="number"
+          defaultValue={data?.order ?? 1}
+          register={register}
+          error={errors?.order}
+        />
+        <InputField
+          label="Libellé du bulletin (optionnel)"
+          name="label"
+          defaultValue={data?.label}
+          register={register}
+          error={errors?.label}
+        />
       </div>
       <div className="flex flex-col gap-2 w-full md:w-4/4">
         <label className="text-xs font-medium text-gray-500">Matières</label>

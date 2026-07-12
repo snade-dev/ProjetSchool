@@ -31,6 +31,7 @@ const ExamForm = ({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ExamSchema>({
     resolver: zodResolver(examSchema),
@@ -67,6 +68,19 @@ const ExamForm = ({
   });
 
   const { lessons, semesters } = relatedData;
+
+  // V01 — la leçon choisie impose le régime : seules les périodes de ce régime
+  // sont proposées (toutes tant qu'aucune leçon n'est choisie).
+  const watchedLessonId = watch("lessonId") ?? data?.lessonId;
+  const selectedLesson = lessons.find(
+    (l: { id: number | string }) => String(l.id) === String(watchedLessonId)
+  );
+  const visibleSemesters = selectedLesson?.class?.evaluationSystem
+    ? semesters.filter(
+        (s: { system?: string }) =>
+          s.system === selectedLesson.class.evaluationSystem
+      )
+    : semesters;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -132,15 +146,15 @@ const ExamForm = ({
         )}
       </div>
 
-      {/* Sélection du semestre */}
+      {/* Sélection de la période (filtrée par le régime de la classe de la leçon) */}
       <div className="flex flex-col gap-1.5 w-full md:w-1/4">
-        <label className="text-xs font-medium text-gray-500">Semestre</label>
+        <label className="text-xs font-medium text-gray-500">Période</label>
         <select
           className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
           {...register("semesterId")}
           defaultValue={data?.semesters}
         >
-          {semesters?.map((semester: { id: string; name: string }) => (
+          {visibleSemesters?.map((semester: { id: string; name: string }) => (
             <option key={semester.id} value={semester.id}>
               {semester.name}
             </option>
