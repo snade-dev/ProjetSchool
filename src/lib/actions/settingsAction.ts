@@ -21,7 +21,7 @@ export const upsertSchoolSettings = async (
 ) => {
   try {
     await requireRole(["admin"]);
-    await prisma.schoolSettings.upsert({
+    await prisma.school.upsert({
       where: { id: 1 },
       update: {
         name: data.name,
@@ -38,6 +38,8 @@ export const upsertSchoolSettings = async (
       create: {
         id: 1,
         name: data.name,
+        // V02 — slug SaaS requis à la création (cas base neuve uniquement)
+        slug: `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-1`,
         address: data.address || null,
         phone: data.phone || null,
         email: data.email || null,

@@ -18,7 +18,7 @@ export default async function DasboardLayout({
   // Identité de l'établissement (logo + nom) — personnalisable dans /settings
   let school: { name: string; logo: string | null } | null = null;
   try {
-    school = await prisma.schoolSettings.findUnique({
+    school = await prisma.school.findUnique({
       where: { id: 1 },
       select: { name: true, logo: true },
     });

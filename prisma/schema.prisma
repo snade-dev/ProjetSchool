@@ -54,6 +54,10 @@ model Student {
   MakeupExam MakeupExam[]
 
   invoices Invoice[] // back-relation S03
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Teacher {
@@ -80,6 +84,10 @@ model Teacher {
   Quiz Quiz[]
 
   employee Employee? // back-relation S03 (utilisée par story 10)
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Parent {
@@ -92,6 +100,10 @@ model Parent {
   address   String
   createdAt DateTime  @default(now())
   students  Student[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Class {
@@ -113,6 +125,10 @@ model Class {
   Attendance Attendance[]
 
   feeStructures FeeStructure[] // back-relation S03
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Subject {
@@ -127,6 +143,10 @@ model Subject {
   Attendance Attendance[]
 
   MakeupExam MakeupExam[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Lesson {
@@ -228,6 +248,10 @@ model Event {
 
   classId Int?
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Announcement {
@@ -238,6 +262,10 @@ model Announcement {
 
   classId Int?
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Quiz {
@@ -261,6 +289,10 @@ model Quiz {
   ExamCorrection ExamCorrection[]
 
   Complaint Complaint[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Question {
@@ -402,6 +434,10 @@ model Semester {
   ResultAverage ResultAverage[]
 
   MakeupSession MakeupSession[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model MakeupSession {
@@ -488,6 +524,10 @@ model User {
 
   @@unique([email])
   @@map("user")
+
+  // V02 — école de rattachement (null = superadmin plateforme)
+  schoolId Int?
+  school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
 }
 
 model Session {
@@ -548,21 +588,46 @@ model SchoolYear {
   expenses        Expense[]
   feeStructures   FeeStructure[]
   salaryPayments  SalaryPayment[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
-model SchoolSettings {          // singleton (id = 1)
-  id          Int     @id       // pas de @default : on passe toujours id:1 dans l'upsert
+model School {                  // établissement (ex-singleton SchoolSettings)
+  id          Int     @id @default(autoincrement())
   name        String                  // nom de l'établissement (en-têtes PDF)
   address     String?
   phone       String?
   email       String?
-  logo        String?                 // URL Cloudinary
+  logo        String?                 // URL (upload local /uploads)
   currency    String  @default("FCFA")
   legalFooter String?                 // pied de page factures/reçus
   // Thème de l'application (hex "#RRGGBB") — null = palette par défaut
   themePrimary   String?              // couleur principale (lamaSky)
   themeSecondary String?              // couleur secondaire (lamaPurple)
   themeAccent    String?              // couleur d'accent (lamaYellow)
+  // V02 — SaaS multi-établissements
+  slug      String   @unique          // identifiant lisible (URL, support)
+  active    Boolean  @default(true)   // coupure plateforme (superadmin)
+  createdAt DateTime @default(now())
+
+  users             User[]
+  classes           Class[]
+  subjects          Subject[]
+  teachers          Teacher[]
+  students          Student[]
+  parents           Parent[]
+  schoolYears       SchoolYear[]
+  semesters         Semester[]
+  announcements     Announcement[]
+  events            Event[]
+  employees         Employee[]
+  expenseCategories ExpenseCategory[]
+  feeStructures     FeeStructure[]
+  quizzes           Quiz[]
+
+  @@map("SchoolSettings")
 }
 
 // ---- M4 Finance ----
@@ -583,6 +648,10 @@ model FeeStructure {            // grille des frais par classe et année
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   lines        InvoiceLine[]
   @@unique([classId, schoolYearId, label])
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 enum InvoiceStatus {
@@ -653,6 +722,10 @@ model ExpenseCategory {
   id       Int       @id @default(autoincrement())
   name     String    @unique          // "Fournitures", "Électricité", "Loyer"…
   expenses Expense[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Expense {
@@ -688,6 +761,10 @@ model Employee {
   baseSalary Int                       // salaire mensuel brut, FCFA
   active     Boolean   @default(true)
   salaries   SalaryPayment[]
+
+  // V02 — rattachement multi-établissements (backfill : école #1)
+  schoolId Int    @default(1)
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 enum SalaryStatus {

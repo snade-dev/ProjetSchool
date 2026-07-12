@@ -132,7 +132,7 @@ export async function buildClassReportCards(
       where: { id: semesterId },
       select: { id: true, name: true, label: true, system: true },
     }),
-    prisma.schoolSettings.findUnique({ where: { id: 1 } }),
+    prisma.school.findUnique({ where: { id: 1 } }),
     prisma.schoolYear.findFirst({
       where: { isActive: true },
       select: { name: true },

@@ -39,7 +39,7 @@ const ThemeStyle = async () => {
     themeAccent: string | null;
   } | null = null;
   try {
-    settings = await prisma.schoolSettings.findUnique({
+    settings = await prisma.school.findUnique({
       where: { id: 1 },
       select: {
         themePrimary: true,

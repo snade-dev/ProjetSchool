@@ -26,13 +26,14 @@ async function seed() {
   }
 
   // SCHOOL SETTINGS (singleton id = 1)
-  await prisma.schoolSettings.upsert({
+  await prisma.school.upsert({
     where: { id: 1 },
     update: {},
     create: {
       id: 1,
       name: "Mon Établissement",
       currency: "FCFA",
+      slug: "mon-etablissement-1", // V02 — identifiant SaaS
     },
   });
 
