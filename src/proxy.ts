@@ -21,7 +21,7 @@ type Session = typeof auth.$Infer.Session;
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/" || pathname === "/sign-in" || pathname === "/sign-up") {
+  if (pathname === "/" || pathname === "/sign-in" || pathname === "/sign-up" || pathname === "/register-school") {
     return NextResponse.next();
   }
 

@@ -30,7 +30,7 @@ const slugify = (name: string) =>
   name
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // accents
+    .replace(/[̀-ͯ]/g, "") // accents (combining marks après NFD) // accents (combining marks après NFD)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
