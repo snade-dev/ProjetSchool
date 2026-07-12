@@ -26,6 +26,7 @@ type RouteAccessMap = {
   
   export const routeAccessMap: RouteAccessMap = {
     "/platform": ["superadmin"], // V04 — espace plateforme (clé sans (.*) : le proxy matche par startsWith)
+    "/suspended": ["admin", "teacher", "student", "parent", "user", "superadmin"], // V06
     "/account(.*)": ["admin", "teacher", "student", "parent", "user"],
     "/admin(.*)": ["admin"],
     "/student(.*)": ["student"],

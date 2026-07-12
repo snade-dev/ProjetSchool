@@ -49,3 +49,52 @@ export function subscriptionDeadline(
     return sub.paidUntil > sub.trialEndsAt ? sub.paidUntil : sub.trialEndsAt;
   return sub.paidUntil ?? sub.trialEndsAt;
 }
+
+export type SchoolAccessState = {
+  /** true = accès au dashboard refusé (école coupée ou abonnement suspendu). */
+  blocked: boolean;
+  /** raison affichable sur /suspended */
+  reason: "SCHOOL_INACTIVE" | "SUBSCRIPTION_SUSPENDED" | null;
+  /** statut d'abonnement dérivé (null si l'école n'a pas d'abonnement). */
+  status: SubscriptionStatus | null;
+  /** échéance affichable (fin d'essai ou de couverture). */
+  deadline: Date | null;
+  schoolName: string | null;
+};
+
+/**
+ * V06 — état d'accès d'une école : coupée par le superadmin OU abonnement
+ * SUSPENDU → bloquée. Une école SANS abonnement n'est PAS bloquée
+ * (parc historique : le blocage ne commence qu'une fois un plan attribué).
+ */
+export async function getSchoolAccessState(
+  schoolId: number
+): Promise<SchoolAccessState> {
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { name: true, active: true, subscription: true },
+  });
+  if (!school) {
+    return { blocked: true, reason: "SCHOOL_INACTIVE", status: null, deadline: null, schoolName: null };
+  }
+  if (!school.active) {
+    return {
+      blocked: true,
+      reason: "SCHOOL_INACTIVE",
+      status: null,
+      deadline: null,
+      schoolName: school.name,
+    };
+  }
+  if (!school.subscription) {
+    return { blocked: false, reason: null, status: null, deadline: null, schoolName: school.name };
+  }
+  const status = await refreshSubscriptionStatus(school.subscription);
+  return {
+    blocked: status === "SUSPENDED",
+    reason: status === "SUSPENDED" ? "SUBSCRIPTION_SUSPENDED" : null,
+    status,
+    deadline: subscriptionDeadline(school.subscription),
+    schoolName: school.name,
+  };
+}
