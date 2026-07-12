@@ -6,6 +6,7 @@ import CategoryManager from "./components/CategoryManager";
 import ExpenseFilters from "./components/ExpenseFilters";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
+import { sessionSchoolId } from "@/lib/authGuard";
 import { formatFCFA, paymentMethodLabel } from "@/lib/finance";
 import { buildExpenseWhere } from "@/lib/queryBuilders";
 import ExportCsvButton from "@/components/ExportCsvButton";
@@ -40,13 +41,14 @@ const ExpensesListPage = async (props: {
   const now = new Date();
 
   // --- Filtres (builder partagé avec l'export CSV S18) ---
-  const query: Prisma.ExpenseWhereInput = buildExpenseWhere({
-    month,
-    year,
-    categoryId,
-    search,
-    now,
-  });
+  // V03 — cloisonnement : dépenses de l'école de la session uniquement
+  const schoolId = sessionSchoolId(session);
+  const query: Prisma.ExpenseWhereInput = {
+    AND: [
+      { schoolYear: { schoolId } },
+      buildExpenseWhere({ month, year, categoryId, search, now }),
+    ],
+  };
 
   const [data, count, totalAgg, firstExpense, categories] = await Promise.all([
     prisma.expense.findMany({
@@ -62,8 +64,13 @@ const ExpensesListPage = async (props: {
       where: query,
       _sum: { amount: true },
     }),
-    prisma.expense.findFirst({ orderBy: { date: "asc" }, select: { date: true } }),
+    prisma.expense.findFirst({
+      where: { schoolYear: { schoolId } },
+      orderBy: { date: "asc" },
+      select: { date: true },
+    }),
     prisma.expenseCategory.findMany({
+      where: { schoolId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

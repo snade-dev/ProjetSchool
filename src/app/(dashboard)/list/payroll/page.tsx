@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
+import { sessionSchoolId } from "@/lib/authGuard";
 import { auth } from "@/lib/auth";
 import { formatFCFA, paymentMethodLabel } from "@/lib/finance";
 import { Employee, SalaryPayment } from "@/app/generated/prisma";
@@ -48,21 +49,23 @@ const PayrollPage = async (props: {
   const next =
     month === 12 ? { m: 1, y: year + 1 } : { m: month + 1, y: year };
 
+  // V03 — cloisonnement : paie de l'école de la session uniquement
+  const schoolId = sessionSchoolId(session);
   const [rows, settings, masseAgg, payeAgg] = await Promise.all([
     prisma.salaryPayment.findMany({
-      where: { month, year },
+      where: { month, year, employee: { schoolId } },
       include: { employee: true },
       orderBy: { employee: { surname: "asc" } },
     }),
-    prisma.school.findUnique({ where: { id: 1 } }),
+    prisma.school.findUnique({ where: { id: schoolId > 0 ? schoolId : -1 } }),
     // Masse salariale = Σ net de tous les bulletins du mois.
     prisma.salaryPayment.aggregate({
-      where: { month, year },
+      where: { month, year, employee: { schoolId } },
       _sum: { netAmount: true },
     }),
     // Payé = Σ net des bulletins PAID.
     prisma.salaryPayment.aggregate({
-      where: { month, year, status: "PAID" },
+      where: { month, year, status: "PAID", employee: { schoolId } },
       _sum: { netAmount: true },
     }),
   ]);

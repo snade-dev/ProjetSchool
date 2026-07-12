@@ -3,6 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import {
   formatFCFA,
   invoiceBalance,
@@ -49,7 +50,11 @@ const InvoiceDetailPage = async (props: {
     notFound();
   }
 
-  const settings = await prisma.school.findUnique({ where: { id: 1 } });
+  // V03 — l'école de la session (en-tête PDF)
+  const infoS = await getSessionInfo();
+  const settings = await prisma.school.findUnique({
+    where: { id: infoS?.schoolId ?? -1 },
+  });
 
   const isAdmin = role === "admin";
   const hasPayments = invoice.payments.length > 0;

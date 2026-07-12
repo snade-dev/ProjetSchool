@@ -6,7 +6,7 @@ import {
   SchoolYearSchema,
 } from "../formsValidationSchema";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { deleteErrorMessage } from '../actionErrors';
 
 type CurrentState = {
@@ -20,9 +20,9 @@ export const upsertSchoolSettings = async (
   data: SchoolSettingsSchema
 ) => {
   try {
-    await requireRole(["admin"]);
+    const { schoolId } = await requireSchool(["admin"]); // V03 — l'école de la session
     await prisma.school.upsert({
-      where: { id: 1 },
+      where: { id: schoolId },
       update: {
         name: data.name,
         address: data.address || null,
@@ -36,10 +36,10 @@ export const upsertSchoolSettings = async (
         themeAccent: data.themeAccent || null,
       },
       create: {
-        id: 1,
+        id: schoolId,
         name: data.name,
         // V02 — slug SaaS requis à la création (cas base neuve uniquement)
-        slug: `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-1`,
+        slug: `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${schoolId}`,
         address: data.address || null,
         phone: data.phone || null,
         email: data.email || null,
@@ -67,9 +67,10 @@ export const createSchoolYear = async (
   data: SchoolYearSchema
 ) => {
   try {
-    await requireRole(["admin"]);
+    const { schoolId } = await requireSchool(["admin"]); // V03
     await prisma.schoolYear.create({
       data: {
+        schoolId,
         name: data.name,
         startDate: data.startDate,
         endDate: data.endDate,
@@ -91,6 +92,11 @@ export const updateSchoolYear = async (
 ) => {
   try {
     await requireRole(["admin"]);
+    const { schoolId: sidU } = await requireSchool(["admin"]);
+    const ownedU = await prisma.schoolYear.findFirst({
+      where: { id: data.id, schoolId: sidU }, select: { id: true },
+    });
+    if (!ownedU) return { success: false, error: true };
     await prisma.schoolYear.update({
       where: { id: data.id },
       data: {
@@ -115,6 +121,11 @@ export const deleteSchoolYear = async (
   const id = data.get("id") as string;
   try {
     await requireRole(["admin"]);
+    const { schoolId: sidD } = await requireSchool(["admin"]);
+    const ownedD = await prisma.schoolYear.findFirst({
+      where: { id: parseInt(id), schoolId: sidD }, select: { id: true },
+    });
+    if (!ownedD) return { success: false, error: true };
     await prisma.schoolYear.delete({
       where: { id: parseInt(id) },
     });
@@ -135,9 +146,18 @@ export const activateSchoolYear = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    const { schoolId: sidA } = await requireSchool(["admin"]); // V03
+    const ownedA = await prisma.schoolYear.findFirst({
+      where: { id: parseInt(id), schoolId: sidA }, select: { id: true },
+    });
+    if (!ownedA) return { success: false, error: true };
     await requireRole(["admin"]);
     await prisma.$transaction([
-      prisma.schoolYear.updateMany({ data: { isActive: false } }),
+      // V03 — une seule année active PAR ÉCOLE
+      prisma.schoolYear.updateMany({
+        where: { schoolId: sidA },
+        data: { isActive: false },
+      }),
       prisma.schoolYear.update({
         where: { id: parseInt(id) },
         data: { isActive: true },

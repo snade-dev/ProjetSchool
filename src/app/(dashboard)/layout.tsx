@@ -1,6 +1,7 @@
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,8 +19,10 @@ export default async function DasboardLayout({
   // Identité de l'établissement (logo + nom) — personnalisable dans /settings
   let school: { name: string; logo: string | null } | null = null;
   try {
+    // V03 — l'école de la session (plus de singleton id=1)
+    const info = await getSessionInfo();
     school = await prisma.school.findUnique({
-      where: { id: 1 },
+      where: { id: info?.schoolId ?? -1 },
       select: { name: true, logo: true },
     });
   } catch {

@@ -8,6 +8,7 @@ import Annoucement from "@/components/Annoucement";
 import FinanceSummaryCards from "@/components/FinanceSummaryCards";
 import FinanceChartContainer from "@/components/FinanceChartContainer";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import { getActiveSchoolYear } from "@/lib/schoolYear";
 
 /**
@@ -39,7 +40,11 @@ const Adminpage = async ({
     prisma.attendance.groupBy({
       by: ["present"],
       _count: { _all: true },
-      where: { date: { gte: dayStart, lt: nextDay } },
+      // V03 — cloisonnement : présences de l'école de la session
+      where: {
+        date: { gte: dayStart, lt: nextDay },
+        class: { schoolId: (await getSessionInfo())?.schoolId ?? -1 },
+      },
     }),
   ]);
 

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type QuizList = Quiz & { subject: Subject } & { class: Class } & {
   StudentAnswer: { id: string; score: number | null }[];
 };
@@ -20,6 +21,8 @@ const QuizListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const currentUserId = session?.user.id;
   const role = session?.user.role;
   const { page, ...queryParams } = searchParams;
@@ -133,7 +136,7 @@ const QuizListPage = async (props: {
   // Requête vers la base de données Prisma avec filtrage conditionnel
   const [data, count] = await prisma.$transaction([
     prisma.quiz.findMany({
-      where: query,
+      where: { AND: [{ schoolId }, query] },
       include: {
         subject: { select: { name: true } },
         class: { select: { name: true } },
@@ -152,7 +155,7 @@ const QuizListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.quiz.count({ where: query }),
+    prisma.quiz.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
 
   return (

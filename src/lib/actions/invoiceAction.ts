@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { getActiveSchoolYear } from "../schoolYear";
 import { nextInvoiceReference } from "../invoiceRef";
 import {
@@ -40,7 +40,13 @@ export const createInvoice = async (
 ): Promise<CurrentState> => {
   try {
     const { userId } = await requireRole(["admin"]);
-    const activeYear = await getActiveSchoolYear();
+    // V03 — l'élève facturé doit appartenir à l'école de la session
+    const { schoolId: sidI } = await requireSchool(["admin"]);
+    const studentInSchool = await prisma.student.findFirst({
+      where: { id: data.studentId, schoolId: sidI }, select: { id: true },
+    });
+    if (!studentInSchool) return { success: false, error: true, message: "Élève introuvable dans votre établissement." };
+    const activeYear = await getActiveSchoolYear(sidI);
 
     const total = linesTotal(data.lines);
 

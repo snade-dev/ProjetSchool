@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { FeeStructureSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { getActiveSchoolYear } from "../schoolYear";
 import { deleteErrorMessage } from '../actionErrors';
 
@@ -17,11 +17,12 @@ export const createFee = async (
   data: FeeStructureSchema
 ) => {
   try {
-    await requireRole(["admin"]);
-    const activeYear = await getActiveSchoolYear();
+    const { schoolId } = await requireSchool(["admin"]); // V03
+    const activeYear = await getActiveSchoolYear(schoolId);
 
     await prisma.feeStructure.create({
       data: {
+        schoolId,
         label: data.label,
         amount: data.amount,
         period: data.period,

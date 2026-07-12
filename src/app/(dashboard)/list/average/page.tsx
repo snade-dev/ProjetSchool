@@ -10,6 +10,7 @@ import { title } from "process";
 import FormContainer from "@/components/FormContainer";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type ResultList = ExamAverage & { exam: Exam } & { student: Student };
 
 const AverageListPage = async (props: {
@@ -19,6 +20,8 @@ const AverageListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
 
   const { page, ...queryParams } = searchParams;
@@ -131,7 +134,7 @@ const AverageListPage = async (props: {
 
   const [data, count] = await prisma.$transaction([
     prisma.examAverage.findMany({
-      where: query,
+      where: { AND: [{ student: { schoolId } }, query] },
       include: {
         exam: {
           select: {
@@ -150,7 +153,7 @@ const AverageListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.examAverage.count({ where: query }),
+    prisma.examAverage.count({ where: { AND: [{ student: { schoolId } }, query] } }),
   ]);
 
   return (

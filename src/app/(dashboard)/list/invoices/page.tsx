@@ -25,6 +25,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Eye } from "lucide-react";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type InvoiceList = Invoice & {
   student: Student & { class: Class; parent: Parent };
   payments: Payment[];
@@ -35,6 +36,8 @@ const InvoicesListPage = async (props: {
 }) => {
   const searchParams = await props.searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
@@ -64,7 +67,7 @@ const InvoicesListPage = async (props: {
 
   const [data, count, grouped] = await prisma.$transaction([
     prisma.invoice.findMany({
-      where: query,
+      where: { AND: [{ student: { schoolId } }, query] },
       include: {
         student: { include: { class: true, parent: true } },
         payments: true,
@@ -73,7 +76,7 @@ const InvoicesListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.invoice.count({ where: query }),
+    prisma.invoice.count({ where: { AND: [{ student: { schoolId } }, query] } }),
     // Stat-tiles : counts + montants par statut, sur le périmètre du rôle
     prisma.invoice.groupBy({
       by: ["status"],

@@ -1,10 +1,14 @@
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 
 const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   const date = dateParam ? new Date(dateParam) : new Date();
 
+  // V03 — cloisonnement : événements de l'école de la session
+  const info = await getSessionInfo();
   const data = await prisma.event.findMany({
     where: {
+      schoolId: info?.schoolId ?? -1,
       startTime: {
         gte: new Date(date.setHours(0, 0, 0, 0)), // Après 00:00 de la date actuelle
         lt: new Date(date.setHours(23, 0, 0, 0)), // Avant 23:00 de la date actuelle

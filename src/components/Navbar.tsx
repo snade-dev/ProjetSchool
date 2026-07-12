@@ -25,8 +25,13 @@ const Navbar = async () => {
   // Badge réel : annonces des 7 derniers jours.
   let recentAnnouncements = 0;
   try {
+    // V03 — cloisonnement : annonces de l'école de la session
+    const schoolId = (session?.user as { schoolId?: number | null })?.schoolId ?? -1;
     recentAnnouncements = await prisma.announcement.count({
-      where: { date: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) } },
+      where: {
+        schoolId,
+        date: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) },
+      },
     });
   } catch {
     recentAnnouncements = 0;

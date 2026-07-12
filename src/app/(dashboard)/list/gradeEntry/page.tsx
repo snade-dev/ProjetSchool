@@ -19,6 +19,7 @@ export default async function GradeEntryPage(props: {
   const info = await getSessionInfo();
   if (!info || !["admin", "teacher"].includes(info.role)) return notFound();
   const { userId, role } = info;
+  const schoolId = info.schoolId ?? -1; // V03 — cloisonnement
 
   // Options des selects + périmètre autorisé (teacher).
   let classOptions: Option[] = [];
@@ -52,10 +53,12 @@ export default async function GradeEntryPage(props: {
   } else {
     const [classes, subjects] = await Promise.all([
       prisma.class.findMany({
+        where: { schoolId }, // V03 — cloisonnement
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
       prisma.subject.findMany({
+        where: { schoolId }, // V03 — cloisonnement
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
@@ -69,13 +72,16 @@ export default async function GradeEntryPage(props: {
   // V01 — les périodes proposées suivent le régime de la classe choisie
   // (toutes tant qu'aucune classe n'est sélectionnée).
   const selectedClass = classId
-    ? await prisma.class.findUnique({
-        where: { id: classId },
+    ? await prisma.class.findFirst({
+        where: { id: classId, schoolId }, // V03 — la classe doit être de l'école
         select: { evaluationSystem: true },
       })
     : null;
   const semesters = await prisma.semester.findMany({
-    where: selectedClass ? { system: selectedClass.evaluationSystem } : {},
+    where: {
+      schoolId, // V03
+      ...(selectedClass ? { system: selectedClass.evaluationSystem } : {}),
+    },
     select: { id: true, name: true },
     orderBy: [{ system: "asc" }, { order: "asc" }],
   });
@@ -115,7 +121,7 @@ export default async function GradeEntryPage(props: {
   if (allChosen && !outOfScope) {
     [students, existing] = await Promise.all([
       prisma.student.findMany({
-        where: { classId },
+        where: { classId, schoolId }, // V03
         select: { id: true, name: true, surname: true, img: true },
         orderBy: [{ name: "asc" }, { surname: "asc" }],
       }),

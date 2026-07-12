@@ -2,7 +2,7 @@
 
 import { QuizSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { revalidatePath } from "next/cache";
 
 type CurrentState = {
@@ -40,8 +40,10 @@ export const createQuiz = async (
       return { success: false, error: true, message: "Accès refusé" };
     }
 
+    const { schoolId } = await requireSchool(["admin", "teacher"]); // V03
     const quiz = await prisma.quiz.create({
       data: {
+        schoolId,
         title: data.title,
         date: data.date,
         teacherId: teacher.id,

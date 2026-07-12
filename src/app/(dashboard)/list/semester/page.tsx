@@ -16,6 +16,7 @@ import {
 } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type SemesterList = Semester & {
   classes: Class[];
   results: Result[];
@@ -29,6 +30,8 @@ const SemesterListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
 
   const columns = [
@@ -128,7 +131,7 @@ const SemesterListPage = async (props: {
   // Requête vers la base de données
   const [data, count] = await prisma.$transaction([
     prisma.semester.findMany({
-      where: query,
+      where: { AND: [{ schoolId }, query] },
       include: {
         results: true, // Inclure les résultats associés à ce semestre
         exams: true, // Inclure les examens associés à ce semestre
@@ -138,7 +141,7 @@ const SemesterListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.semester.count({ where: query }),
+    prisma.semester.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
 
   return (

@@ -10,6 +10,7 @@ import { Eye } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type ComplainList = Complaint & { quiz: Quiz };
 
 const ReclamationListPage = async (props: {
@@ -19,6 +20,8 @@ const ReclamationListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const currentUserId = session?.user.id;
   const role = session?.user.role;
 
@@ -180,7 +183,7 @@ const ReclamationListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.complaint.findMany({
-      where: query,
+      where: { AND: [{ student: { schoolId } }, query] },
       include: {
         quiz: true,
       },
@@ -190,7 +193,7 @@ const ReclamationListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.complaint.count({ where: query }),
+    prisma.complaint.count({ where: { AND: [{ student: { schoolId } }, query] } }),
   ]);
 
   return (

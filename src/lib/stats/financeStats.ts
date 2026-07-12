@@ -1,5 +1,6 @@
 import "server-only";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 
 /**
  * S16 — Service d'agrégation des statistiques financières (E39 `/stats/finance`).
@@ -120,9 +121,11 @@ function buildMonthAxis(start: Date, end: Date): { key: string; label: string }[
 export async function getOutstandingTotal(schoolYearId?: number): Promise<number> {
   let yearId = schoolYearId;
   if (yearId == null) {
+    // V03 — cloisonnement : année active de l'école de la session uniquement
+    const schoolId = (await getSessionInfo())?.schoolId ?? -1;
     const active =
-      (await prisma.schoolYear.findFirst({ where: { isActive: true } })) ??
-      (await prisma.schoolYear.findFirst({ orderBy: { id: "asc" } }));
+      (await prisma.schoolYear.findFirst({ where: { isActive: true, schoolId } })) ??
+      (await prisma.schoolYear.findFirst({ where: { schoolId }, orderBy: { id: "asc" } }));
     if (!active) return 0;
     yearId = active.id;
   }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { getActiveSchoolYear } from "../schoolYear";
 import {
   ExpenseSchema,
@@ -115,10 +115,10 @@ export const createExpenseCategory = async (
   data: ExpenseCategorySchema
 ): Promise<CategoryState> => {
   try {
-    await requireRole(["admin"]);
+    const { schoolId } = await requireSchool(["admin"]); // V03
 
     await prisma.expenseCategory.create({
-      data: { name: data.name },
+      data: { name: data.name, schoolId },
     });
 
     revalidatePath("/list/expenses");

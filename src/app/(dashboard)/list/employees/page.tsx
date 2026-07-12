@@ -4,6 +4,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import EmployeeFilters from "./components/EmployeeFilters";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { formatFCFA } from "@/lib/finance";
 import { Employee, Teacher, Prisma } from "@/app/generated/prisma";
@@ -23,7 +24,9 @@ const EmployeesListPage = async (props: {
   const p = page ? parseInt(page) : 1;
 
   // --- Filtres ---
-  const query: Prisma.EmployeeWhereInput = {};
+  // V03 — cloisonnement : uniquement l'école de la session
+  const info = await getSessionInfo();
+  const query: Prisma.EmployeeWhereInput = { schoolId: info?.schoolId ?? -1 };
   const andFilters: Prisma.EmployeeWhereInput[] = [];
 
   if (search) {

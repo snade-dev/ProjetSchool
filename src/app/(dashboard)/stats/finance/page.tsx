@@ -57,6 +57,7 @@ export default async function FinanceStatsPage(props: {
   const searchParams = await props.searchParams;
 
   const years = await prisma.schoolYear.findMany({
+    where: { schoolId: info.schoolId ?? -1 }, // V03 — cloisonnement
     select: { id: true, name: true, isActive: true },
     orderBy: { startDate: "desc" },
   });

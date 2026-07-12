@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { Class, Exam, Prisma, Subject, Teacher } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type ExamList = Exam & {
   lesson: { subject: Subject; class: Class; teacher: Teacher };
 };
@@ -21,6 +22,8 @@ const ExamsSection = async ({
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
@@ -159,7 +162,7 @@ const ExamsSection = async ({
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.exam.findMany({
-      where: query,
+      where: { AND: [{ lesson: { class: { schoolId } } }, query] },
       include: {
         lesson: {
           select: {
@@ -172,7 +175,7 @@ const ExamsSection = async ({
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.exam.count({ where: query }),
+    prisma.exam.count({ where: { AND: [{ lesson: { class: { schoolId } } }, query] } }),
   ]);
 
   return (

@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import Image from "next/image";
 
 /**
@@ -14,17 +15,20 @@ const UserCard = async ({
   type: "admin" | "enseignant" | "élève" | "parent" | "employé";
   year?: string;
 }) => {
-  const modelMap: Record<string, { count: () => Promise<number> }> = {
-    admin: prisma.admin,
-    enseignant: prisma.teacher,
-    élève: prisma.student,
-    parent: prisma.parent,
-  };
+  // V03 — cloisonnement : compteurs limités à l'école de la session
+  const info = await getSessionInfo();
+  const schoolId = info?.schoolId ?? -1;
 
   const data =
     type === "employé"
-      ? await prisma.employee.count({ where: { active: true } })
-      : await modelMap[type].count();
+      ? await prisma.employee.count({ where: { active: true, schoolId } })
+      : type === "enseignant"
+      ? await prisma.teacher.count({ where: { schoolId } })
+      : type === "élève"
+      ? await prisma.student.count({ where: { schoolId } })
+      : type === "parent"
+      ? await prisma.parent.count({ where: { schoolId } })
+      : await prisma.admin.count();
 
   return (
     <div className=" rounded-2xl odd:bg-lamaPurple even:bg-lamaYellow p-4 flex-1 min-w-[130px]">
