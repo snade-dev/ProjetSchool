@@ -58,6 +58,7 @@ const ALL = ["admin", "teacher", "student", "parent"];
 
 /** Accueil selon le rôle : le tableau de bord de chacun, pas la landing. */
 const ROLE_HOME: Record<string, string> = {
+  superadmin: "/platform",
   admin: "/admin",
   teacher: "/teacher",
   student: "/student",

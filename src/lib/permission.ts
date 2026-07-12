@@ -21,6 +21,14 @@ export const admin = ac.newRole({
     ...adminAc.statements
 }); 
 
+// V04 — superadmin plateforme : mêmes pouvoirs better-auth que l'admin
+// (création de comptes) + accès exclusif à /platform via routeAccessMap.
+export const superadmin = ac.newRole({
+    project: ["create", "share", "update", "delete"],
+    ...adminAc.statements
+});
+
+
 export const teacher = ac.newRole({
      project: ["create", "update"]
 });

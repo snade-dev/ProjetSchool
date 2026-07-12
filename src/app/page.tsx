@@ -30,6 +30,7 @@ import {
 // espace.
 
 const ROLE_HOME: Record<string, string> = {
+  superadmin: "/platform",
   admin: "/admin",
   teacher: "/teacher",
   student: "/student",
