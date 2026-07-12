@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import { formatFCFA } from "@/lib/finance";
 import { getOutstandingTotal } from "@/lib/stats/financeStats";
 
@@ -22,14 +23,19 @@ const FinanceSummaryCards = async () => {
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
   );
 
+  // V03 — cloisonnement : finance de l'école de la session
+  const schoolId = (await getSessionInfo())?.schoolId ?? -1;
   const [encaisseAgg, depenseAgg, outstanding] = await Promise.all([
     prisma.payment.aggregate({
       _sum: { amount: true },
-      where: { paidAt: { gte: monthStart, lt: nextMonth } },
+      where: {
+        paidAt: { gte: monthStart, lt: nextMonth },
+        invoice: { student: { schoolId } },
+      },
     }),
     prisma.expense.aggregate({
       _sum: { amount: true },
-      where: { date: { gte: monthStart, lt: nextMonth } },
+      where: { date: { gte: monthStart, lt: nextMonth }, schoolYear: { schoolId } },
     }),
     getOutstandingTotal().catch(() => 0),
   ]);

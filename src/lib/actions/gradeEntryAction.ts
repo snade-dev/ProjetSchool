@@ -2,7 +2,7 @@
 
 import { gradeEntrySchema, GradeEntrySchema } from "../formsValidationSchema";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { revalidatePath } from "next/cache";
 
 type State = {
@@ -29,6 +29,12 @@ export async function saveGrades(
 ): Promise<State> {
   try {
     const { userId, role } = await requireRole(["admin", "teacher"]);
+  // V03 — la classe visée doit appartenir à l'école de la session
+  const { schoolId: sidG } = await requireSchool(["admin", "teacher"]);
+  const classInSchool = await prisma.class.findFirst({
+    where: { id: data.classId, schoolId: sidG }, select: { id: true },
+  });
+  if (!classInSchool) return { success: false, error: true, message: "Classe introuvable dans votre établissement." };
 
     // Validation intégrale du payload AVANT toute écriture.
     const parsed = gradeEntrySchema.safeParse(data);

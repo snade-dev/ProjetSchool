@@ -14,6 +14,7 @@ import {
 } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type LessonList = Lesson & { subject: Subject } & { class: Class } & {
   teacher: Teacher;
 };
@@ -25,6 +26,8 @@ const LessonsListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const userId = session?.user.id;
   const { page, ...queryParams } = searchParams;
@@ -108,7 +111,7 @@ const LessonsListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.lesson.findMany({
-      where: query,
+      where: { AND: [{ class: { schoolId } }, query] },
       include: {
         subject: { select: { name: true } },
         class: { select: { name: true, capacity: true } },
@@ -117,7 +120,7 @@ const LessonsListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.lesson.count({ where: query }),
+    prisma.lesson.count({ where: { AND: [{ class: { schoolId } }, query] } }),
   ]);
 
   return (

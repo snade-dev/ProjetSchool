@@ -1,6 +1,7 @@
 import Image from "next/image";
 import AttendanceChart from "./AttendanceChart";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 
 const AttendanceChartConainer = async () => {
   const today = new Date();
@@ -13,11 +14,14 @@ const AttendanceChartConainer = async () => {
 
   // console.log(dayOfWeek);
 
+  // V03 — cloisonnement : présences de l'école de la session
+  const info = await getSessionInfo();
   const resData = await prisma.attendance.findMany({
     where: {
       date: {
         gte: lastMonday,
       },
+      class: { schoolId: info?.schoolId ?? -1 },
     },
     select: {
       date: true,

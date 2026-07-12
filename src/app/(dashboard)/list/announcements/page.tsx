@@ -9,6 +9,7 @@ import { Announcement, Class, Prisma } from "@/app/generated/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type AnnouncementList = Announcement & { class: Class };
 
 const AnnouncementsListPage = async (props: {
@@ -18,6 +19,8 @@ const AnnouncementsListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
@@ -114,14 +117,14 @@ const AnnouncementsListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.announcement.findMany({
-      where: query,
+      where: { AND: [{ schoolId }, query] },
       include: {
         class: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.announcement.count({ where: query }),
+    prisma.announcement.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
 
   console.log(data);

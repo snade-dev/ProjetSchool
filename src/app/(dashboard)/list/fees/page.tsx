@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { sessionSchoolId } from "@/lib/authGuard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -47,7 +48,9 @@ const FeesPage = async () => {
     );
   }
 
+  // V03 — cloisonnement : classes de l'école de la session uniquement
   const classes = await prisma.class.findMany({
+    where: { schoolId: sessionSchoolId(session) },
     orderBy: { name: "asc" },
     include: {
       feeStructures: {

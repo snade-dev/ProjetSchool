@@ -9,6 +9,7 @@ import { Class, Prisma, Quiz, Subject, Teacher } from "@/app/generated/prisma";
 import Link from "next/link";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type createQuiz = Quiz & { class: Class } & { subject: Subject } & {
   teacher: Teacher;
 };
@@ -20,6 +21,8 @@ const QuizListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
@@ -138,7 +141,7 @@ const QuizListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.quiz.findMany({
-      where: query,
+      where: { AND: [{ schoolId }, query] },
       include: {
         class: true,
         subject: true,
@@ -150,7 +153,7 @@ const QuizListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.quiz.count({ where: query }),
+    prisma.quiz.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
 
   return (

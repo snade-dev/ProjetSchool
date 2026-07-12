@@ -57,22 +57,31 @@ export async function getTeacherStats(
   semesterId: number,
   subjectId?: number,
   sort: TeacherSortKey = "average",
-  dir: SortDir = "desc"
+  dir: SortDir = "desc",
+  /** V03 — cloisonnement : limite enseignants/classes/matières/notes à l'école. */
+  schoolId?: number
 ): Promise<TeacherStat[]> {
+  const schoolScope = schoolId != null ? { schoolId } : {};
   const [teachers, lessons, subjects, classes, results] = await Promise.all([
     prisma.teacher.findMany({
+      where: schoolScope,
       select: { id: true, name: true, surname: true, img: true },
     }),
     // UNE requête pour toutes les lessons → map enseignant → paires (subjectId, classId).
     prisma.lesson.findMany({
+      where: schoolId != null ? { class: { schoolId } } : {},
       select: { teacherId: true, subjectId: true, classId: true },
     }),
-    prisma.subject.findMany({ select: { id: true, name: true } }),
-    prisma.class.findMany({ select: { id: true, name: true } }),
+    prisma.subject.findMany({ where: schoolScope, select: { id: true, name: true } }),
+    prisma.class.findMany({ where: schoolScope, select: { id: true, name: true } }),
     // UNE requête pour les Results du semestre (croisement classe×matière requis,
     // que groupBy(["subjectId"]) ne sait pas produire) → agrégation en mémoire.
     prisma.result.findMany({
-      where: { semesterId, ...(subjectId != null ? { subjectId } : {}) },
+      where: {
+        semesterId,
+        ...(subjectId != null ? { subjectId } : {}),
+        ...(schoolId != null ? { student: { schoolId } } : {}),
+      },
       select: {
         score: true,
         classScore: true,

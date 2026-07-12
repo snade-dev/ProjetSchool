@@ -132,11 +132,20 @@ export async function buildClassReportCards(
       where: { id: semesterId },
       select: { id: true, name: true, label: true, system: true },
     }),
-    prisma.school.findUnique({ where: { id: 1 } }),
-    prisma.schoolYear.findFirst({
-      where: { isActive: true },
-      select: { name: true },
-    }),
+    // V03 — l'école du bulletin = celle de la classe (fiable même hors session)
+    prisma.class
+      .findUnique({ where: { id: classId }, select: { schoolId: true } })
+      .then((c) =>
+        prisma.school.findUnique({ where: { id: c?.schoolId ?? -1 } })
+      ),
+    prisma.class
+      .findUnique({ where: { id: classId }, select: { schoolId: true } })
+      .then((c) =>
+        prisma.schoolYear.findFirst({
+          where: { isActive: true, schoolId: c?.schoolId ?? -1 },
+          select: { name: true },
+        })
+      ),
     // TOUS les Results du couple (classe, semestre) en UNE requête (parade N+1).
     prisma.result.findMany({
       where: { semesterId, student: { classId } },

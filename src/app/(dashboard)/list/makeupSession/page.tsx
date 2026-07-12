@@ -15,6 +15,7 @@ import { Eye } from "lucide-react";
 import Link from "next/link";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type MakeupSessionList = MakeupSession & {
   subject: Subject;
   semester: Semester;
@@ -27,6 +28,8 @@ const MakeupSessionListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
@@ -152,7 +155,7 @@ const MakeupSessionListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.makeupSession.findMany({
-      where: query,
+      where: { AND: [{ semester: { schoolId } }, query] },
       include: {
         semester: true,
       },
@@ -162,7 +165,7 @@ const MakeupSessionListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.makeupSession.count({ where: query }),
+    prisma.makeupSession.count({ where: { AND: [{ semester: { schoolId } }, query] } }),
   ]);
 
   return (

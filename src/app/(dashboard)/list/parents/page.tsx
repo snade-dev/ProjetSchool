@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { Parent, Prisma, Student } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type ParentList = Parent & { students: Student[] };
 
 const ParentListPage = async (props: {
@@ -17,6 +18,8 @@ const ParentListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const { page, ...queryParams } = searchParams;
 
@@ -109,14 +112,14 @@ const ParentListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.parent.findMany({
-      where: query,
+      where: { AND: [{ schoolId }, query] },
       include: {
         students: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.parent.count({ where: query }),
+    prisma.parent.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
 
   return (

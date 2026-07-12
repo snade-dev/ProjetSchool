@@ -128,6 +128,7 @@ export default async function StudentStatsPage(props: {
       .sort((a, b) => a.name.localeCompare(b.name, "fr"));
   } else {
     classOptions = await prisma.class.findMany({
+      where: { schoolId: info.schoolId ?? -1 }, // V03 — cloisonnement
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });

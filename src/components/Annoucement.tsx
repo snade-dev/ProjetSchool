@@ -15,9 +15,12 @@ const Announcement = async () => {
     parent: { students: { some: { parentId: userId! } } },
   };
 
+  // V03 — cloisonnement : annonces de l'école de la session
+  const schoolId = (session?.user as { schoolId?: number | null })?.schoolId ?? -1;
   const data = await prisma.announcement.findMany({
     take: 3,
     orderBy: { date: "desc" },
+    where: { schoolId },
     // where: {
     //   ...(role !== "admin" && {
     //     OR: [

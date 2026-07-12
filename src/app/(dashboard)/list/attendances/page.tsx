@@ -18,6 +18,7 @@ import { ClipboardCheck, Pencil } from "lucide-react";
 import { headers } from "next/headers";
 import AttendanceFilters from "@/components/AttendanceFilters";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type AttendanceList = Attendance & { class: Class } & { student: Student } & {
   subject: Subject;
 };
@@ -29,6 +30,8 @@ const AttendanceListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const userId = session?.user.id;
 
@@ -173,7 +176,7 @@ const AttendanceListPage = async (props: {
   // Requête vers la base de données (+ classes pour le filtre)
   const [data, count, classes] = await prisma.$transaction([
     prisma.attendance.findMany({
-      where: query,
+      where: { AND: [{ class: { schoolId } }, query] },
       include: {
         student: true, // Inclure les détails de l'étudiant
         subject: true, // Inclure les détails de la leçon
@@ -183,7 +186,7 @@ const AttendanceListPage = async (props: {
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.attendance.count({ where: query }),
+    prisma.attendance.count({ where: { AND: [{ class: { schoolId } }, query] } }),
     prisma.class.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },

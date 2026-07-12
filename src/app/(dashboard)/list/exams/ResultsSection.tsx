@@ -7,6 +7,7 @@ import FormContainer from "@/components/FormContainer";
 import ClientFilters from "../results/components/ClientFilters";
 import ResultTable from "../results/components/ResultTable";
 import prisma from "@/lib/prisma";
+import { sessionSchoolId } from "@/lib/authGuard";
 import { notFound } from "next/navigation";
 import { headers } from "next/dist/server/request/headers";
 import { buildClassReportCards, ReportCardData } from "@/lib/reportCard";
@@ -41,6 +42,7 @@ export default async function ResultsSection({
   });
   const role = session?.user.role;
   const userId = session?.user.id;
+  const schoolId = sessionSchoolId(session); // V03 — cloisonnement
 
   if (!userId) {
     notFound();
@@ -60,12 +62,15 @@ export default async function ResultsSection({
       })
     : null;
   const [classes, semesters, exams] = await Promise.all([
-    prisma.class.findMany(),
+    prisma.class.findMany({ where: { schoolId } }), // V03
     prisma.semester.findMany({
-      where: filterClass ? { system: filterClass.evaluationSystem } : {},
+      where: {
+        schoolId, // V03
+        ...(filterClass ? { system: filterClass.evaluationSystem } : {}),
+      },
       orderBy: [{ system: "asc" }, { order: "asc" }],
     }),
-    prisma.exam.findMany(),
+    prisma.exam.findMany({ where: { lesson: { class: { schoolId } } } }), // V03
   ]);
 
   // Construction de la query de base
@@ -136,7 +141,7 @@ export default async function ResultsSection({
   const [data, count, averages] = await prisma.$transaction([
     prisma.result.findMany({
       where: {
-        ...query,
+        AND: [{ student: { schoolId } }, query], // V03 — cloisonnement
         examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
       },
       include: {
@@ -161,14 +166,14 @@ export default async function ResultsSection({
     }),
     prisma.result.count({
       where: {
-        ...query,
+        AND: [{ student: { schoolId } }, query], // V03 — cloisonnement
         examId: searchParams.examId ? parseInt(searchParams.examId) : undefined,
       },
     }),
     prisma.result.groupBy({
       by: ["studentId", "semesterId"],
       _avg: { score: true },
-      where: averagesQuery,
+      where: { AND: [{ student: { schoolId } }, averagesQuery] },
       orderBy: { studentId: "asc" },
     }),
   ]);

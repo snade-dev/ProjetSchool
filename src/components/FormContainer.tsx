@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { sessionSchoolId } from "@/lib/authGuard";
 import FormModal from "./FormModal";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -40,29 +41,35 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
   });
   const role = session?.user.role;
   const currentUserID = session?.user.id;
+  // V03 — cloisonnement : toutes les listes des formulaires sont de l'école de la session
+  const schoolId = sessionSchoolId(session);
   let relatedData = {};
   if (type !== "delete") {
     switch (table) {
       case "subject":
         const subjectTeachers = await prisma.teacher.findMany({
+          where: { schoolId },
           select: { id: true, name: true, surname: true },
         });
         relatedData = { teachers: subjectTeachers };
         break;
       case "class":
         const classTeachers = await prisma.teacher.findMany({
+          where: { schoolId },
           select: { id: true, name: true, surname: true },
         });
         relatedData = { teachers: classTeachers };
         break;
       case "teacher":
         const teacherSubject = await prisma.subject.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         relatedData = { subjects: teacherSubject };
         break;
       case "student":
         const studentClasses = await prisma.class.findMany({
+          where: { schoolId },
           include: { _count: { select: { students: true } } },
         });
         relatedData = { classes: studentClasses };
@@ -71,6 +78,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         const examLessons = await prisma.lesson.findMany({
           where: {
             ...(role === "teacher" ? { teacherId: currentUserID! } : {}),
+            class: { schoolId },
           },
           // V01 — le régime de la classe de la leçon filtre les périodes du formulaire
           select: {
@@ -80,6 +88,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           },
         });
         const examSemester = await prisma.semester.findMany({
+          where: { schoolId },
           select: { id: true, name: true, system: true },
           orderBy: [{ system: "asc" }, { order: "asc" }],
         });
@@ -89,6 +98,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
 
       case "announcement":
         const announceClass = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
 
@@ -96,9 +106,11 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "quiz":
         const quizClass = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         const quizSubjects = await prisma.subject.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
 
@@ -106,6 +118,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "makeupSession":
         const makeupSessionSemesters = await prisma.semester.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         relatedData = {
@@ -115,6 +128,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "event":
         const eventClass = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
 
@@ -123,18 +137,22 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
 
       case "lesson":
         const Lsubjects = await prisma.subject.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         const Lclasses = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true, capacity: true },
         });
         relatedData = { subjects: Lsubjects, classes: Lclasses };
         break;
       case "average":
         const RExam = await prisma.exam.findMany({
+          where: { lesson: { class: { schoolId } } },
           select: { id: true, title: true },
         });
         const RStudent = await prisma.student.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
 
@@ -142,15 +160,19 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "result":
         const ResultExam = await prisma.exam.findMany({
+          where: { lesson: { class: { schoolId } } },
           select: { id: true, title: true },
         });
         const ResultSubject = await prisma.subject.findMany({
+          where: { schoolId },
           select: { id: true, name: true, semesters: true },
         });
         const ResultClasses = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         const ResultSemesters = await prisma.semester.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
 
@@ -164,21 +186,26 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
 
       case "semester":
         const ResultSemester = await prisma.semester.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         const ResultSubjects = await prisma.subject.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         relatedData = { semesters: ResultSemester, subjects: ResultSubjects };
         break;
       case "attendance":
         const AttendanceStudent = await prisma.student.findMany({
+          where: { schoolId },
           select: { id: true, name: true, surname: true, username: true },
         });
         const AttendanceSubject = await prisma.subject.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         const AttendanceClass = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
 
@@ -193,12 +220,14 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "fee":
         const feeClasses = await prisma.class.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
         });
         relatedData = { classes: feeClasses };
         break;
       case "invoice":
         const invoiceStudents = await prisma.student.findMany({
+          where: { schoolId },
           select: {
             id: true,
             name: true,
@@ -211,6 +240,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "expense":
         const expenseCategories = await prisma.expenseCategory.findMany({
+          where: { schoolId },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         });
@@ -222,6 +252,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         // pour que le <select> verrouillé affiche son nom.
         const freeTeachers = await prisma.teacher.findMany({
           where: {
+            schoolId,
             OR: [
               { employee: null },
               ...(data?.teacherId ? [{ id: data.teacherId }] : []),

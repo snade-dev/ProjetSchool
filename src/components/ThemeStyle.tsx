@@ -1,5 +1,6 @@
 import { connection } from "next/server";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 
 /**
  * Thème d'établissement : lit les couleurs de SchoolSettings et surcharge les
@@ -39,8 +40,10 @@ const ThemeStyle = async () => {
     themeAccent: string | null;
   } | null = null;
   try {
+    // V03 — thème de l'école de la session ; visiteur anonyme → école 1 (vitrine)
+    const info = await getSessionInfo().catch(() => null);
     settings = await prisma.school.findUnique({
-      where: { id: 1 },
+      where: { id: info?.schoolId ?? 1 },
       select: {
         themePrimary: true,
         themeSecondary: true,

@@ -2,7 +2,7 @@
 
 import { AnnounceSchema, EventSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
-import { requireRole } from '../authGuard';
+import { requireRole, requireSchool } from "../authGuard";
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from '../actionErrors';
 
@@ -24,10 +24,11 @@ export const createEvent = async (
     data: EventSchema
   ) => {
     try {
-      await requireRole(["admin"]);
+      const { schoolId } = await requireSchool(["admin"]); // V03
 
       await prisma.event.create({
         data: {
+          schoolId,
           title: data.title,
           description: "",
           startTime:data.startTime,

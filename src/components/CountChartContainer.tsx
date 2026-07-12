@@ -1,11 +1,15 @@
 import Image from "next/image";
 import CountChart from "./CountChart";
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 
 const CountChartContainer = async () => {
 
+    // V03 — cloisonnement : élèves de l'école de la session
+    const info = await getSessionInfo();
     const data = await prisma.student.groupBy({
         by: ["sex"],
+        where: { schoolId: info?.schoolId ?? -1 },
         _count: true
     })
 

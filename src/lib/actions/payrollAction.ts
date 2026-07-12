@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { getActiveSchoolYear } from "../schoolYear";
 import {
   payrollGenerateSchema,
@@ -48,8 +48,10 @@ export const generatePayroll = async (
 
     // Employés actifs uniquement : les désactivés sont exclus des générations
     // futures (leurs paies passées restent, cf. fiche).
+    // V03 — cloisonnement : employés de l'école de la session uniquement
+    const { schoolId: sidPay } = await requireSchool(["admin"]);
     const employees = await prisma.employee.findMany({
-      where: { active: true },
+      where: { active: true, schoolId: sidPay },
       select: { id: true, baseSalary: true },
     });
 

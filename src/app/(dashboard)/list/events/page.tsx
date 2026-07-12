@@ -9,6 +9,7 @@ import { auth } from "@/lib/auth";
 import { Class, Event, Prisma } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
+import { sessionSchoolId } from "@/lib/authGuard";
 type EventList = Event & { class: Class };
 
 const EventListPage = async (props: {
@@ -18,6 +19,8 @@ const EventListPage = async (props: {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  // V03 — cloisonnement : uniquement l'école de la session
+  const schoolId = sessionSchoolId(session);
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
@@ -136,14 +139,14 @@ const EventListPage = async (props: {
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.event.findMany({
-      where: query,
+      where: { AND: [{ schoolId }, query] },
       include: {
         class: true,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.event.count({ where: query }),
+    prisma.event.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
 
   return (

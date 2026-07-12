@@ -95,6 +95,7 @@ export default async function TeacherStatsPage(props: {
 
   const [semesters, subjects] = await Promise.all([
     prisma.semester.findMany({
+      where: { schoolId: info.schoolId ?? -1 }, // V03 — cloisonnement
       select: { id: true, name: true },
       orderBy: { id: "asc" },
     }) as Promise<Option[]>,
@@ -136,7 +137,7 @@ export default async function TeacherStatsPage(props: {
     searchParams.sort === "successRate" ? "successRate" : "average";
   const dir: SortDir = searchParams.dir === "asc" ? "asc" : "desc";
 
-  const stats = await getTeacherStats(semesterId, subjectId, sort, dir);
+  const stats = await getTeacherStats(semesterId, subjectId, sort, dir, info.schoolId ?? -1);
 
   const chartData = stats
     .filter((t): t is TeacherStat & { average: number } => t.average != null)

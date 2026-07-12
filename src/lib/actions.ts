@@ -3,7 +3,7 @@
 import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } from './formsValidationSchema';
 import { createAuthUser, removeAuthUser, setAuthUserPassword } from './authAdmin';
 import prisma from './prisma';
-import { requireRole } from './authGuard';
+import { requireRole, requireSchool } from './authGuard';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from './actionErrors';
 
@@ -21,9 +21,11 @@ type CurrentState2 = {
 // SUBJECT
 export const createSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
-        await requireRole(["admin"]);
+        // V03 — création rattachée à l'école de la session
+        const { schoolId } = await requireSchool(["admin"]);
         await prisma.subject.create({
           data: {
+            schoolId,
             name: data.name,
             teachers: {
               connect: data.teachers.map((teacherId) => ({ id: teacherId}))
@@ -43,7 +45,12 @@ export const createSubject = async (currentState: CurrentState ,data: SubjectSch
 
 export const updateSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
-        await requireRole(["admin"]);
+        const { schoolId } = await requireSchool(["admin"]);
+        // V03 — la matière doit appartenir à l'école de la session
+        const owned = await prisma.subject.findFirst({
+          where: { id: data.id, schoolId }, select: { id: true },
+        });
+        if (!owned) return { success: false, error: true };
         await prisma.subject.update({
           where: {
             id: data.id
@@ -68,7 +75,12 @@ export const updateSubject = async (currentState: CurrentState ,data: SubjectSch
 export const deleteSubject = async (currentState: CurrentState ,data: FormData) => {
     const id =data.get("id") as string;
     try {
-        await requireRole(["admin"]);
+        const { schoolId } = await requireSchool(["admin"]);
+        // V03 — cloisonnement
+        const ownedS = await prisma.subject.findFirst({
+          where: { id: parseInt(id), schoolId }, select: { id: true },
+        });
+        if (!ownedS) return { success: false, error: true };
         await prisma.subject.delete({
           where: {
             id: parseInt(id)
@@ -101,8 +113,10 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
           return {success: false, error: true, message: "La class existe déjà"};
         }
 
+        // V03 — création rattachée à l'école de la session
+        const { schoolId } = await requireSchool(["admin"]);
         await prisma.class.create({
-          data
+          data: { ...data, schoolId }
         });
 
         revalidatePath("/list/classes");
@@ -116,7 +130,12 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
 
 export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
-        await requireRole(["admin"]);
+        const { schoolId } = await requireSchool(["admin"]);
+        // V03 — la classe doit appartenir à l'école de la session
+        const owned = await prisma.class.findFirst({
+          where: { id: data.id, schoolId }, select: { id: true },
+        });
+        if (!owned) return { success: false, error: true, message: "" };
         await prisma.class.update({
           where: {
             id: data.id
@@ -136,7 +155,12 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
 export const deleteClass = async (currentState: CurrentState ,data: FormData) => {
     const id =data.get("id") as string;
     try {
-        await requireRole(["admin"]);
+        const { schoolId } = await requireSchool(["admin"]);
+        // V03 — cloisonnement
+        const ownedC = await prisma.class.findFirst({
+          where: { id: parseInt(id), schoolId }, select: { id: true },
+        });
+        if (!ownedC) return { success: false, error: true };
         await prisma.class.delete({
           where: {
             id: parseInt(id)
@@ -204,8 +228,10 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
         }
 
         try {
+        const { schoolId } = await requireSchool(["admin"]); // V03
         await prisma.teacher.create({
           data: {
+            schoolId,
             id: userId,
             username: data.username,
             name: data.name,
@@ -241,11 +267,16 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 
 export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
     try {
-      await requireRole(["admin"]);
+      const { schoolId } = await requireSchool(["admin"]);
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
+      // V03 — l'enseignant doit appartenir à l'école de la session
+      const ownedT = await prisma.teacher.findFirst({
+        where: { id: data.id, schoolId }, select: { id: true },
+      });
+      if (!ownedT) return { success: false, error: true, message: "Enseignant introuvable dans votre établissement." };
 
       // Compte de connexion : nom/email dans User, mot de passe via l'API
       // admin (S19). Toléré si l'enseignant (seedé) n'a pas de compte.
@@ -302,7 +333,12 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 export const deleteTeacher = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
-      await requireRole(["admin"]);
+      const { schoolId } = await requireSchool(["admin"]);
+      // V03 — cloisonnement
+      const ownedDT = await prisma.teacher.findFirst({
+        where: { id, schoolId }, select: { id: true },
+      });
+      if (!ownedDT) return { success: false, error: true, message: "Enseignant introuvable dans votre établissement." };
 
     // Transaction : si la suppression de l'enseignant échoue (contrainte FK
     // quiz/questions…), ses leçons ne doivent pas avoir été supprimées.
@@ -406,8 +442,10 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
          }
 
         try {
+        const { schoolId } = await requireSchool(["admin"]); // V03
         await prisma.student.create({
           data: {
+            schoolId,
             id: userId,
             username: data.username,
             name: data.name,
@@ -440,10 +478,15 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
 
 export const updateStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      await requireRole(["admin"]);
+      const { schoolId } = await requireSchool(["admin"]);
       if (!data.id) {
         return {success: false, error: true, message: "l'etudiant n'existe pas"}
       }
+      // V03 — l'élève doit appartenir à l'école de la session
+      const ownedE = await prisma.student.findFirst({
+        where: { id: data.id, schoolId }, select: { id: true },
+      });
+      if (!ownedE) return { success: false, error: true, message: "Élève introuvable dans votre établissement." };
 
       // Recherchez le parent par son nom
     const parent = await prisma.parent.findUnique({
@@ -508,7 +551,12 @@ export const deleteStudent = async (currentState: CurrentState, data: FormData) 
   const id = data.get("id") as string;
 
   try {
-      await requireRole(["admin"]);
+      const { schoolId } = await requireSchool(["admin"]);
+      // V03 — cloisonnement
+      const ownedDel = await prisma.student.findFirst({
+        where: { id, schoolId }, select: { id: true },
+      });
+      if (!ownedDel) return { success: false, error: true };
 
       // Prisma d'abord : si la suppression échoue (contrainte FK…), on ne
       // touche pas au compte et on remonte une vraie erreur (S19).

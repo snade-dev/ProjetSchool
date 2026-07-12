@@ -13,6 +13,17 @@ export async function getSessionInfo() {
   };
 }
 
+/**
+ * V03 — schoolId d'une session déjà chargée (pages qui appellent
+ * auth.api.getSession elles-mêmes). -1 si absent : aucun enregistrement
+ * ne matche, un compte sans école ne voit RIEN plutôt que tout.
+ */
+export function sessionSchoolId(
+  session: { user?: { schoolId?: number | null } } | null | undefined
+): number {
+  return session?.user?.schoolId ?? -1;
+}
+
 export async function requireRole(roles: string[]) {
   const info = await getSessionInfo();
   if (!info || !roles.includes(info.role)) throw new Error("FORBIDDEN");

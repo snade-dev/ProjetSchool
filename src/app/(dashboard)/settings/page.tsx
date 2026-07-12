@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getSessionInfo } from "@/lib/authGuard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -17,9 +18,15 @@ const SettingsPage = async () => {
     redirect(`/${role ?? "sign-in"}`);
   }
 
+  // V03 — l'école et les années de la session
+  const info = await getSessionInfo();
+  const schoolId = info?.schoolId ?? -1;
   const [settings, years] = await prisma.$transaction([
-    prisma.school.findUnique({ where: { id: 1 } }),
-    prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } }),
+    prisma.school.findUnique({ where: { id: schoolId } }),
+    prisma.schoolYear.findMany({
+      where: { schoolId },
+      orderBy: { startDate: "desc" },
+    }),
   ]);
 
   return (

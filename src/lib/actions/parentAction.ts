@@ -2,7 +2,7 @@
 
 import { ParentSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
-import { requireRole } from '../authGuard';
+import { requireRole, requireSchool } from "../authGuard";
 import { createAuthUser, removeAuthUser, setAuthUserPassword } from '../authAdmin';
 import { revalidatePath } from 'next/cache';
 
@@ -69,8 +69,10 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
         }
 
         try {
+          const { schoolId } = await requireSchool(["admin"]); // V03
           await prisma.parent.create({
             data: {
+              schoolId,
               id: userId,
               username: data.username,
               name: data.name,
@@ -98,6 +100,12 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
 export const updateParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
     try {
       await requireRole(["admin"]);
+      // V03 — le parent doit appartenir à l'école de la session
+      const { schoolId: sidP } = await requireSchool(["admin"]);
+      const ownedP = await prisma.parent.findFirst({
+        where: { id: data.id, schoolId: sidP }, select: { id: true },
+      });
+      if (!ownedP) return { success: false, error: true, message: "Parent introuvable dans votre établissement." };
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
@@ -148,6 +156,12 @@ export const deleteParent = async (currentState: CurrentState ,data: FormData) =
     const id = data.get("id") as string;
     try {
       await requireRole(["admin"]);
+      // V03 — cloisonnement
+      const { schoolId: sidPD } = await requireSchool(["admin"]);
+      const ownedPD = await prisma.parent.findFirst({
+        where: { id, schoolId: sidPD }, select: { id: true },
+      });
+      if (!ownedPD) return { success: false, error: true };
 
       // Les élèves du parent sont supprimés en cascade (schema) : retenir
       // leurs ids pour supprimer aussi leurs comptes de connexion.

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
-import { requireRole } from "../authGuard";
+import { requireRole, requireSchool } from "../authGuard";
 import { EmployeeSchema } from "../formsValidationSchema";
 
 type CurrentState = {
@@ -50,8 +50,10 @@ export const createEmployee = async (
       phone = teacher.phone ?? null;
     }
 
+    const { schoolId } = await requireSchool(["admin"]); // V03
     await prisma.employee.create({
       data: {
+        schoolId,
         teacherId,
         name,
         surname,
