@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import prisma from "./prisma";
 
 /** Rôles ayant un tableau de bord ; tout autre rôle (dont "user") n'a pas d'accès. */
-const DASHBOARD_ROLES = ["admin", "teacher", "student", "parent"];
+const DASHBOARD_ROLES = ["admin", "teacher", "student", "parent", "superadmin"];
 
 export async function signUp(formData: FormData) {
   const name = formData.get("name")?.toString().trim() || "";
@@ -83,5 +83,6 @@ export async function signIn(formData: FormData) {
     redirect("/sign-in?error=no-role");
   }
 
-  redirect(`/${role}`);
+  // V04 — le superadmin atterrit sur l'espace plateforme
+  redirect(role === "superadmin" ? "/platform" : `/${role}`);
 }

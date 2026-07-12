@@ -51,8 +51,9 @@ export async function proxy(request: NextRequest) {
 		if (path.startsWith(route)) {
 			// Si le rôle de l'utilisateur n'est pas autorisé
 			if (!allowedRoles.includes(role)) {
-				// Rediriger vers la page correspondant au rôle
-				return NextResponse.redirect(new URL(`/${role}`, request.url));
+				// Rediriger vers la page correspondant au rôle (V04 : superadmin → /platform)
+				const home = role === "superadmin" ? "/platform" : `/${role}`;
+				return NextResponse.redirect(new URL(home, request.url));
 			}
 			break;
 		}
