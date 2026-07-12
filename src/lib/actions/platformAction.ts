@@ -131,3 +131,167 @@ export const toggleSchoolActive = async (
     return { success: false, error: true, message: "Opération impossible." };
   }
 };
+
+/* ------------------------------------------------------------------ */
+/* V05 — Plans & abonnements (encaissement manuel)                     */
+/* ------------------------------------------------------------------ */
+
+const planSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z.string().min(2, "Le nom du plan est requis."),
+  priceMonthly: z.coerce.number().int().min(0, "Prix mensuel invalide."),
+  maxStudents: z
+    .union([z.literal(""), z.coerce.number().int().min(1)])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
+  active: z.coerce.boolean().optional().default(true),
+});
+
+/** Crée ou met à jour un plan d'abonnement. */
+export const upsertPlan = async (
+  currentState: PlatformState,
+  formData: FormData
+): Promise<PlatformState> => {
+  try {
+    await requireRole(["superadmin"]);
+    const parsed = planSchema.safeParse({
+      id: formData.get("id") || undefined,
+      name: formData.get("name"),
+      priceMonthly: formData.get("priceMonthly"),
+      maxStudents: formData.get("maxStudents") ?? "",
+      active: formData.get("active") === "on",
+    });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: true,
+        message: parsed.error.issues[0]?.message ?? "Données invalides.",
+      };
+    }
+    const { id, ...data } = parsed.data;
+    if (id) {
+      await prisma.subscriptionPlan.update({ where: { id }, data });
+    } else {
+      await prisma.subscriptionPlan.create({ data });
+    }
+    revalidatePath("/platform/plans");
+    return { success: true, error: false, message: id ? "Plan mis à jour." : "Plan créé." };
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return { success: false, error: true, message: "Un plan porte déjà ce nom." };
+    }
+    console.error("upsertPlan:", error);
+    return { success: false, error: true, message: "Enregistrement impossible." };
+  }
+};
+
+/** Attribue un plan à une école : nouvel abonnement = essai gratuit 30 jours. */
+export const assignPlan = async (
+  schoolId: number,
+  planId: number
+): Promise<PlatformState> => {
+  try {
+    await requireRole(["superadmin"]);
+    const plan = await prisma.subscriptionPlan.findFirst({
+      where: { id: planId, active: true },
+    });
+    if (!plan) {
+      return { success: false, error: true, message: "Plan introuvable ou coupé." };
+    }
+    const existing = await prisma.schoolSubscription.findUnique({
+      where: { schoolId },
+    });
+    if (existing) {
+      // changement de plan : les dates (essai/couverture) sont conservées
+      await prisma.schoolSubscription.update({
+        where: { schoolId },
+        data: { planId },
+      });
+    } else {
+      await prisma.schoolSubscription.create({
+        data: {
+          schoolId,
+          planId,
+          status: "TRIAL",
+          trialEndsAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+        },
+      });
+    }
+    revalidatePath("/platform");
+    return { success: true, error: false, message: `Plan « ${plan.name} » attribué.` };
+  } catch (error) {
+    console.error("assignPlan:", error);
+    return { success: false, error: true, message: "Attribution impossible." };
+  }
+};
+
+const paymentSchema = z.object({
+  subscriptionId: z.coerce.number().int(),
+  months: z.coerce.number().int().min(1, "Au moins 1 mois.").max(24, "24 mois maximum."),
+  amount: z.coerce.number().int().min(0, "Montant invalide."),
+  method: z.string().min(1, "Méthode requise."),
+  reference: z.string().optional(),
+  note: z.string().optional(),
+});
+
+/**
+ * Enregistre un paiement manuel : couverture prolongée de N mois à partir
+ * de maintenant ou de la fin de couverture actuelle (le plus tard des deux),
+ * puis statut recalculé (→ ACTIVE).
+ */
+export const recordSubscriptionPayment = async (
+  currentState: PlatformState,
+  formData: FormData
+): Promise<PlatformState> => {
+  try {
+    await requireRole(["superadmin"]);
+    const parsed = paymentSchema.safeParse({
+      subscriptionId: formData.get("subscriptionId"),
+      months: formData.get("months"),
+      amount: formData.get("amount"),
+      method: formData.get("method"),
+      reference: formData.get("reference") || undefined,
+      note: formData.get("note") || undefined,
+    });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: true,
+        message: parsed.error.issues[0]?.message ?? "Données invalides.",
+      };
+    }
+    const { subscriptionId, months, amount, method, reference, note } = parsed.data;
+
+    const sub = await prisma.schoolSubscription.findUnique({
+      where: { id: subscriptionId },
+    });
+    if (!sub) {
+      return { success: false, error: true, message: "Abonnement introuvable." };
+    }
+
+    const now = new Date();
+    const base = sub.paidUntil && sub.paidUntil > now ? sub.paidUntil : now;
+    const paidUntil = new Date(base);
+    paidUntil.setMonth(paidUntil.getMonth() + months);
+
+    await prisma.$transaction([
+      prisma.subscriptionPayment.create({
+        data: { subscriptionId, amount, months, method, reference, note },
+      }),
+      prisma.schoolSubscription.update({
+        where: { id: subscriptionId },
+        data: { paidUntil, status: "ACTIVE" },
+      }),
+    ]);
+
+    revalidatePath("/platform");
+    return {
+      success: true,
+      error: false,
+      message: `Paiement enregistré — couvert jusqu'au ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(paidUntil)}.`,
+    };
+  } catch (error) {
+    console.error("recordSubscriptionPayment:", error);
+    return { success: false, error: true, message: "Enregistrement impossible." };
+  }
+};

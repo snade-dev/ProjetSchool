@@ -39,6 +39,9 @@ export default async function PlatformLayout({
             <Link href="/platform" className="transition hover:text-gray-900">
               Écoles
             </Link>
+            <Link href="/platform/plans" className="transition hover:text-gray-900">
+              Plans
+            </Link>
           </nav>
           <div className="ml-auto">
             <UserMenu name="Plateforme" roleLabel="super-admin" />
