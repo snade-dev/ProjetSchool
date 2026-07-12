@@ -40,10 +40,11 @@ const ThemeStyle = async () => {
     themeAccent: string | null;
   } | null = null;
   try {
-    // V03 — thème de l'école de la session ; visiteur anonyme → école 1 (vitrine)
+    // V07 — thème de l'école de la session ; visiteur anonyme → palette par
+    // défaut (la landing est la vitrine de la PLATEFORME, pas d'une école)
     const info = await getSessionInfo().catch(() => null);
     settings = await prisma.school.findUnique({
-      where: { id: info?.schoolId ?? 1 },
+      where: { id: info?.schoolId ?? -1 },
       select: {
         themePrimary: true,
         themeSecondary: true,

@@ -208,6 +208,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 const SUCCESS_MESSAGES: Record<string, string> = {
+  "school-created":
+    "Votre école est créée, avec 30 jours d'essai gratuit ! Connectez-vous avec votre e-mail pour configurer votre établissement.",
   "account-created":
     "Compte créé avec succès ! Connectez-vous. L'accès au tableau de bord sera ouvert dès qu'un rôle vous aura été attribué par l'administration.",
 };
