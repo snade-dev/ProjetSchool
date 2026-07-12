@@ -47,12 +47,15 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-400">
-        Pas encore de compte ?{" "}
+        Votre identifiant vous est remis par votre établissement.
+      </p>
+      <p className="mt-2 text-center text-sm text-gray-400">
+        Votre école n&apos;est pas encore sur la plateforme ?{" "}
         <Link
-          href="/sign-up"
+          href="/register-school"
           className="font-semibold text-blue-500 hover:text-blue-600"
         >
-          Créer un compte
+          Créer mon école
         </Link>
       </p>
     </AuthShell>
