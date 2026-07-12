@@ -32,6 +32,18 @@ export async function createAuthUser(input: {
       },
       headers: await headers(),
     });
+    // V02 — le compte créé hérite de l'école de l'admin qui le crée
+    // (additionalField input:false → à poser côté serveur).
+    const creator = await auth.api.getSession({ headers: await headers() });
+    const creatorSchoolId = (creator?.user as { schoolId?: number | null })
+      ?.schoolId;
+    if (creatorSchoolId != null) {
+      const { default: prisma } = await import("./prisma");
+      await prisma.user.update({
+        where: { id: res.user.id },
+        data: { schoolId: creatorSchoolId },
+      });
+    }
     return res.user.id;
   } catch (err: any) {
     const msg = extractMessage(err);

@@ -49,7 +49,7 @@ const InvoiceDetailPage = async (props: {
     notFound();
   }
 
-  const settings = await prisma.schoolSettings.findUnique({ where: { id: 1 } });
+  const settings = await prisma.school.findUnique({ where: { id: 1 } });
 
   const isAdmin = role === "admin";
   const hasPayments = invoice.payments.length > 0;

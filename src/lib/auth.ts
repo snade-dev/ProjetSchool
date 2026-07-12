@@ -12,6 +12,17 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true
     },
+    // V02 — école de rattachement du compte (null = superadmin plateforme).
+    // input:false : jamais accepté depuis un formulaire public, posé côté serveur.
+    user: {
+        additionalFields: {
+            schoolId: {
+                type: "number",
+                required: false,
+                input: false,
+            },
+        },
+    },
 
     database: prismaAdapter(prisma, {
         provider: "postgresql", // or "mysql", "postgresql", ...etc

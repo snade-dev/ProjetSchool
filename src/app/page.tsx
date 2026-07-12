@@ -195,7 +195,7 @@ export default async function LandingPage() {
   let counts: { students: number; teachers: number; classes: number } | null =
     null;
   try {
-    school = await prisma.schoolSettings.findUnique({
+    school = await prisma.school.findUnique({
       where: { id: 1 },
       select: { name: true, logo: true, address: true, phone: true, email: true },
     });

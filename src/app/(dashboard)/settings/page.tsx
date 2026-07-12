@@ -18,7 +18,7 @@ const SettingsPage = async () => {
   }
 
   const [settings, years] = await prisma.$transaction([
-    prisma.schoolSettings.findUnique({ where: { id: 1 } }),
+    prisma.school.findUnique({ where: { id: 1 } }),
     prisma.schoolYear.findMany({ orderBy: { startDate: "desc" } }),
   ]);
 

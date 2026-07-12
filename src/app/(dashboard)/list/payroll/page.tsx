@@ -54,7 +54,7 @@ const PayrollPage = async (props: {
       include: { employee: true },
       orderBy: { employee: { surname: "asc" } },
     }),
-    prisma.schoolSettings.findUnique({ where: { id: 1 } }),
+    prisma.school.findUnique({ where: { id: 1 } }),
     // Masse salariale = Σ net de tous les bulletins du mois.
     prisma.salaryPayment.aggregate({
       where: { month, year },
