@@ -5,11 +5,15 @@ import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
-import { Class, Prisma, Teacher } from "@/app/generated/prisma";
+import { Class, Level, Prisma, SchoolYear, Teacher } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
 import { sessionSchoolId } from "@/lib/authGuard";
-type ClassList = Class & { supervisor: Teacher };
+type ClassList = Class & {
+  supervisor: Teacher;
+  level: Level | null;
+  schoolYear: SchoolYear;
+};
 
 const ClassListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -27,6 +31,16 @@ const ClassListPage = async (props: {
     {
       header: "Nom",
       accessor: "name",
+    },
+    {
+      header: "Niveau",
+      accessor: "level",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Année",
+      accessor: "schoolYear",
+      className: "hidden lg:table-cell",
     },
     {
       header: "Capacité",
@@ -54,6 +68,10 @@ const ClassListPage = async (props: {
       className=" border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight transition-colors"
     >
       <td className="flex items-center gap-4 p-4">{item.name}</td>
+      <td className="hidden md:table-cell">{item.level?.name ?? "—"}</td>
+      <td className="hidden lg:table-cell text-gray-500">
+        {item.schoolYear.name}
+      </td>
       <td className="hidden md:table-cell">{item.capacity}</td>
       <td className="hidden md:table-cell">
         {item.supervisor?.name + " " + item.supervisor?.surname}
@@ -97,17 +115,27 @@ const ClassListPage = async (props: {
     }
   }
 
+  // W02 — par défaut, seules les classes de l'année scolaire ACTIVE sont listées
+  const activeYearFilter: Prisma.ClassWhereInput = {
+    schoolYear: { isActive: true },
+  };
+
   // Requete vers la base de donnéés
   const [data, count] = await prisma.$transaction([
     prisma.class.findMany({
-      where: { AND: [{ schoolId }, query] },
+      where: { AND: [{ schoolId }, activeYearFilter, query] },
       include: {
         supervisor: true,
+        level: true, // W02
+        schoolYear: true, // W02
       },
+      orderBy: [{ level: { order: "asc" } }, { name: "asc" }],
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
-    prisma.class.count({ where: { AND: [{ schoolId }, query] } }),
+    prisma.class.count({
+      where: { AND: [{ schoolId }, activeYearFilter, query] },
+    }),
   ]);
 
   return (
