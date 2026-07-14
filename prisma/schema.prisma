@@ -106,12 +106,35 @@ model Parent {
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
+// W02 — niveau scolaire (§2.1.4) : créé librement par l'école (« CP », « 6ème »…).
+// `order` donne la hiérarchie (utilisée par le futur passage d'année, W04).
+model Level {
+  id       Int     @id @default(autoincrement())
+  name     String
+  order    Int
+  cycle    String? // préscolaire / primaire / collège / lycée (libre)
+  schoolId Int
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes  Class[]
+
+  @@unique([schoolId, name])
+}
+
 model Class {
   id       Int    @id @default(autoincrement())
-  name     String // W01 — unicité PAR ÉCOLE (@@unique en bas de modèle)
+  name     String // W02 — unicité PAR ÉCOLE ET PAR ANNÉE (@@unique en bas de modèle)
   capacity Int
   // V01 — régime d'évaluation de la classe (trimestres ou compositions mensuelles)
   evaluationSystem EvaluationSystem @default(TRIMESTER)
+
+  // W02 — niveau de la classe (§2.1.4). Nullable en base (classes historiques),
+  // mais l'UI l'exige pour toute création/édition (validation Zod).
+  levelId Int?
+  level   Level? @relation(fields: [levelId], references: [id], onDelete: SetNull)
+
+  // W02 — une classe appartient à UNE année scolaire (§2.1.5)
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
 
   supervisorId  String?
   supervisor    Teacher?       @relation(fields: [supervisorId], references: [id], onDelete: SetNull)
@@ -130,8 +153,8 @@ model Class {
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  // W01 — deux écoles peuvent avoir chacune leur « 6ème A »
-  @@unique([schoolId, name])
+  // W02 — « 6ème A » réutilisable chaque année (remplace @@unique([schoolId, name]) de W01)
+  @@unique([schoolId, schoolYearId, name])
 }
 
 model Subject {
@@ -444,6 +467,10 @@ model Semester {
 
   MakeupSession MakeupSession[]
 
+  // W02 — une période d'évaluation appartient à UNE année scolaire
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -600,6 +627,9 @@ model SchoolYear {
   expenses        Expense[]
   feeStructures   FeeStructure[]
   salaryPayments  SalaryPayment[]
+  // W02 — classes et périodes d'évaluation rattachées à l'année
+  classes         Class[]
+  semesters       Semester[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -629,6 +659,7 @@ model School {                  // établissement (ex-singleton SchoolSettings)
 
   users             User[]
   classes           Class[]
+  levels            Level[] // W02
   subjects          Subject[]
   teachers          Teacher[]
   students          Student[]
