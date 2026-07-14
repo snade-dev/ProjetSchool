@@ -6,6 +6,7 @@ import { requireSchool } from "../authGuard";
 import { auditWithSession } from "../audit";
 import { classSubjectSchema, ClassSubjectSchema } from "../formsValidationSchema";
 import { buildClassReportCards } from "../reportCard";
+import { createNotifications } from "../notify";
 import {
   impactedTrimesterAverages,
   markStale,
@@ -495,6 +496,48 @@ export const regenerateClassBulletins = async (
         bulletins: regenerated,
       },
     });
+
+    // W12 — « Bulletin {période} disponible » → élèves de la classe + tuteurs
+    // canViewGrades (une notification par élève et par période régénérée).
+    try {
+      const [semesters, enrollments] = await Promise.all([
+        prisma.semester.findMany({
+          where: { id: { in: staleRows.map((r) => r.semesterId) } },
+          select: { id: true, name: true, label: true },
+        }),
+        prisma.enrollment.findMany({
+          where: { classId: klass.id },
+          select: { studentId: true },
+        }),
+      ]);
+      const studentIds = enrollments.map((e) => e.studentId);
+      const guardians = await prisma.studentGuardian.findMany({
+        where: { studentId: { in: studentIds }, canViewGrades: true },
+        select: { studentId: true, parentId: true },
+      });
+      await createNotifications(
+        semesters.flatMap((sem) => {
+          const periode = sem.label ?? sem.name;
+          return studentIds.flatMap((studentId) =>
+            [
+              studentId,
+              ...guardians
+                .filter((g) => g.studentId === studentId)
+                .map((g) => g.parentId),
+            ].map((userId) => ({
+              userId,
+              schoolId,
+              type: "REPORT_CARD" as const,
+              title: "Bulletin disponible",
+              body: `Bulletin ${periode} disponible (classe ${klass.name}).`,
+              link: "/list/exams?tab=results",
+            }))
+          );
+        })
+      );
+    } catch (err) {
+      console.error("[notify] régénération de bulletins non notifiée:", err);
+    }
 
     revalidatePath(`/list/classes/${klass.id}/subjects`);
     revalidatePath("/list/exams");

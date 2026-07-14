@@ -991,6 +991,44 @@ model AuditLog {
 }
 
 // ---------------------------------------------------------------------------
+// W12 — Notifications in-app (§2.6.1). Le destinataire est un COMPTE de
+// connexion (User.id — les entités métier Teacher/Student/Parent partagent
+// l'id de leur User). Volontairement SANS relation Prisma (comme AuditLog) :
+// supprimer un user/une école n'efface pas l'historique, et le helper
+// src/lib/notify.ts n'échoue jamais l'action métier. `type` est une String
+// libre dont les valeurs vivent dans src/lib/notificationTypes.ts
+// (ABSENCE, GRADE, REPORT_CARD, PAYMENT, ANNOUNCEMENT, HOMEWORK, MESSAGE —
+// HOMEWORK/MESSAGE seront émis par W14/W16). Rétention : les notifications
+// LUES de plus de 90 jours sont purgées au chargement de /list/notifications.
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    String // destinataire (User.id)
+  schoolId  Int // école émettrice (contexte de l'événement)
+  type      String // cf. notificationTypes.ts
+  title     String
+  body      String
+  link      String? // route interne ("/list/attendances", "/list/invoices/{id}"…)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+// W12 — préférence par type : ABSENCE de ligne = activé par défaut.
+// Pas de notion de canal ici — W13 (email) ajoutera la sienne.
+model NotificationPreference {
+  id      Int     @id @default(autoincrement())
+  userId  String // User.id
+  type    String // cf. notificationTypes.ts
+  enabled Boolean @default(true)
+
+  @@unique([userId, type])
+}
+
+// ---------------------------------------------------------------------------
 // V05 — Abonnements SaaS : les écoles paient pour utiliser la plateforme.
 // Encaissement MANUEL (espèces, Orange Money, virement) par le superadmin.
 // ---------------------------------------------------------------------------

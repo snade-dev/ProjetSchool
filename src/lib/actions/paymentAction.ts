@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { auditWithSession } from "../audit";
+import { notifyGuardians } from "../notify";
 import { PaymentSchema } from "../formsValidationSchema";
 import { InvoiceStatus } from "@/app/generated/prisma";
 import { deleteErrorMessage } from '../actionErrors';
@@ -58,7 +59,11 @@ export const createPayment = async (
     const created = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findUnique({
         where: { id: data.invoiceId },
-        include: { payments: true },
+        include: {
+          payments: true,
+          // W12 — destinataires de la notification (tuteurs canPay de l'élève)
+          student: { select: { id: true, schoolId: true } },
+        },
       });
 
       if (!invoice) throw new Error("__NOT_FOUND__");
@@ -93,7 +98,13 @@ export const createPayment = async (
         data: { status },
       });
 
-      return { payment, invoiceReference: invoice.reference, newStatus: status };
+      return {
+        payment,
+        invoiceReference: invoice.reference,
+        newStatus: status,
+        studentId: invoice.student.id,
+        schoolId: invoice.student.schoolId,
+      };
     });
 
     // W10 — journal d'audit : encaissement d'un paiement (§2.11.2)
@@ -106,6 +117,20 @@ export const createPayment = async (
         nouveauStatut: created.newStatus,
       },
     });
+
+    // W12 — reçu de paiement → tuteurs canPay de l'élève facturé (§2.6.1) ;
+    // le helper ne fait jamais échouer l'encaissement.
+    await notifyGuardians(
+      [created.studentId],
+      {
+        schoolId: created.schoolId,
+        type: "PAYMENT",
+        title: "Paiement reçu",
+        body: `Paiement de ${data.amount.toLocaleString("fr-FR")} FCFA reçu — facture ${created.invoiceReference}.`,
+        link: `/list/invoices/${data.invoiceId}`,
+      },
+      "canPay"
+    );
 
     revalidatePath("/list/invoices");
     revalidatePath(`/list/invoices/${data.invoiceId}`);

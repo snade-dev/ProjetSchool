@@ -3,6 +3,7 @@
 import { AnnounceSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
 import { requireRole, requireSchool } from "../authGuard";
+import { announcementAudience, notify } from '../notify';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from '../actionErrors';
 
@@ -34,6 +35,17 @@ export const createAnnounce = async (
           description: "",
           classId: data.classId,
         },
+      });
+
+      // W12 — annonce de classe → élèves + tuteurs + prof principal ;
+      // annonce globale (sans classe) → tous les comptes de l'école.
+      // Audience résolue en bloc, écrite en UN createMany ; jamais bloquant.
+      await notify(await announcementAudience(schoolId, data.classId), {
+        schoolId,
+        type: "ANNOUNCEMENT",
+        title: "Nouvelle annonce",
+        body: data.title,
+        link: "/list/announcements",
       });
 
       revalidatePath("/list/announcements");

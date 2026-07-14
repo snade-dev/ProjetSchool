@@ -67,6 +67,8 @@ type RouteAccessMap = {
     "/list/employees": ["admin", "director", "accountant"],
     "/list/payroll": ["admin", "director", "accountant"],
     "/list/audit": ["admin", "director", "superadmin"], // W10 — journal d'audit (§2.11.4)
+    // W12 — mes notifications : tous les rôles connectés (la page ne montre que les SIENNES)
+    "/list/notifications": ["admin", "director", "teacher", "accountant", "supervisor", "student", "parent", "user", "superadmin"],
     "/settings/rollover": ["admin"], // W04 — assistant de passage d'année (director exclu)
     "/settings": ["admin"], // W07 — paramètres structurants : admin uniquement
     "/stats": ["admin", "director", "teacher", "accountant"], // gardes par page : finance restreint en page

@@ -3,8 +3,13 @@ import { headers } from "next/headers";
 import Image from "next/image";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { CalendarDays, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
+import { BellRing, CalendarDays, Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import ChangePasswordForm from "./ChangePasswordForm";
+import NotificationPreferences from "./NotificationPreferences";
+import {
+  isNotificationType,
+  type NotificationType,
+} from "@/lib/notificationTypes";
 
 // Page « Mon compte » : identité du compte connecté + changement de mot de passe.
 // Accessible à tous les rôles ; les infos d'état civil viennent de la fiche
@@ -72,6 +77,20 @@ export default async function AccountPage() {
     month: "long",
     year: "numeric",
   });
+
+  // W12 — préférences de notification du compte (absence de ligne = activé)
+  let notificationPrefs: Partial<Record<NotificationType, boolean>> = {};
+  try {
+    const rows = await prisma.notificationPreference.findMany({
+      where: { userId: user.id },
+      select: { type: true, enabled: true },
+    });
+    for (const row of rows) {
+      if (isNotificationType(row.type)) notificationPrefs[row.type] = row.enabled;
+    }
+  } catch {
+    notificationPrefs = {};
+  }
 
   return (
     <div className="m-4 mt-0 flex flex-1 flex-col gap-4">
@@ -149,6 +168,19 @@ export default async function AccountPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* W12 — Préférences de notification */}
+      <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-2.5">
+          <BellRing size={18} className="text-theme-deep" />
+          <h2 className="text-base font-semibold text-gray-800">Notifications</h2>
+        </div>
+        <p className="mb-2 max-w-xl text-sm text-gray-500">
+          Choisissez les types de notifications que vous souhaitez recevoir
+          dans l&apos;application. Tout est activé par défaut.
+        </p>
+        <NotificationPreferences initial={notificationPrefs} />
       </div>
 
       {/* Sécurité */}

@@ -12,6 +12,7 @@ import {
   Calendar,
   CalendarDays,
   Bell,
+  BellRing,
   Settings,
   FileText,
   CheckSquare,
@@ -124,12 +125,14 @@ const MENU: MenuEntry[] = [
     group: {
       icon: CheckSquare,
       label: "Vie scolaire",
-      visible: [...ALL, "supervisor"],
+      visible: [...ALL, "supervisor", "accountant"],
       items: [
         { icon: ClipboardCheck, label: "Faire l'appel", href: "/list/attendances/appel", visible: ["admin", "director", "teacher", "supervisor"] },
         { icon: CheckSquare, label: "Présences", href: "/list/attendances", visible: [...ALL, "supervisor"] },
         { icon: Calendar, label: "Événements", href: "/list/events", visible: ALL },
         { icon: Bell, label: "Annonces", href: "/list/announcements", visible: ALL },
+        // W12 — mes notifications in-app (tous les rôles école)
+        { icon: BellRing, label: "Notifications", href: "/list/notifications", visible: [...ALL, "supervisor", "accountant"] },
         { icon: FilePlus, label: "Réclamations", href: "/list/reclamation", visible: ["admin", "director", "teacher", "student"] },
         { icon: File, label: "Demandes", href: "/list/demande", visible: ["admin", "director", "teacher", "student"] },
         { icon: Video, label: "Cours en ligne", href: "https://meet.google.com/landing", visible: ["admin", "director", "teacher"], external: true },

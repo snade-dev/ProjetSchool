@@ -4,6 +4,7 @@ import { gradeEntrySchema, GradeEntrySchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
 import { auditWithSession } from "../audit";
+import { createNotifications } from "../notify";
 import { revalidatePath } from "next/cache";
 
 type State = {
@@ -107,6 +108,50 @@ export async function saveGrades(
           notesEnregistrees: toUpsert.length,
         },
       });
+    }
+
+    // W12 — UNE notification par élève noté (jamais une par note) :
+    // « Notes de {matière} publiées » → élève + tuteurs canViewGrades.
+    try {
+      const studentIds = [...new Set(toUpsert.map((g) => g.studentId))];
+      if (studentIds.length > 0) {
+        const [subject, semester, guardians] = await Promise.all([
+          prisma.subject.findUnique({
+            where: { id: subjectId },
+            select: { name: true },
+          }),
+          prisma.semester.findUnique({
+            where: { id: semesterId },
+            select: { name: true, label: true },
+          }),
+          prisma.studentGuardian.findMany({
+            where: { studentId: { in: studentIds }, canViewGrades: true },
+            select: { studentId: true, parentId: true },
+          }),
+        ]);
+        const body = `Notes de ${subject?.name ?? "matière"} publiées (${
+          semester?.label ?? semester?.name ?? "période"
+        }).`;
+        await createNotifications(
+          studentIds.flatMap((studentId) =>
+            [
+              studentId,
+              ...guardians
+                .filter((g) => g.studentId === studentId)
+                .map((g) => g.parentId),
+            ].map((userId) => ({
+              userId,
+              schoolId: sidG,
+              type: "GRADE" as const,
+              title: "Notes",
+              body,
+              link: "/list/exams?tab=results",
+            }))
+          )
+        );
+      }
+    } catch (err) {
+      console.error("[notify] saisie de notes non notifiée:", err);
     }
 
     revalidatePath("/list/results");

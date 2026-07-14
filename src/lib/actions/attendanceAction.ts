@@ -5,6 +5,54 @@ import prisma from '../prisma';
 import { requireRole } from '../authGuard';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from '../actionErrors';
+import { createNotifications, guardianUserIds } from '../notify';
+
+/**
+ * W12 — notification d'absence aux tuteurs (§2.3.6) : « {Prénom} a été
+ * noté(e) absent(e) le {date} ({créneau}) ». Résolution des destinataires en
+ * try/catch : un échec de notification ne casse JAMAIS le pointage.
+ */
+const notifyAbsentStudents = async (
+  studentIds: string[],
+  sessionDay: "MORNING" | "EVENING",
+  date: Date
+) => {
+  try {
+    if (studentIds.length === 0) return;
+    const students = await prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, name: true, schoolId: true },
+    });
+    if (students.length === 0) return;
+    // Tuteurs de TOUS les absents en une requête, regroupés par élève.
+    const guardians = await prisma.studentGuardian.findMany({
+      where: { studentId: { in: students.map((s) => s.id) } },
+      select: { studentId: true, parentId: true },
+    });
+    const byStudent = new Map<string, string[]>();
+    for (const g of guardians) {
+      const list = byStudent.get(g.studentId) ?? [];
+      list.push(g.parentId);
+      byStudent.set(g.studentId, list);
+    }
+    const dateFr = date.toLocaleDateString("fr-FR");
+    const creneau = sessionDay === "EVENING" ? "soir" : "matin";
+    await createNotifications(
+      students.flatMap((s) =>
+        (byStudent.get(s.id) ?? []).map((parentId) => ({
+          userId: parentId,
+          schoolId: s.schoolId,
+          type: "ABSENCE" as const,
+          title: "Absence signalée",
+          body: `${s.name} a été noté(e) absent(e) le ${dateFr} (${creneau}).`,
+          link: "/list/attendances",
+        }))
+      )
+    );
+  } catch (err) {
+    console.error("[notify] absence non notifiée:", err);
+  }
+};
 
 
 type CurrentState = {
@@ -49,7 +97,7 @@ export const createAttendance = async (
         return { success: false, error: true, message: "Ce etudiant n'existe pas" };
       }
 
-      await prisma.attendance.create({
+      const created = await prisma.attendance.create({
         data: {
           date: data.date,
           present:data.present === "true",
@@ -58,6 +106,11 @@ export const createAttendance = async (
           classId: data.classId
         },
       });
+
+      // W12 — absence saisie manuellement → notifier les tuteurs
+      if (!created.present) {
+        await notifyAbsentStudents([student.id], created.sessionDay, created.date);
+      }
 
       revalidatePath("/list/attendances");
       return { success: true, error: false, message: "" };
@@ -179,6 +232,10 @@ export const createAttendance = async (
       const nextDay = new Date(day);
       nextDay.setDate(nextDay.getDate() + 1);
 
+      // W12 — élèves DEVENUS absents (créés absents ou passés présent→absent) :
+      // ré-enregistrer le même appel ne re-notifie pas les tuteurs.
+      const newlyAbsent: string[] = [];
+
       await prisma.$transaction(
         async (tx) => {
           for (const e of entries) {
@@ -190,13 +247,14 @@ export const createAttendance = async (
                 sessionDay,
                 date: { gte: day, lt: nextDay },
               },
-              select: { id: true },
+              select: { id: true, present: true },
             });
             if (existing) {
               await tx.attendance.update({
                 where: { id: existing.id },
                 data: { present: !!e.present },
               });
+              if (existing.present && !e.present) newlyAbsent.push(e.studentId);
             } else {
               await tx.attendance.create({
                 data: {
@@ -208,11 +266,15 @@ export const createAttendance = async (
                   classId,
                 },
               });
+              if (!e.present) newlyAbsent.push(e.studentId);
             }
           }
         },
         { timeout: 30000 }
       );
+
+      // W12 — notification aux tuteurs des absents (§2.3.6), jamais bloquante
+      await notifyAbsentStudents(newlyAbsent, sessionDay, day);
 
       revalidatePath("/list/attendances");
       revalidatePath("/list/attendances/appel");
