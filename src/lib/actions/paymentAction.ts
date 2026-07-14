@@ -51,7 +51,7 @@ export const createPayment = async (
   data: PaymentSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    const { userId } = await requireRole(["admin"]);
+    const { userId } = await requireRole(["admin", "accountant"]);
 
     await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findUnique({
@@ -132,7 +132,7 @@ export const deletePayment = async (
   paymentId: string
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     let invoiceId = "";
 

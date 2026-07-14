@@ -24,7 +24,7 @@ export const createEvent = async (
     data: EventSchema
   ) => {
     try {
-      const { schoolId } = await requireSchool(["admin"]); // V03
+      const { schoolId } = await requireSchool(["admin", "director"]); // V03
 
       await prisma.event.create({
         data: {
@@ -50,7 +50,7 @@ export const createEvent = async (
     data: EventSchema
   ) => {
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
 
       await prisma.event.update({
         where: {
@@ -81,7 +81,7 @@ export const createEvent = async (
     const id = data.get("id") as string;
 
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
       await prisma.event.delete({
         where: {
           id: parseInt(id),

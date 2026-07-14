@@ -48,7 +48,7 @@ const EventListPage = async (props: {
       accessor: "endTime",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -84,7 +84,7 @@ const EventListPage = async (props: {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "director") && (
             <>
               <FormContainer table="event" type="update" data={item} />
               <FormContainer table="event" type="delete" id={item.id} />
@@ -133,7 +133,7 @@ const EventListPage = async (props: {
     },
   };
 
-  if (role === "admin") {
+  if ((role === "admin" || role === "director")) {
     // L'admin peut tout voir, pas besoin de filtrer par classe
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques
@@ -166,7 +166,7 @@ const EventListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            {role === "admin" && <FormContainer table="event" type="create" />}
+            {(role === "admin" || role === "director") && <FormContainer table="event" type="create" />}
           </div>
         </div>
       </div>

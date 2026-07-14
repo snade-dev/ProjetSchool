@@ -66,7 +66,7 @@ const SemesterListPage = async (props: {
       accessor: "subjects",
       className: "hidden lg:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -105,7 +105,7 @@ const SemesterListPage = async (props: {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "director") && (
             <>
               <FormContainer table="semester" type="update" data={item} />
               <FormContainer table="semester" type="delete" id={item.id} />
@@ -185,7 +185,7 @@ const SemesterListPage = async (props: {
           {/* W02 — filtre par année scolaire (année active par défaut) */}
           <YearFilter years={years} selectedYearId={selectedYearId} />
           <div className="flex items-center self-end gap-4">
-            {role === "admin" && (
+            {(role === "admin" || role === "director") && (
               <>
                 <GeneratePeriodsButton />
                 <FormContainer table="semester" type="create" />

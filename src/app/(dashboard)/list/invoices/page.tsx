@@ -58,7 +58,9 @@ const InvoicesListPage = async (props: {
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
-  const isAdmin = role === "admin";
+  // W07 — le comptable gère les factures comme l'admin ; la direction
+  // consulte (la route lui est ouverte, sans boutons d'écriture).
+  const isAdmin = role === "admin" || role === "accountant";
 
   // Synchro des impayés (story-08) : idempotent, admin uniquement, avant les
   // agrégats pour que les stat-tiles reflètent les factures échues du jour.

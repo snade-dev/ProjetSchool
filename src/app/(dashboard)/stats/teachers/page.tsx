@@ -89,7 +89,7 @@ export default async function TeacherStatsPage(props: {
   const info = await getSessionInfo();
   if (!info) return notFound();
   const { role } = info;
-  if (role !== "admin") redirect("/" + role);
+  if (!["admin", "director"].includes(role)) redirect("/" + role); // W07 — director inclus
 
   const searchParams = await props.searchParams;
 

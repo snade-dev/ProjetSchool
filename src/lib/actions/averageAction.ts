@@ -33,7 +33,7 @@ export const createAverage = async (
     }
 
     try {
-      const { userId, role } = await requireRole(["admin", "teacher"]);
+      const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
       if (role === "teacher") {
         const teacherExam = await prisma.exam.findFirst({
@@ -65,7 +65,7 @@ export const createAverage = async (
     data: ResultMSchema
   ) => {
     try {
-      const { userId, role } = await requireRole(["admin", "teacher"]);
+      const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
       if (role === "teacher") {
         const teacherExam = await prisma.exam.findFirst({
@@ -111,7 +111,7 @@ export const createAverage = async (
     const id = data.get("id") as string;
 
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
       await prisma.examAverage.delete({
         where: {
           id: parseInt(id),

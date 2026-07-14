@@ -118,7 +118,7 @@ export const Correct = ({
             </div>
           ))}
           {state.error && state.message}
-          {(role === "teacher" || role === "admin") && (
+          {(role === "teacher" || role === "admin" || role === "director") && (
             <button
               type="submit"
               className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"

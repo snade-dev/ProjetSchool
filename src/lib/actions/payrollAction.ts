@@ -32,7 +32,7 @@ export const generatePayroll = async (
   data: PayrollGenerateSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     const parsed = payrollGenerateSchema.safeParse(data);
     if (!parsed.success) {
@@ -49,7 +49,7 @@ export const generatePayroll = async (
     // Employés actifs uniquement : les désactivés sont exclus des générations
     // futures (leurs paies passées restent, cf. fiche).
     // V03 — cloisonnement : employés de l'école de la session uniquement
-    const { schoolId: sidPay } = await requireSchool(["admin"]);
+    const { schoolId: sidPay } = await requireSchool(["admin", "accountant"]);
     const employees = await prisma.employee.findMany({
       where: { active: true, schoolId: sidPay },
       select: { id: true, baseSalary: true },
@@ -107,7 +107,7 @@ export const updateSalaryAdjustments = async (
   data: SalaryAdjustSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     const parsed = salaryAdjustSchema.safeParse(data);
     if (!parsed.success) {
@@ -170,7 +170,7 @@ export const markSalaryPaid = async (
   data: MarkPaidSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     const parsed = markPaidSchema.safeParse(data);
     if (!parsed.success) {
@@ -221,7 +221,7 @@ export const unmarkSalaryPaid = async (
   id: string
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     const payment = await prisma.salaryPayment.findUnique({
       where: { id },

@@ -23,7 +23,7 @@ export const createSemester = async (
   data: SemesterSchema
 ) => {
   try {
-    const { schoolId } = await requireSchool(["admin"]); // V03
+    const { schoolId } = await requireSchool(["admin", "director"]); // V03
 
     // W02 — une période appartient à UNE année scolaire : création sur l'année ACTIVE
     const activeYear = await getActiveSchoolYear(schoolId);
@@ -77,7 +77,7 @@ export const updateSemester = async (
   data: SemesterSchema
 ) => {
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     // V03 — la période doit appartenir à l'école de la session
     const owned = await prisma.semester.findFirst({
       where: { id: data.id, schoolId }, select: { id: true },
@@ -128,7 +128,7 @@ export const generatePeriods = async (system: "TRIMESTER" | "MONTHLY") => {
   }));
 
   try {
-    const { schoolId } = await requireSchool(["admin"]); // V03
+    const { schoolId } = await requireSchool(["admin", "director"]); // V03
     // W02 — la génération cible l'année scolaire ACTIVE de l'école
     const activeYear = await getActiveSchoolYear(schoolId);
     const wanted = system === "TRIMESTER" ? TRIMESTERS : MONTHS;
@@ -179,7 +179,7 @@ export const deleteSemester = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     // V03 — cloisonnement
     const ownedD = await prisma.semester.findFirst({
       where: { id: parseInt(id), schoolId }, select: { id: true },

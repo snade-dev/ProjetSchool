@@ -52,7 +52,8 @@ export default async function FinanceStatsPage(props: {
   const info = await getSessionInfo();
   if (!info) return notFound();
   const { role } = info;
-  if (role !== "admin") redirect("/" + role);
+  // W07 — cockpit finance : admin, direction (lecture) et comptable.
+  if (!["admin", "director", "accountant"].includes(role)) redirect("/" + role);
 
   const searchParams = await props.searchParams;
 

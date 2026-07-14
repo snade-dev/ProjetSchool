@@ -57,7 +57,7 @@ const ExamsSection = async ({
       accessor: "date2",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin" || role === "teacher"
+    ...(role === "admin" || role === "director" || role === "teacher"
       ? [
           {
             header: "Actions",
@@ -86,7 +86,7 @@ const ExamsSection = async ({
       </td>
       <td>
         <div className=" flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "director") && (
             <>
               <FormContainer table="exam" type="update" data={item} />
               <FormContainer table="exam" type="delete" id={item.id} />
@@ -190,7 +190,7 @@ const ExamsSection = async ({
         <div className=" flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className=" flex items-center self-end gap-4">
-            {(role === "admin" || role === "teacher") && (
+            {(role === "admin" || role === "director" || role === "teacher") && (
               <FormContainer table="exam" type="create" />
             )}
           </div>

@@ -26,6 +26,9 @@ const EmployeesListPage = async (props: {
   // --- Filtres ---
   // V03 — cloisonnement : uniquement l'école de la session
   const info = await getSessionInfo();
+  // W07 — gestion du personnel : admin + direction ; le comptable consulte
+  // (lecture pour la paie).
+  const canManage = info?.role === "admin" || info?.role === "director";
   const query: Prisma.EmployeeWhereInput = { schoolId: info?.schoolId ?? -1 };
   const andFilters: Prisma.EmployeeWhereInput[] = [];
 
@@ -112,10 +115,12 @@ const EmployeesListPage = async (props: {
         </span>
       </td>
       <td>
-        <div className="flex items-center gap-2">
-          <FormContainer table="employee" type="update" data={item} />
-          <FormContainer table="employee" type="delete" id={item.id} />
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-2">
+            <FormContainer table="employee" type="update" data={item} />
+            <FormContainer table="employee" type="delete" id={item.id} />
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -128,7 +133,7 @@ const EmployeesListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            <FormContainer table="employee" type="create" />
+            {canManage && <FormContainer table="employee" type="create" />}
           </div>
         </div>
       </div>

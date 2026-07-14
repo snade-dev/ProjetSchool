@@ -30,7 +30,7 @@ export const createMakeupExam = async (
     }
   ) => {
     try {
-      const { userId, role } = await requireRole(["admin", "student"]);
+      const { userId, role } = await requireRole(["admin", "director", "student"]);
 
       if (role === "student" && data.userId !== userId) {
         return { success: false, error: true, message: "Accès refusé" };
@@ -73,7 +73,7 @@ export const createMakeupExam = async (
     data: MakeupExamFormSchema
   ) => {
     try {
-      await requireRole(["admin", "teacher"]);
+      await requireRole(["admin", "director", "teacher"]);
 
         // Mise à jour en transaction de tous les résultats
   await prisma.$transaction(
@@ -100,7 +100,7 @@ export const createMakeupExam = async (
     const id = data.get("id") as string;
 
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
       await prisma.makeupSession.delete({
         where: {
           id: id,

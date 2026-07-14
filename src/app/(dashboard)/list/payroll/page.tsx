@@ -37,6 +37,8 @@ const PayrollPage = async (props: {
   const searchParams = await props.searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user.role;
+  // W07 — gestion de la paie : admin + comptable ; la direction consulte.
+  const canManage = role === "admin" || role === "accountant";
 
   const now = new Date();
   const month = clampMonth(searchParams.month, now.getMonth() + 1);
@@ -113,7 +115,7 @@ const PayrollPage = async (props: {
           </div>
         </div>
 
-        {role === "admin" && (
+        {canManage && (
           <div className="flex items-center gap-3">
             <ExportCsvButton endpoint="payroll" filename="paie" />
             <GeneratePayrollButton
@@ -152,7 +154,7 @@ const PayrollPage = async (props: {
           <p className="text-gray-500 text-sm">
             Aucun bulletin de paie pour {monthLabel} {year}.
           </p>
-          {role === "admin" ? (
+          {canManage ? (
             <GeneratePayrollButton
               month={month}
               year={year}
@@ -215,7 +217,7 @@ const PayrollPage = async (props: {
                   </td>
                   <td>
                     <div className="flex items-center gap-3">
-                      {role === "admin" && !isPaid && (
+                      {canManage && !isPaid && (
                         <MarkPaidButton id={item.id} />
                       )}
                       {isPaid && (
@@ -246,7 +248,7 @@ const PayrollPage = async (props: {
                               paidAt: item.paidAt,
                             }}
                           />
-                          {role === "admin" && (
+                          {canManage && (
                             <UnmarkPaidButton id={item.id} />
                           )}
                         </>

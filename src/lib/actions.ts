@@ -24,7 +24,7 @@ type CurrentState2 = {
 export const createSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
         // V03 — création rattachée à l'école de la session
-        const { schoolId } = await requireSchool(["admin"]);
+        const { schoolId } = await requireSchool(["admin", "director"]);
         await prisma.subject.create({
           data: {
             schoolId,
@@ -47,7 +47,7 @@ export const createSubject = async (currentState: CurrentState ,data: SubjectSch
 
 export const updateSubject = async (currentState: CurrentState ,data: SubjectSchema) => {
     try {
-        const { schoolId } = await requireSchool(["admin"]);
+        const { schoolId } = await requireSchool(["admin", "director"]);
         // V03 — la matière doit appartenir à l'école de la session
         const owned = await prisma.subject.findFirst({
           where: { id: data.id, schoolId }, select: { id: true },
@@ -77,7 +77,7 @@ export const updateSubject = async (currentState: CurrentState ,data: SubjectSch
 export const deleteSubject = async (currentState: CurrentState ,data: FormData) => {
     const id =data.get("id") as string;
     try {
-        const { schoolId } = await requireSchool(["admin"]);
+        const { schoolId } = await requireSchool(["admin", "director"]);
         // V03 — cloisonnement
         const ownedS = await prisma.subject.findFirst({
           where: { id: parseInt(id), schoolId }, select: { id: true },
@@ -104,7 +104,7 @@ export const deleteSubject = async (currentState: CurrentState ,data: FormData) 
 export const createClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
         // V03 — création rattachée à l'école de la session
-        const { schoolId } = await requireSchool(["admin"]);
+        const { schoolId } = await requireSchool(["admin", "director"]);
 
         // W02 — une classe appartient à UNE année scolaire : la création cible
         // toujours l'année ACTIVE de l'école.
@@ -147,7 +147,7 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
 
 export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
-        const { schoolId } = await requireSchool(["admin"]);
+        const { schoolId } = await requireSchool(["admin", "director"]);
         // V03 — la classe doit appartenir à l'école de la session
         const owned = await prisma.class.findFirst({
           where: { id: data.id, schoolId }, select: { id: true },
@@ -183,7 +183,7 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
 export const deleteClass = async (currentState: CurrentState ,data: FormData) => {
     const id =data.get("id") as string;
     try {
-        const { schoolId } = await requireSchool(["admin"]);
+        const { schoolId } = await requireSchool(["admin", "director"]);
         // V03 — cloisonnement
         const ownedC = await prisma.class.findFirst({
           where: { id: parseInt(id), schoolId }, select: { id: true },
@@ -651,7 +651,7 @@ export const createExam = async (
   data: ExamSchema
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     if (role === "teacher") {
       const teacherLesson = await prisma.lesson.findFirst({
@@ -689,7 +689,7 @@ export const updateExam = async (
   data: ExamSchema
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     if (role === "teacher") {
       const teacherLesson = await prisma.lesson.findFirst({
@@ -731,7 +731,7 @@ export const deleteExam = async (
   const id = data.get("id") as string;
 
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "director"]);
     await prisma.exam.delete({
       where: {
         id: parseInt(id),

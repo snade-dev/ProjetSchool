@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import type { ResultRow } from "./types";
 
 export async function renderResultActions(item: any, role: string) {
-  if (role === "admin" || role === "teacher") {
+  if (role === "admin" || role === "director" || role === "teacher") {
     return (
       <>
         <FormContainer table="result" type="update" data={item} />

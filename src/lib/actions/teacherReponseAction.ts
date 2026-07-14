@@ -23,7 +23,7 @@ export async function teacherReponseAction(
   console.log("Réponses reçues :", JSON.stringify(answers, null, 2));
 
   try {
-    await requireRole(["admin", "teacher"]);
+    await requireRole(["admin", "director", "teacher"]);
     // Logique de mise à jour des réponses
     console.log(`Début de la mise à jour de ${answers.length} réponses`);
     for (const [index, answer] of answers.entries()) {

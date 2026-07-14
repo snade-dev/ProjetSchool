@@ -19,7 +19,7 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session || session.user.role !== "admin") {
+  if (!session || !["admin", "director", "accountant"].includes(session.user.role ?? "")) {
     return new Response("Forbidden", { status: 403 });
   }
 

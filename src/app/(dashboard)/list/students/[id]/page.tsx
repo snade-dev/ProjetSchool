@@ -43,7 +43,8 @@ const SingleStudentPage = async (props: {
   if (!role || !userId) {
     return notFound();
   }
-  if (!["admin", "teacher", "student", "parent"].includes(role)) {
+  // W07 — direction et surveillant général consultent la fiche élève.
+  if (!["admin", "director", "teacher", "supervisor", "student", "parent"].includes(role)) {
     return notFound();
   }
   if (role === "student" && userId !== id) {
@@ -128,9 +129,9 @@ const SingleStudentPage = async (props: {
       ? await buildReportCard(student.id, selectedSemester.id)
       : null;
 
-  // W05 — parents de l'école proposés à l'ajout de tuteur (admin uniquement)
+  // W05 — parents de l'école proposés à l'ajout de tuteur (admin/direction)
   const schoolParents =
-    role === "admin"
+    role === "admin" || role === "director"
       ? await prisma.parent.findMany({
           where: { schoolId: student.schoolId },
           select: { id: true, name: true, surname: true, username: true },
@@ -279,12 +280,12 @@ const SingleStudentPage = async (props: {
           )}
         </div>
         {/* W05 — Tuteurs de l'élève (§2.2.3) : liste + droits ; CRUD admin */}
-        {(role === "admin" || role === "teacher") && (
+        {(role === "admin" || role === "director" || role === "teacher") && (
           <GuardianSection
             studentId={student.id}
             guardians={student.guardians}
             parents={schoolParents}
-            canManage={role === "admin"}
+            canManage={role === "admin" || role === "director"}
           />
         )}
         {/* BOTTOM — Emploi du temps de la classe */}

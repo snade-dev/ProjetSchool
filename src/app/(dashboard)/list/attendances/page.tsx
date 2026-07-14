@@ -59,7 +59,7 @@ const AttendanceListPage = async (props: {
       accessor: "subject.name",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin" || role === "teacher"
+    ...(["admin", "director", "teacher", "supervisor"].includes(role ?? "")
       ? [{ header: "Actions", accessor: "action" }]
       : []),
   ];
@@ -91,7 +91,7 @@ const AttendanceListPage = async (props: {
       <td className="hidden md:table-cell">{item.student?.name || "N/A"}</td>
       <td className="hidden md:table-cell">{item.class?.name || "N/A"}</td>
       <td className="hidden md:table-cell">{item.subject?.name || "N/A"}</td>
-      {(role === "admin" || role === "teacher") && (
+      {["admin", "director", "teacher", "supervisor"].includes(role ?? "") && (
         <td>
           <div className="flex items-center gap-2">
             {/* Modifier la présence de CE jour (feuille d'appel préremplie) */}
@@ -106,7 +106,7 @@ const AttendanceListPage = async (props: {
             >
               <Pencil size={14} />
             </Link>
-            {role === "admin" && (
+            {["admin", "director", "supervisor"].includes(role ?? "") && (
               <>
                 <FormContainer table="attendance" type="update" data={item} />
                 <FormContainer table="attendance" type="delete" id={item.id} />
@@ -211,7 +211,7 @@ const AttendanceListPage = async (props: {
           />
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            {(role === "admin" || role === "teacher") && (
+            {["admin", "director", "teacher", "supervisor"].includes(role ?? "") && (
               <Link
                 href="/list/attendances/appel"
                 className="flex items-center gap-2 bg-blue-400 hover:bg-blue-500 text-white text-sm font-semibold rounded-md px-4 py-2 transition"
@@ -220,7 +220,7 @@ const AttendanceListPage = async (props: {
                 Faire l&apos;appel
               </Link>
             )}
-            {role === "admin" && (
+            {["admin", "director", "supervisor"].includes(role ?? "") && (
               <FormContainer table="attendance" type="create" />
             )}
           </div>

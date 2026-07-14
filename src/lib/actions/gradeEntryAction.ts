@@ -28,9 +28,9 @@ export async function saveGrades(
   data: GradeEntrySchema
 ): Promise<State> {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
   // V03 — la classe visée doit appartenir à l'école de la session
-  const { schoolId: sidG } = await requireSchool(["admin", "teacher"]);
+  const { schoolId: sidG } = await requireSchool(["admin", "director", "teacher"]);
   const classInSchool = await prisma.class.findFirst({
     where: { id: data.classId, schoolId: sidG }, select: { id: true },
   });

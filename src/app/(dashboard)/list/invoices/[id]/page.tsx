@@ -91,7 +91,8 @@ const InvoiceDetailPage = async (props: {
     where: { id: infoS?.schoolId ?? -1 },
   });
 
-  const isAdmin = role === "admin";
+  // W07 — le comptable encaisse et gère les factures comme l'admin.
+  const isAdmin = role === "admin" || role === "accountant";
   const hasPayments = invoice.payments.length > 0;
   const editable =
     isAdmin &&

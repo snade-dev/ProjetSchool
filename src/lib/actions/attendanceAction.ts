@@ -24,7 +24,7 @@ export const createAttendance = async (
     data: Attendancechema
   ) => {
     try {
-      const { userId, role } = await requireRole(["admin", "teacher"]);
+      const { userId, role } = await requireRole(["admin", "director", "teacher", "supervisor"]);
 
       if (role === "teacher") {
         const teacherLesson = await prisma.lesson.findFirst({
@@ -72,7 +72,7 @@ export const createAttendance = async (
     data: Attendancechema
   ) => {
     try {
-      const { userId, role } = await requireRole(["admin", "teacher"]);
+      const { userId, role } = await requireRole(["admin", "director", "teacher", "supervisor"]);
 
       if (role === "teacher") {
         const teacherLesson = await prisma.lesson.findFirst({
@@ -138,7 +138,7 @@ export const createAttendance = async (
     }
   ): Promise<CurrentState2> => {
     try {
-      const { userId, role } = await requireRole(["admin", "teacher"]);
+      const { userId, role } = await requireRole(["admin", "director", "teacher", "supervisor"]);
 
       const classId = Number(data.classId);
       const subjectId = Number(data.subjectId);
@@ -238,7 +238,7 @@ export const createAttendance = async (
     const id = data.get("id") as string;
 
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director", "supervisor"]);
       await prisma.attendance.delete({
         where: {
           id: parseInt(id),

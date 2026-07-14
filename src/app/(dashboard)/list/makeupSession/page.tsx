@@ -58,7 +58,7 @@ const MakeupSessionListPage = async (props: {
       accessor: "description",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -91,7 +91,7 @@ const MakeupSessionListPage = async (props: {
         <td className="hidden md:table-cell">
           <Link
             href={`/list/makeupSession/${item.id}${
-              role === "admin" || role === "teacher" ? "/up" : ""
+              role === "admin" || role === "director" || role === "teacher" ? "/up" : ""
             }`}
           >
             <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
@@ -99,7 +99,7 @@ const MakeupSessionListPage = async (props: {
             </button>
           </Link>
         </td>
-        {role === "admin" && (
+        {(role === "admin" || role === "director") && (
           <td>
             <div className="flex items-center gap-2">
               <FormContainer table="makeupSession" type="update" data={item} />
@@ -142,7 +142,7 @@ const MakeupSessionListPage = async (props: {
     student: { enrollments: { some: { studentId: currentUserId! } } }, // W03
   };
 
-  if (role === "admin") {
+  if ((role === "admin" || role === "director")) {
     // L'admin peut tout voir, pas besoin de filtrer par classe
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques

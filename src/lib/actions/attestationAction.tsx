@@ -24,7 +24,7 @@ export const createAttestation = async (
   }
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "student"]);
+    const { userId, role } = await requireRole(["admin", "director", "student"]);
 
     if (role === "student" && data.studentId !== userId) {
       return { success: false, error: true, message: "Accès refusé" };
@@ -55,7 +55,7 @@ export const updateAttestation = async (
   }
 ) => {
   try {
-    await requireRole(["admin", "teacher"]);
+    await requireRole(["admin", "director", "teacher"]);
 
     return { success: true, error: false, message: "Hello" };
   } catch (error) {
@@ -68,7 +68,7 @@ export const deleteQuiz = async (
   data: FormData
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     const id = data.get("id") as string;
 
@@ -105,7 +105,7 @@ export const createQuestion = async (
   }
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     const quiz = await prisma.quiz.findUnique({
       where: {
@@ -150,7 +150,7 @@ export const updateQuestion = async (
   }
 ) => {
   try {
-    await requireRole(["admin", "teacher"]);
+    await requireRole(["admin", "director", "teacher"]);
 
     const quiz = await prisma.question.findUnique({
       where: {

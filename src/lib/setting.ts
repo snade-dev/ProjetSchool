@@ -24,42 +24,50 @@ type RouteAccessMap = {
     [key: string]: string[];
   };
   
+  // W07 — rôles prédéfinis élargis (§2.7.4, §2.7.6) :
+  // - director : tout ce que voit l'admin SAUF /settings (paramètres école,
+  //   années scolaires, rollover) et la gestion des comptes ; finance en lecture.
+  // - accountant : uniquement finance (+ /list/employees en lecture).
+  // - supervisor : présences/discipline + élèves et classes en lecture.
   export const routeAccessMap: RouteAccessMap = {
     "/platform": ["superadmin"], // V04 — espace plateforme (clé sans (.*) : le proxy matche par startsWith)
-    "/suspended": ["admin", "teacher", "student", "parent", "user", "superadmin"], // V06
-    "/select-space": ["admin", "teacher", "student", "parent", "user", "superadmin"], // W06 — sélecteur d'espace
-    "/account(.*)": ["admin", "teacher", "student", "parent", "user"],
+    "/suspended": ["admin", "director", "teacher", "accountant", "supervisor", "student", "parent", "user", "superadmin"], // V06
+    "/select-space": ["admin", "director", "teacher", "accountant", "supervisor", "student", "parent", "user", "superadmin"], // W06 — sélecteur d'espace
+    "/account(.*)": ["admin", "director", "teacher", "accountant", "supervisor", "student", "parent", "user", "superadmin"],
     "/admin(.*)": ["admin"],
+    "/director(.*)": ["director"], // W07
+    "/accountant(.*)": ["accountant"], // W07
+    "/supervisor(.*)": ["supervisor"], // W07
     "/student(.*)": ["student"],
     "/teacher(.*)": ["teacher"],
     "/parent(.*)": ["parent"],
-    "/quiz(.*)": ["admin", "teacher", "student"],
-    "/list/teachers": ["admin", "teacher"],
-    "/list/students": ["admin", "teacher"],
-    "/list/parents": ["admin", "teacher"],
-    "/list/subjects": ["admin"],
-    "/list/levels": ["admin"], // W02 — niveaux scolaires
-    "/list/classes": ["admin", "teacher"],
-    "/list/exams": ["admin", "teacher", "student", "parent"],
-    "/list/tuitionPayment": ["admin", "teacher", "student", "parent"],
-    "/list/onlineExam": ["admin", "teacher", "student"],
-    "/list/resultExam": ["admin", "teacher", "student"],
-    "/list/correction": ["admin", "teacher", "student"],
-    "/list/results": ["admin", "teacher", "student", "parent"],
-    "/list/gradeEntry": ["admin", "teacher"],
-    "/list/attendance": ["admin", "teacher", "student", "parent"],
-    "/list/reclamation": ["admin", "teacher", "student"],
-    "/list/demande": ["admin", "teacher", "student"],
-    "/list/events": ["admin", "teacher", "student", "parent"],
-    "/list/announcements": ["admin", "teacher", "student", "parent"],
-    "/list/semester": ["admin", "teacher", "student", "parent"],
-    "/list/makeupSession": ["admin", "teacher", "student"],
-    "/list/fees": ["admin"],
-    "/list/invoices": ["admin", "student", "parent"],
-    "/list/expenses": ["admin"],
-    "/list/employees": ["admin"],
-    "/list/payroll": ["admin"],
-    "/settings/rollover": ["admin"], // W04 — assistant de passage d'année
-    "/settings": ["admin"],
-    "/stats": ["admin", "teacher"],
+    "/quiz(.*)": ["admin", "director", "teacher", "student"],
+    "/list/teachers": ["admin", "director", "teacher"],
+    "/list/students": ["admin", "director", "teacher", "supervisor"],
+    "/list/parents": ["admin", "director", "teacher"],
+    "/list/subjects": ["admin", "director"],
+    "/list/levels": ["admin", "director"], // W02 — niveaux scolaires
+    "/list/classes": ["admin", "director", "teacher", "supervisor"],
+    "/list/exams": ["admin", "director", "teacher", "student", "parent"],
+    "/list/tuitionPayment": ["admin", "director", "teacher", "accountant", "student", "parent"],
+    "/list/onlineExam": ["admin", "director", "teacher", "student"],
+    "/list/resultExam": ["admin", "director", "teacher", "student"],
+    "/list/correction": ["admin", "director", "teacher", "student"],
+    "/list/results": ["admin", "director", "teacher", "student", "parent"],
+    "/list/gradeEntry": ["admin", "director", "teacher"],
+    "/list/attendances": ["admin", "director", "teacher", "supervisor", "student", "parent"], // W07 — clé alignée sur la route réelle (match par segment)
+    "/list/reclamation": ["admin", "director", "teacher", "student"],
+    "/list/demande": ["admin", "director", "teacher", "student"],
+    "/list/events": ["admin", "director", "teacher", "student", "parent"],
+    "/list/announcements": ["admin", "director", "teacher", "student", "parent"],
+    "/list/semester": ["admin", "director", "teacher", "student", "parent"],
+    "/list/makeupSession": ["admin", "director", "teacher", "student"],
+    "/list/fees": ["admin", "director", "accountant"],
+    "/list/invoices": ["admin", "director", "accountant", "student", "parent"],
+    "/list/expenses": ["admin", "director", "accountant"],
+    "/list/employees": ["admin", "director", "accountant"],
+    "/list/payroll": ["admin", "director", "accountant"],
+    "/settings/rollover": ["admin"], // W04 — assistant de passage d'année (director exclu)
+    "/settings": ["admin"], // W07 — paramètres structurants : admin uniquement
+    "/stats": ["admin", "director", "teacher", "accountant"], // gardes par page : finance restreint en page
   };

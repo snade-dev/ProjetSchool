@@ -20,7 +20,7 @@ export default function UpdateDate({ attestationId, role }: UpdateDateProps) {
         </label>
         <input type="date" name="Rdate" id="Rdate" required className="border rounded px-2 py-1" />
 
-        {role === "admin" && (
+        {(role === "admin" || role === "director") && (
           <button
             type="submit"
             className="px-6 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600"

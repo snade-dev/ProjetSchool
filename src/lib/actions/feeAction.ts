@@ -17,7 +17,7 @@ export const createFee = async (
   data: FeeStructureSchema
 ) => {
   try {
-    const { schoolId } = await requireSchool(["admin"]); // V03
+    const { schoolId } = await requireSchool(["admin", "accountant"]); // V03
     const activeYear = await getActiveSchoolYear(schoolId);
 
     await prisma.feeStructure.create({
@@ -45,7 +45,7 @@ export const updateFee = async (
   data: FeeStructureSchema
 ) => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
     const activeYear = await getActiveSchoolYear();
 
     await prisma.feeStructure.update({
@@ -73,7 +73,7 @@ export const deleteFee = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.feeStructure.delete({
       where: { id: parseInt(id) },
@@ -97,7 +97,7 @@ export const duplicateFees = async (
   try {
     // W01 — plus de @default(1) : schoolId explicite depuis la session,
     // et classes source/cible vérifiées dans l'école de la session.
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "accountant"]);
 
     if (!fromClassId || !toClassId || fromClassId === toClassId) {
       return { success: false, error: true };

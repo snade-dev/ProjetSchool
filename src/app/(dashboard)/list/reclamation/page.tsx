@@ -49,7 +49,7 @@ const ReclamationListPage = async (props: {
       accessor: "detail",
       className: "hidden md:table-cell",
     },
-    // ...(role === "admin"
+    // ...((role === "admin" || role === "director")
     //   ? [
     //       {
     //         header: "Actions",
@@ -127,7 +127,7 @@ const ReclamationListPage = async (props: {
             </button>
           </Link>
         </td>
-        {role === "admin" && (
+        {(role === "admin" || role === "director") && (
           <td>
             <div className="flex items-center gap-2">
               {/* <FormContainer table="complaint" type="update" data={item} />
@@ -170,7 +170,7 @@ const ReclamationListPage = async (props: {
     student: { enrollments: { some: { studentId: currentUserId! } } }, // W03
   };
 
-  if (role === "admin") {
+  if ((role === "admin" || role === "director")) {
     // L'admin peut tout voir, pas besoin de filtrer par classe
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques

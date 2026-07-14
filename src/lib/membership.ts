@@ -10,12 +10,27 @@ import prisma from "./prisma";
  * (rôle global) n'a aucune membership.
  */
 
-/** Rôles d'espace disponibles en W06 (les rôles élargis arrivent en W07). */
-export const SPACE_ROLES = ["admin", "teacher", "student", "parent"] as const;
+/**
+ * Rôles d'espace disponibles. W07 ajoute les rôles PRÉDÉFINIS élargis
+ * (§2.7.4, §2.7.6) : director (direction), accountant (comptable),
+ * supervisor (surveillant général).
+ */
+export const SPACE_ROLES = [
+  "admin",
+  "director",
+  "teacher",
+  "accountant",
+  "supervisor",
+  "student",
+  "parent",
+] as const;
 
 export const SPACE_ROLE_LABELS: Record<string, string> = {
   admin: "Administrateur",
+  director: "Direction",
   teacher: "Enseignant",
+  accountant: "Comptable",
+  supervisor: "Surveillant général",
   student: "Élève",
   parent: "Parent",
 };

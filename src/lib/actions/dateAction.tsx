@@ -6,7 +6,7 @@ import { requireRole } from "../authGuard";
 // Cette fonction s'exécute côté serveur
 export default async function updateAttestationDate(formData: FormData) {
 
-    await requireRole(["admin", "teacher"]);
+    await requireRole(["admin", "director", "teacher"]);
 
     // Récupération des valeurs depuis le formulaire
     const attestationId = formData.get("attestationId")?.toString();

@@ -34,6 +34,8 @@ const ExpensesListPage = async (props: {
   const searchParams = await props.searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user.role;
+  // W07 — écriture : admin + comptable ; la direction consulte (lecture).
+  const canManage = role === "admin" || role === "accountant";
 
   const { page, month, year, categoryId, search } = searchParams;
   const p = page ? parseInt(page) : 1;
@@ -143,10 +145,12 @@ const ExpensesListPage = async (props: {
         )}
       </td>
       <td>
-        <div className="flex items-center gap-2">
-          <FormContainer table="expense" type="update" data={item} />
-          <FormContainer table="expense" type="delete" id={item.id} />
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-2">
+            <FormContainer table="expense" type="update" data={item} />
+            <FormContainer table="expense" type="delete" id={item.id} />
+          </div>
+        )}
       </td>
     </tr>
   );
@@ -162,10 +166,10 @@ const ExpensesListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            {role === "admin" && (
+            {["admin", "director", "accountant"].includes(role ?? "") && (
               <ExportCsvButton endpoint="expenses" filename="depenses" />
             )}
-            <FormContainer table="expense" type="create" />
+            {canManage && <FormContainer table="expense" type="create" />}
           </div>
         </div>
       </div>

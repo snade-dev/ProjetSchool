@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 
 export const updateTuition = async ( curentState: {success: boolean, error: boolean, message: string}, data: {amont: number, id: string, studentId: string, month: number}) => {
     try {
-        await requireRole(["admin"]);
+        await requireRole(["admin", "accountant"]);
 
         await prisma.tuitionPayment.upsert({
             where: {

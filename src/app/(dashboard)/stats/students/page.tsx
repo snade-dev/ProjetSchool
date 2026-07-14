@@ -110,7 +110,7 @@ export default async function StudentStatsPage(props: {
 
   if (role === "student") redirect("/student");
   if (role === "parent") redirect("/parent");
-  if (role !== "admin" && role !== "teacher") return notFound();
+  if (!["admin", "director", "teacher"].includes(role)) return notFound(); // W07
 
   const searchParams = await props.searchParams;
 

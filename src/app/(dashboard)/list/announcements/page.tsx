@@ -38,7 +38,7 @@ const AnnouncementsListPage = async (props: {
       accessor: "date",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -60,7 +60,7 @@ const AnnouncementsListPage = async (props: {
       </td>
       <td>
         <div className=" flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "director") && (
             <>
               <FormContainer table="announcement" type="update" data={item} />
               <FormContainer table="announcement" type="delete" id={item.id} />
@@ -111,7 +111,7 @@ const AnnouncementsListPage = async (props: {
     },
   };
 
-  if (role === "admin") {
+  if ((role === "admin" || role === "director")) {
     // L'admin peut tout voir, pas besoin de filtrer par classe
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques
@@ -146,7 +146,7 @@ const AnnouncementsListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            {role === "admin" && (
+            {(role === "admin" || role === "director") && (
               <FormContainer table="announcement" type="create" />
             )}
           </div>

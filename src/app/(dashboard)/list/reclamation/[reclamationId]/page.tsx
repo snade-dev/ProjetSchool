@@ -167,7 +167,7 @@ export default async function ReclamationDetailsPage(props: {
                 </span>
 
                 {/* Boutons d'action pour les enseignants */}
-                {(role === "admin" || role === "teacher") && (
+                {(role === "admin" || role === "director" || role === "teacher") && (
                   <div className="flex gap-4">
                     <form
                       action={async () => {

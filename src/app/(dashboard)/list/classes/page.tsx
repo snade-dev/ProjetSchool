@@ -52,7 +52,7 @@ const ClassListPage = async (props: {
       accessor: "supervisor",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -78,7 +78,7 @@ const ClassListPage = async (props: {
       </td>
       <td>
         <div className=" flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "director") && (
             <>
               <FormContainer table="class" type="update" data={item} />
               <FormContainer table="class" type="delete" id={item.id} />
@@ -148,7 +148,7 @@ const ClassListPage = async (props: {
         <div className=" flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className=" flex items-center self-end gap-4">
-            {role === "admin" && <FormContainer table="class" type="create" />}
+            {(role === "admin" || role === "director") && <FormContainer table="class" type="create" />}
           </div>
         </div>
       </div>

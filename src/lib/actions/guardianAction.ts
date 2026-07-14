@@ -40,7 +40,7 @@ export const addGuardian = async (
   data: GuardianSchema
 ): Promise<ActionResult> => {
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     const parsed = guardianSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: true, message: "Données invalides." };
@@ -98,7 +98,7 @@ export const updateGuardian = async (
   data: GuardianSchema
 ): Promise<ActionResult> => {
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     const parsed = guardianSchema.safeParse(data);
     if (!parsed.success || !parsed.data.id) {
       return { success: false, error: true, message: "Données invalides." };
@@ -143,7 +143,7 @@ export const removeGuardian = async (
 ): Promise<ActionResult> => {
   const id = parseInt(data.get("id") as string);
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     if (Number.isNaN(id)) {
       return { success: false, error: true, message: "Données invalides." };
     }

@@ -24,7 +24,7 @@ export const createAnnounce = async (
     data: AnnounceSchema
   ) => {
     try {
-      const { schoolId } = await requireSchool(["admin"]); // V03
+      const { schoolId } = await requireSchool(["admin", "director"]); // V03
 
       await prisma.announcement.create({
         data: {
@@ -49,7 +49,7 @@ export const createAnnounce = async (
     data: AnnounceSchema
   ) => {
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
 
       await prisma.announcement.update({
         where: {
@@ -78,7 +78,7 @@ export const createAnnounce = async (
     const id = data.get("id") as string;
 
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
       await prisma.announcement.delete({
         where: {
           id: parseInt(id),

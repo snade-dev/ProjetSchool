@@ -23,7 +23,7 @@ const timeToDate = (hhmm: string): Date => new Date(`1970-01-05T${hhmm}:00.000Z`
 export const createLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
 
     try {
-        await requireRole(["admin"]);
+        await requireRole(["admin", "director"]);
 
         const existingLesson = await prisma.lesson.findFirst({
           where: {
@@ -79,7 +79,7 @@ export const createLesson = async (currentState: CurrentState2 ,data: LessonSche
 
 export const updateLesson = async (currentState: CurrentState2 ,data: LessonSchema) => {
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
@@ -127,7 +127,7 @@ export const updateLesson = async (currentState: CurrentState2 ,data: LessonSche
 export const deleteLesson = async (currentState: CurrentState ,data: FormData) => {
     const id = Number(data.get("id") as unknown);
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
 
       try {
         await prisma.lesson.delete({
