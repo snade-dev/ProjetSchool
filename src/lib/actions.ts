@@ -452,9 +452,12 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
        if (classItem.capacity === classItem._count.enrollments) {
          return {success: false, error: true, message: "La classe à déja ateint sa capacité maximale"}
        }
-        // Recherchez le parent par son nom
+        // W05 — tuteur principal requis à la création (devient une ligne StudentGuardian)
+      if (!data.parentUsername) {
+        return { success: false, error: true, message: "L'identifiant du tuteur principal est requis !" };
+      }
        const parent = await prisma.parent.findUnique({
-        where: { username: data.parentUsername }, // Supposez que `parentName` est fourni dans les données
+        where: { username: data.parentUsername },
         });
 
       if (!parent) {
@@ -480,7 +483,13 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
           await removeAuthUser(userId);
           return { success: false, error: true, message: "Classe introuvable dans votre établissement." };
         }
-        // W03 — l'élève et son inscription (Enrollment) dans la même transaction
+        // W05 — le tuteur principal doit appartenir à l'école de la session
+        if (parent.schoolId !== schoolId) {
+          await removeAuthUser(userId);
+          return { success: false, error: true, message: "Parent introuvable dans votre établissement." };
+        }
+        // W03/W05 — l'élève, son inscription (Enrollment) et son tuteur
+        // principal (StudentGuardian) dans la même transaction
         await prisma.$transaction(async (tx) => {
           await tx.student.create({
             data: {
@@ -496,10 +505,21 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
               bloodType: data.bloodType,
               sex: data.sex,
               birthday: data.birthday,
-              parentId: parent.id
             },
           });
           await upsertEnrollment(userId, classItem.id, classItem.schoolYearId, tx);
+          // W05 — tuteur principal : tous les droits (comme le backfill)
+          await tx.studentGuardian.create({
+            data: {
+              studentId: userId,
+              parentId: parent.id,
+              relationship: "tuteur",
+              isLegal: true,
+              canPay: true,
+              canViewGrades: true,
+              canPickup: true,
+            },
+          });
         });
         } catch (err) {
           // compensation : ne pas laisser un compte de connexion orphelin
@@ -528,14 +548,8 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
       });
       if (!ownedE) return { success: false, error: true, message: "Élève introuvable dans votre établissement." };
 
-      // Recherchez le parent par son nom
-    const parent = await prisma.parent.findUnique({
-      where: { username: data.parentUsername }, // Supposez que `parentName` est fourni dans les données
-    });
-
-    if (!parent) {
-      return { success: false, error: true, message: "Parent n'existe pas" };
-    }
+      // W05 — les tuteurs se gèrent depuis la fiche élève (StudentGuardian) :
+      // la modification d'un élève ne touche plus au parent.
 
       try {
         // Mettre à jour le nom et l'email dans la table User de Better Auth
@@ -583,7 +597,6 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
             bloodType: data.bloodType,
             sex: data.sex,
             birthday: data.birthday,
-            parentId: parent.id
           },
         });
         await upsertEnrollment(data.id!, targetClass.id, targetClass.schoolYearId, tx);

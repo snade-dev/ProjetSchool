@@ -35,7 +35,19 @@ const InvoiceDetailPage = async (props: {
     include: {
       lines: { orderBy: { id: "asc" } },
       payments: { orderBy: { paidAt: "asc" } },
-      student: { include: { parent: true } },
+      // W05 — tuteurs via StudentGuardian (accès parent + contact payeur)
+      student: {
+        include: {
+          guardians: {
+            select: {
+              parentId: true,
+              canPay: true,
+              isLegal: true,
+              parent: { select: { name: true, surname: true, phone: true } },
+            },
+          },
+        },
+      },
       schoolYear: true,
     },
   });
@@ -58,9 +70,20 @@ const InvoiceDetailPage = async (props: {
   if (role === "student" && invoice.studentId !== currentUserId) {
     notFound();
   }
-  if (role === "parent" && invoice.student.parentId !== currentUserId) {
+  // W05 — un parent n'accède qu'aux factures des élèves dont il est tuteur
+  if (
+    role === "parent" &&
+    !invoice.student.guardians.some((g) => g.parentId === currentUserId)
+  ) {
     notFound();
   }
+
+  // W05 — tuteur à afficher comme contact : payeur (canPay), sinon légal
+  const contactGuardian =
+    invoice.student.guardians.find((g) => g.canPay) ??
+    invoice.student.guardians.find((g) => g.isLegal) ??
+    invoice.student.guardians[0] ??
+    null;
 
   // V03 — l'école de la session (en-tête PDF)
   const infoS = await getSessionInfo();
@@ -106,8 +129,8 @@ const InvoiceDetailPage = async (props: {
     name: invoice.student.name,
     surname: invoice.student.surname,
     className: invClassName,
-    parentName: invoice.student.parent
-      ? `${invoice.student.parent.name} ${invoice.student.parent.surname}`
+    parentName: contactGuardian
+      ? `${contactGuardian.parent.name} ${contactGuardian.parent.surname}`
       : null,
   };
 
@@ -205,12 +228,12 @@ const InvoiceDetailPage = async (props: {
               <span className="text-xs text-gray-500">
                 Classe : {invClassName ?? "-"}
               </span>
-              {invoice.student.parent && (
+              {contactGuardian && (
                 <span className="text-xs text-gray-500">
-                  Parent : {invoice.student.parent.name}{" "}
-                  {invoice.student.parent.surname}
-                  {invoice.student.parent.phone
-                    ? ` — ${invoice.student.parent.phone}`
+                  Tuteur : {contactGuardian.parent.name}{" "}
+                  {contactGuardian.parent.surname}
+                  {contactGuardian.parent.phone
+                    ? ` — ${contactGuardian.parent.phone}`
                     : ""}
                 </span>
               )}

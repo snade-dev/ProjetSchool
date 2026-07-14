@@ -14,7 +14,12 @@ const Announcement = async () => {
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: userId! } } },
     student: { enrollments: { some: { studentId: userId! } } },
-    parent: { enrollments: { some: { student: { parentId: userId! } } } },
+    // W05 — le lien parent-enfant passe par StudentGuardian
+    parent: {
+      enrollments: {
+        some: { student: { guardians: { some: { parentId: userId! } } } },
+      },
+    },
   };
 
   // V03 — cloisonnement : annonces de l'école de la session

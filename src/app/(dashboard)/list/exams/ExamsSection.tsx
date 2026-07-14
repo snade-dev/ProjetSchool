@@ -147,10 +147,11 @@ const ExamsSection = async ({
       };
       break;
     case "parent":
+      // W05 — le lien parent-enfant passe par StudentGuardian
       query.lesson.class = {
         enrollments: {
           some: {
-            student: { parentId: currentUserId! },
+            student: { guardians: { some: { parentId: currentUserId! } } },
           },
         },
       };

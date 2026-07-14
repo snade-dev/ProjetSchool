@@ -160,13 +160,17 @@ const StudentForm = ({
           error={errors.birthday}
           type="date"
         />
-        <InputField
-          label="Nom du parent"
-          name="parentUsername"
-          defaultValue={data?.parentUsername}
-          register={register}
-          error={errors.parentUsername}
-        />
+        {/* W05 — tuteur principal à la CRÉATION seulement (crée le lien
+            StudentGuardian) ; ensuite, gestion des tuteurs sur la fiche élève */}
+        {type === "create" && (
+          <InputField
+            label="Tuteur principal (identifiant)"
+            name="parentUsername"
+            defaultValue={data?.parentUsername}
+            register={register}
+            error={errors.parentUsername}
+          />
+        )}
         {data && (
           <InputField
             label="Identifiant"

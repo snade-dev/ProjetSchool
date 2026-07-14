@@ -163,12 +163,29 @@ export const deleteParent = async (currentState: CurrentState ,data: FormData) =
       });
       if (!ownedPD) return { success: false, error: true };
 
-      // Les élèves du parent sont supprimés en cascade (schema) : retenir
-      // leurs ids pour supprimer aussi leurs comptes de connexion.
-      const students = await prisma.student.findMany({
+      // W05 — supprimer un parent ne supprime PLUS les élèves : seuls les
+      // liens StudentGuardian tombent en cascade. Refuser si le parent est
+      // le DERNIER tuteur d'au moins un élève (il resterait orphelin).
+      const links = await prisma.studentGuardian.findMany({
         where: { parentId: id },
-        select: { id: true },
+        select: { studentId: true },
       });
+      if (links.length > 0) {
+        const orphans = await prisma.student.count({
+          where: {
+            id: { in: links.map((l) => l.studentId) },
+            guardians: { every: { parentId: id } },
+          },
+        });
+        if (orphans > 0) {
+          return {
+            success: false,
+            error: true,
+            message:
+              "Impossible : ce parent est le seul tuteur d'au moins un élève. Ajoutez un autre tuteur à ces élèves avant de le supprimer.",
+          };
+        }
+      }
 
       // Prisma d'abord : si la suppression échoue (contrainte FK…), on ne
       // touche à aucun compte et on remonte une vraie erreur (S19).
@@ -177,9 +194,6 @@ export const deleteParent = async (currentState: CurrentState ,data: FormData) =
       });
 
       await removeAuthUser(id);
-      for (const s of students) {
-        await removeAuthUser(s.id);
-      }
 
         revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};

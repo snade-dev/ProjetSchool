@@ -12,6 +12,7 @@ import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
 import { headers } from "next/headers";
 import BulletinButton from "@/components/BulletinButton";
+import GuardianSection from "@/components/GuardianSection";
 import SemesterSelector from "@/components/SemesterSelector";
 import { buildReportCard } from "@/lib/reportCard";
 
@@ -51,6 +52,7 @@ const SingleStudentPage = async (props: {
 
   // W03 — la classe actuelle vient de l'inscription de l'année ACTIVE ; le
   // parcours complet (§2.1.3) vient de TOUTES les inscriptions de l'élève.
+  // W05 — les tuteurs (StudentGuardian) portent l'accès parent et les droits.
   const student = await prisma.student.findUnique({
     where: { id: id },
     include: {
@@ -66,6 +68,20 @@ const SingleStudentPage = async (props: {
         },
         orderBy: { schoolYear: { startDate: "desc" } },
       },
+      guardians: {
+        include: {
+          parent: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              username: true,
+              phone: true,
+            },
+          },
+        },
+        orderBy: { id: "asc" },
+      },
     },
   });
 
@@ -73,9 +89,16 @@ const SingleStudentPage = async (props: {
     return notFound();
   }
 
-  if (role === "parent" && student.parentId !== userId) {
+  // W05 — un parent n'accède qu'aux élèves dont il est tuteur
+  const parentGuardian =
+    role === "parent"
+      ? student.guardians.find((g) => g.parent.id === userId) ?? null
+      : null;
+  if (role === "parent" && !parentGuardian) {
     return notFound();
   }
+  // W05 — droit différencié : canViewGrades=false masque le bulletin
+  const canViewGrades = role !== "parent" || parentGuardian!.canViewGrades;
 
   const currentEnrollment =
     student.enrollments.find((e) => e.schoolYear.isActive) ?? null;
@@ -99,9 +122,21 @@ const SingleStudentPage = async (props: {
     : undefined;
   const selectedSemester =
     semesters.find((s) => s.id === requestedSemesterId) ?? semesters[0];
-  const reportCard = selectedSemester
-    ? await buildReportCard(student.id, selectedSemester.id)
-    : null;
+  // W05 — pas de calcul de bulletin pour un tuteur sans droit de voir les notes
+  const reportCard =
+    canViewGrades && selectedSemester
+      ? await buildReportCard(student.id, selectedSemester.id)
+      : null;
+
+  // W05 — parents de l'école proposés à l'ajout de tuteur (admin uniquement)
+  const schoolParents =
+    role === "admin"
+      ? await prisma.parent.findMany({
+          where: { schoolId: student.schoolId },
+          select: { id: true, name: true, surname: true, username: true },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        })
+      : [];
 
   return (
     <div className="flex-1 p-4 flex flex-col gap-4 md:flex-row">
@@ -243,6 +278,15 @@ const SingleStudentPage = async (props: {
             </table>
           )}
         </div>
+        {/* W05 — Tuteurs de l'élève (§2.2.3) : liste + droits ; CRUD admin */}
+        {(role === "admin" || role === "teacher") && (
+          <GuardianSection
+            studentId={student.id}
+            guardians={student.guardians}
+            parents={schoolParents}
+            canManage={role === "admin"}
+          />
+        )}
         {/* BOTTOM — Emploi du temps de la classe */}
         {currentClass && (
           <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
@@ -258,7 +302,13 @@ const SingleStudentPage = async (props: {
         {/* S13 — Bulletin scolaire (sélecteur de semestre + PDF précalculé) */}
         <div className="bg-white p-4 rounded-md">
           <h1 className="text-xl font-semibold">Bulletin scolaire</h1>
-          {semesters.length === 0 ? (
+          {!canViewGrades ? (
+            // W05 — tuteur sans droit de consultation des notes
+            <p className="mt-4 text-sm text-gray-400">
+              La consultation des notes et bulletins n&apos;est pas activée
+              pour votre compte. Contactez l&apos;administration.
+            </p>
+          ) : semesters.length === 0 ? (
             <p className="mt-4 text-sm text-gray-400">
               Aucun semestre configuré.
             </p>
@@ -299,12 +349,14 @@ const SingleStudentPage = async (props: {
             >
               Examès de l&apos;étudiant;
             </Link>
-            <Link
-              className="p-3 rounded-md bg-lamaYellowLight"
-              href={`/list/results?studentId=${id}`}
-            >
-              Resultat de l&apos;étudiant;
-            </Link>
+            {canViewGrades && (
+              <Link
+                className="p-3 rounded-md bg-lamaYellowLight"
+                href={`/list/results?studentId=${id}`}
+              >
+                Resultat de l&apos;étudiant;
+              </Link>
+            )}
           </div>
         </div>
         <Performance />

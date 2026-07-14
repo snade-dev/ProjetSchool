@@ -16,7 +16,6 @@ import {
   Payment,
   Student,
   Class,
-  Parent,
   Prisma,
   InvoiceStatus,
 } from "@/app/generated/prisma";
@@ -27,13 +26,27 @@ import { Eye } from "lucide-react";
 
 import { sessionSchoolId } from "@/lib/authGuard";
 // W03 — la classe de l'élève vient de son inscription sur l'année de la facture
+// W05 — le(s) tuteur(s) viennent de StudentGuardian (colonne « Parent » du
+// recouvrement : tuteur payeur = canPay en premier, puis tuteur légal)
+type GuardianCell = {
+  canPay: boolean;
+  isLegal: boolean;
+  parent: { name: string; surname: string; phone: string | null };
+};
 type InvoiceList = Invoice & {
   student: Student & {
     enrollments: { schoolYearId: number; class: Pick<Class, "name"> }[];
-    parent: Parent;
+    guardians: GuardianCell[];
   };
   payments: Payment[];
 };
+
+/** Tuteur à contacter pour le paiement : canPay, sinon légal, sinon premier. */
+const payerGuardian = (guardians: GuardianCell[]) =>
+  guardians.find((g) => g.canPay) ??
+  guardians.find((g) => g.isLegal) ??
+  guardians[0] ??
+  null;
 
 const InvoicesListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -60,7 +73,10 @@ const InvoicesListPage = async (props: {
   if (role === "student") {
     scopeWhere.studentId = currentUserId!;
   } else if (role === "parent") {
-    scopeWhere.student = { parentId: currentUserId! };
+    // W05 — factures des enfants dont l'utilisateur est tuteur (le solde
+    // reste visible même sans droit canPay ; seuls les écrans de paiement
+    // sont réservés — ils sont côté admin de toute façon)
+    scopeWhere.student = { guardians: { some: { parentId: currentUserId! } } };
   }
 
   // --- Filtres de la liste (builder partagé avec l'export CSV S18) ---
@@ -82,7 +98,16 @@ const InvoicesListPage = async (props: {
                 class: { select: { name: true } },
               },
             },
-            parent: true,
+            // W05 — tuteurs pour la colonne « Parent » du recouvrement
+            guardians: {
+              select: {
+                canPay: true,
+                isLegal: true,
+                parent: {
+                  select: { name: true, surname: true, phone: true },
+                },
+              },
+            },
           },
         },
         payments: true,
@@ -245,14 +270,21 @@ const InvoicesListPage = async (props: {
               )}
             </td>
             <td className="hidden lg:table-cell">
-              <div className="flex flex-col">
-                <span>
-                  {item.student.parent.name} {item.student.parent.surname}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {item.student.parent.phone ?? "—"}
-                </span>
-              </div>
+              {(() => {
+                const payer = payerGuardian(item.student.guardians);
+                return payer ? (
+                  <div className="flex flex-col">
+                    <span>
+                      {payer.parent.name} {payer.parent.surname}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {payer.parent.phone ?? "—"}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400">—</span>
+                );
+              })()}
             </td>
           </>
         )}

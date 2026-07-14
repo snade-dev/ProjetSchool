@@ -101,8 +101,13 @@ const AnnouncementsListPage = async (props: {
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: currentUserId! } } },
     student: { enrollments: { some: { studentId: currentUserId! } } },
+    // W05 — le lien parent-enfant passe par StudentGuardian
     parent: {
-      enrollments: { some: { student: { parentId: currentUserId! } } },
+      enrollments: {
+        some: {
+          student: { guardians: { some: { parentId: currentUserId! } } },
+        },
+      },
     },
   };
 
