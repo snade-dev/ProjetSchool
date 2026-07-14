@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Bell, MessageSquare, Search } from "lucide-react";
 import UserMenu from "./UserMenu";
+import SpaceSwitcher, { type SwitcherSpace } from "./SpaceSwitcher";
+import { getSelectableMemberships, SPACE_ROLE_LABELS } from "@/lib/membership";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "administrateur",
@@ -37,6 +39,28 @@ const Navbar = async () => {
     recentAnnouncements = 0;
   }
 
+  // W06 — bascule d'espace : proposée seulement si le compte a PLUSIEURS
+  // memberships sélectionnables (le superadmin n'en a aucune).
+  let switcherSpaces: SwitcherSpace[] = [];
+  if (session && role !== "superadmin") {
+    try {
+      const activeSchoolId =
+        (session.user as { schoolId?: number | null }).schoolId ?? null;
+      const spaces = await getSelectableMemberships(session.user.id);
+      if (spaces.length > 1) {
+        switcherSpaces = spaces.map((s) => ({
+          id: s.id,
+          schoolName: s.schoolName,
+          role: s.role,
+          roleLabel: SPACE_ROLE_LABELS[s.role] ?? s.role,
+          isCurrent: s.schoolId === activeSchoolId && s.role === role,
+        }));
+      }
+    } catch {
+      switcherSpaces = [];
+    }
+  }
+
   return (
     <header className="flex items-center justify-between p-4">
       {/* Barre de recherche fonctionnelle (GET → liste filtrée) */}
@@ -59,6 +83,8 @@ const Navbar = async () => {
 
       {/* Icônes et profil */}
       <div className="flex items-center gap-6 justify-end w-full">
+        {/* W06 — bascule d'espace (multi-écoles / multi-rôles) */}
+        <SpaceSwitcher spaces={switcherSpaces} />
         {["admin", "teacher", "student"].includes(role) && (
           <Link
             href="/list/reclamation"
