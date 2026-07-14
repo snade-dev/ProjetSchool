@@ -1,5 +1,6 @@
 import Annoucement from "@/components/Annoucement";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
+import UpcomingHomeworksCard from "@/components/UpcomingHomeworksCard";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -99,6 +100,10 @@ const StudentPage = async () => {
             ))}
           </div>
         </div>
+        {/* W14 — devoirs à rendre dans les 7 prochains jours (§2.3.8) */}
+        <UpcomingHomeworksCard
+          classIds={currentClass ? [currentClass.id] : []}
+        />
         <Annoucement />
       </div>
     </div>

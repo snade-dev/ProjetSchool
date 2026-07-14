@@ -30,7 +30,8 @@ export type FormContainerProps = {
     | "payment"
     | "expense"
     | "employee"
-    | "level";
+    | "level"
+    | "homework";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
@@ -303,6 +304,54 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           orderBy: [{ name: "asc" }, { surname: "asc" }],
         });
         relatedData = { teachers: freeTeachers };
+        break;
+
+      case "homework":
+        // W14 — teacher : uniquement les (classe, matière) où il enseigne
+        // (ses Lessons) ; admin/director : toutes les classes de l'année
+        // active + toutes les matières de l'école.
+        if (role === "teacher") {
+          const teacherLessons = await prisma.lesson.findMany({
+            where: { teacherId: currentUserID!, class: { schoolId } },
+            select: {
+              classId: true,
+              subjectId: true,
+              class: { select: { id: true, name: true } },
+              subject: { select: { id: true, name: true } },
+            },
+          });
+          const hwClasses = [
+            ...new Map(
+              teacherLessons.map((l) => [l.class.id, l.class])
+            ).values(),
+          ];
+          const hwSubjects = [
+            ...new Map(
+              teacherLessons.map((l) => [l.subject.id, l.subject])
+            ).values(),
+          ];
+          relatedData = {
+            classes: hwClasses,
+            subjects: hwSubjects,
+            pairs: teacherLessons.map((l) => ({
+              classId: l.classId,
+              subjectId: l.subjectId,
+            })),
+          };
+        } else {
+          const hwAllClasses = await prisma.class.findMany({
+            // W02 — classes de l'année active uniquement
+            where: { schoolId, schoolYear: { isActive: true } },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+          });
+          const hwAllSubjects = await prisma.subject.findMany({
+            where: { schoolId },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+          });
+          relatedData = { classes: hwAllClasses, subjects: hwAllSubjects };
+        }
         break;
 
       default:

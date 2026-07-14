@@ -9,10 +9,13 @@ const UploadField = ({
   label,
   value,
   onChange,
+  accept = "image/jpeg,image/png,image/webp,image/gif",
 }: {
   label: string;
   value?: string;
   onChange: (url: string) => void;
+  /** W14 — types acceptés (ex : "...,application/pdf" pour les devoirs). */
+  accept?: string;
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -46,7 +49,7 @@ const UploadField = ({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept={accept}
         className="hidden"
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
@@ -66,14 +69,20 @@ const UploadField = ({
       {value && !uploading && (
         <span className="flex items-center gap-1.5 text-xs text-green-600">
           <CheckCircle2 size={14} />
-          Image jointe
-          {/* aperçu de l'image locale */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={value}
-            alt=""
-            className="ml-1 h-8 w-8 rounded-full object-cover ring-1 ring-gray-200"
-          />
+          {value.endsWith(".pdf") ? (
+            "Fichier joint (PDF)"
+          ) : (
+            <>
+              Image jointe
+              {/* aperçu de l'image locale */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={value}
+                alt=""
+                className="ml-1 h-8 w-8 rounded-full object-cover ring-1 ring-gray-200"
+              />
+            </>
+          )}
         </span>
       )}
       {error && <span className="text-xs text-red-400">{error}</span>}

@@ -14,6 +14,8 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
+  // W14 — pièces jointes de devoirs (sujets, fiches d'exercices)
+  "application/pdf": "pdf",
 };
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
@@ -21,7 +23,8 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
 export async function POST(req: NextRequest) {
   try {
     // W07 — accountant : justificatifs de dépenses (ExpenseForm).
-    await requireRole(["admin", "accountant"]);
+    // W14 — director/teacher : pièces jointes de devoirs (HomeworkForm).
+    await requireRole(["admin", "director", "accountant", "teacher"]);
   } catch {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }

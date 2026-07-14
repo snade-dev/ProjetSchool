@@ -58,6 +58,9 @@ type RouteAccessMap = {
     "/list/reclamation": ["admin", "director", "teacher", "student"],
     "/list/demande": ["admin", "director", "teacher", "student"],
     "/list/events": ["admin", "director", "teacher", "student", "parent"],
+    // W14 — devoirs à faire (§2.3.8) : publication teacher/admin/director,
+    // consultation student/parent/supervisor (gardes fines dans la page/action)
+    "/list/homeworks": ["admin", "director", "teacher", "supervisor", "student", "parent"],
     "/list/announcements": ["admin", "director", "teacher", "student", "parent"],
     "/list/semester": ["admin", "director", "teacher", "student", "parent"],
     "/list/makeupSession": ["admin", "director", "teacher", "student"],
