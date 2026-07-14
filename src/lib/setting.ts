@@ -49,7 +49,6 @@ type RouteAccessMap = {
     "/list/levels": ["admin", "director"], // W02 — niveaux scolaires
     "/list/classes": ["admin", "director", "teacher", "supervisor"],
     "/list/exams": ["admin", "director", "teacher", "student", "parent"],
-    "/list/tuitionPayment": ["admin", "director", "teacher", "accountant", "student", "parent"],
     "/list/onlineExam": ["admin", "director", "teacher", "student"],
     "/list/resultExam": ["admin", "director", "teacher", "student"],
     "/list/correction": ["admin", "director", "teacher", "student"],

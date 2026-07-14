@@ -132,7 +132,12 @@ export async function performRollover(
       schoolYearId: oldYear.id,
       id: { in: input.classIdsToCopy },
     },
-    include: { feeStructures: { where: { schoolYearId: oldYear.id } } },
+    include: {
+      feeStructures: {
+        where: { schoolYearId: oldYear.id },
+        include: { installments: true }, // W11 — les échéanciers suivent
+      },
+    },
   });
 
   await prisma.$transaction(
@@ -187,6 +192,37 @@ export async function performRollover(
             skipDuplicates: true,
           });
           summary.feesCopied += res.count;
+
+          // W11 — reconduction des échéanciers (FeeInstallment) : pour chaque
+          // frais cible SANS échéancier dont le frais source homonyme en a un.
+          // skipDuplicates (unicité feeStructureId+month) = idempotent.
+          const sourceByLabel = new Map(
+            c.feeStructures.map((f) => [f.label, f])
+          );
+          const targetFees = await tx.feeStructure.findMany({
+            where: {
+              classId: targetClassId,
+              schoolYearId: targetYear.id,
+              schoolId,
+            },
+            include: { installments: { select: { id: true } } },
+          });
+          const installmentsToCopy = targetFees.flatMap((target) => {
+            if (target.installments.length > 0) return [];
+            const source = sourceByLabel.get(target.label);
+            if (!source || source.installments.length === 0) return [];
+            return source.installments.map((i) => ({
+              feeStructureId: target.id,
+              month: i.month,
+              amount: i.amount,
+            }));
+          });
+          if (installmentsToCopy.length > 0) {
+            await tx.feeInstallment.createMany({
+              data: installmentsToCopy,
+              skipDuplicates: true,
+            });
+          }
         }
       }
     },
