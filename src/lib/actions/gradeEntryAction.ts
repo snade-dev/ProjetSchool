@@ -3,6 +3,7 @@
 import { gradeEntrySchema, GradeEntrySchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { revalidatePath } from "next/cache";
 
 type State = {
@@ -30,7 +31,8 @@ export async function saveGrades(
   try {
     const { userId, role } = await requireRole(["admin", "director", "teacher"]);
   // V03 — la classe visée doit appartenir à l'école de la session
-  const { schoolId: sidG } = await requireSchool(["admin", "director", "teacher"]);
+  const sessionG = await requireSchool(["admin", "director", "teacher"]);
+  const { schoolId: sidG } = sessionG;
   const classInSchool = await prisma.class.findFirst({
     where: { id: data.classId, schoolId: sidG }, select: { id: true },
   });
@@ -94,6 +96,18 @@ export async function saveGrades(
       },
       { timeout: 30000 }
     );
+
+    // W10 — journal d'audit : saisie en masse = UNE entrée résumé (§2.11.2)
+    if (toUpsert.length > 0) {
+      await auditWithSession(sessionG, "note.bulkSave", `Class#${classId}`, {
+        after: {
+          classId,
+          subjectId,
+          semesterId,
+          notesEnregistrees: toUpsert.length,
+        },
+      });
+    }
 
     revalidatePath("/list/results");
     revalidatePath("/list/exams");

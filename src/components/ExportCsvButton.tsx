@@ -6,7 +6,7 @@ import { Download } from "lucide-react";
 
 type Props = {
   /** Route handler cible : /api/export/{endpoint}. */
-  endpoint: "invoices" | "expenses" | "payroll";
+  endpoint: "invoices" | "expenses" | "payroll" | "audit";
   /** Nom de fichier suggéré (le serveur fixe aussi Content-Disposition). */
   filename?: string;
   /** Params à forcer/ajouter par-dessus les searchParams courants (ex. schoolYearId sur E39). */

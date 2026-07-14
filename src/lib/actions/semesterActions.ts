@@ -3,6 +3,7 @@
 import { SemesterSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { getActiveSchoolYear } from "../schoolYear";
 import { revalidatePath } from "next/cache";
 import { deleteErrorMessage } from '../actionErrors';
@@ -132,7 +133,8 @@ const MONTHS = EVAL_MONTH_NAMES.map((m, i) => ({
  */
 export const generatePeriods = async (system: "TRIMESTER" | "MONTHLY") => {
   try {
-    const { schoolId } = await requireSchool(["admin", "director"]); // V03
+    const session = await requireSchool(["admin", "director"]); // V03
+    const { schoolId } = session;
     // W02 — la génération cible l'année scolaire ACTIVE de l'école
     const activeYear = await getActiveSchoolYear(schoolId);
     const wanted = system === "TRIMESTER" ? TRIMESTERS : MONTHS;
@@ -159,6 +161,13 @@ export const generatePeriods = async (system: "TRIMESTER" | "MONTHLY") => {
           label: w.label,
           subjects: { connect: subjects.map((s) => ({ id: s.id })) },
         },
+      });
+    }
+
+    // W10 — journal d'audit : génération de périodes = UNE entrée résumé
+    if (toCreate.length > 0) {
+      await auditWithSession(session, "period.generate", `SchoolYear#${activeYear.id}`, {
+        after: { system, periodesCreees: toCreate.length },
       });
     }
 
@@ -195,7 +204,8 @@ export const generateCombinedPeriods = async (input: {
   compositionMonths: string[];
 }) => {
   try {
-    const { schoolId } = await requireSchool(["admin", "director"]); // V03
+    const session = await requireSchool(["admin", "director"]); // V03
+    const { schoolId } = session;
     const activeYear = await getActiveSchoolYear(schoolId); // W02
 
     // ---- Validation du calendrier
@@ -269,9 +279,22 @@ export const generateCombinedPeriods = async (input: {
       });
     }
 
-    revalidatePath("/list/semester");
     const createdT = toCreate.filter((w) => w.system === "TRIMESTER").length;
     const createdM = toCreate.length - createdT;
+
+    // W10 — journal d'audit : génération du calendrier combiné = UNE entrée résumé
+    if (toCreate.length > 0) {
+      await auditWithSession(session, "period.generateCombined", `SchoolYear#${activeYear.id}`, {
+        after: {
+          trimestresCrees: createdT,
+          compositionsCreees: createdM,
+          moisTrimestre: trimesterMonths,
+          moisComposition: compositionMonths,
+        },
+      });
+    }
+
+    revalidatePath("/list/semester");
     return {
       success: true,
       error: false,

@@ -32,6 +32,7 @@ import {
   Video,
   ChevronDown,
   ArrowRightLeft,
+  ScrollText,
   LucideIcon,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
@@ -173,6 +174,11 @@ const MENU: MenuEntry[] = [
         { icon: BarChart2, label: "Stats finance", href: "/stats/finance", visible: ["admin", "director", "accountant"] },
       ],
     },
+  },
+  {
+    kind: "link",
+    // W10 — journal d'audit (§2.11.4) : admin + direction (leur école)
+    link: { icon: ScrollText, label: "Journal d'audit", href: "/list/audit", visible: ["admin", "director"] },
   },
   {
     kind: "link",

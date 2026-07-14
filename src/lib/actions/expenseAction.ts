@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { getActiveSchoolYear } from "../schoolYear";
 import {
   ExpenseSchema,
@@ -24,11 +25,12 @@ export const createExpense = async (
   data: ExpenseSchema
 ) => {
   try {
-    const { userId } = await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
+    const { userId } = session;
     // Année scolaire active rattachée automatiquement (critère S09.4).
     const activeYear = await getActiveSchoolYear();
 
-    await prisma.expense.create({
+    const created = await prisma.expense.create({
       data: {
         label: data.label,
         amount: data.amount,
@@ -40,6 +42,17 @@ export const createExpense = async (
         categoryId: data.categoryId,
         schoolYearId: activeYear.id,
         createdById: userId,
+      },
+    });
+
+    // W10 — journal d'audit : enregistrement d'une dépense (§2.11.2)
+    await auditWithSession(session, "expense.create", `Expense#${created.id}`, {
+      after: {
+        label: data.label,
+        amount: data.amount,
+        date: data.date,
+        method: data.method,
+        categoryId: data.categoryId,
       },
     });
 

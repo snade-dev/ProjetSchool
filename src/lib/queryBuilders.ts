@@ -83,6 +83,56 @@ export function buildExpenseWhere(params: {
   return andFilters.length > 0 ? { AND: andFilters } : {};
 }
 
+/** Filtres du journal d'audit (W10) : module / utilisateur / période / école.
+ *  Partagé entre /list/audit et /api/export/audit (même règle que S18).
+ *  `scopeSchoolId` : école imposée (admin/director) ou choisie (superadmin) ;
+ *  undefined = aucun scope (superadmin sans filtre école).
+ *  `userIds` : ids résolus par NOM par l'appelant (le builder reste pur). */
+export function buildAuditWhere(params: {
+  module?: string;
+  user?: string;
+  userIds?: string[];
+  from?: string;
+  to?: string;
+  scopeSchoolId?: number;
+}): Prisma.AuditLogWhereInput {
+  const andFilters: Prisma.AuditLogWhereInput[] = [];
+
+  if (params.scopeSchoolId !== undefined) {
+    andFilters.push({ schoolId: params.scopeSchoolId });
+  }
+
+  if (params.module) {
+    // préfixe module de la convention "module.verbe"
+    andFilters.push({ action: { startsWith: `${params.module}.` } });
+  }
+
+  if (params.user) {
+    andFilters.push({
+      OR: [
+        { userId: { in: params.userIds ?? [] } },
+        { userId: { contains: params.user } },
+      ],
+    });
+  }
+
+  const at: Prisma.DateTimeFilter = {};
+  if (params.from) {
+    const d = new Date(params.from);
+    if (!Number.isNaN(d.getTime())) at.gte = d;
+  }
+  if (params.to) {
+    const d = new Date(params.to);
+    if (!Number.isNaN(d.getTime())) {
+      d.setHours(23, 59, 59, 999); // borne incluse : fin de journée
+      at.lte = d;
+    }
+  }
+  if (at.gte || at.lte) andFilters.push({ at });
+
+  return andFilters.length > 0 ? { AND: andFilters } : {};
+}
+
 /** Clamp du paramètre mois : 1-12, sinon `fallback` (défaut = mois courant). */
 export function clampMonth(raw?: string, fallback?: number): number {
   const n = raw ? parseInt(raw, 10) : NaN;

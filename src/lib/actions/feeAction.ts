@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { FeeStructureSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession, auditDiff } from "../audit";
 import { getActiveSchoolYear } from "../schoolYear";
 import { deleteErrorMessage } from '../actionErrors';
 
@@ -17,10 +18,11 @@ export const createFee = async (
   data: FeeStructureSchema
 ) => {
   try {
-    const { schoolId } = await requireSchool(["admin", "accountant"]); // V03
+    const session = await requireSchool(["admin", "accountant"]); // V03
+    const { schoolId } = session;
     const activeYear = await getActiveSchoolYear(schoolId);
 
-    await prisma.feeStructure.create({
+    const created = await prisma.feeStructure.create({
       data: {
         schoolId,
         label: data.label,
@@ -28,6 +30,16 @@ export const createFee = async (
         period: data.period,
         classId: data.classId,
         schoolYearId: activeYear.id,
+      },
+    });
+
+    // W10 — journal d'audit : création d'un frais (§2.11.2)
+    await auditWithSession(session, "fee.create", `FeeStructure#${created.id}`, {
+      after: {
+        label: data.label,
+        amount: data.amount,
+        period: data.period,
+        classId: data.classId,
       },
     });
 
@@ -45,8 +57,14 @@ export const updateFee = async (
   data: FeeStructureSchema
 ) => {
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
     const activeYear = await getActiveSchoolYear();
+
+    // W10 — valeurs avant modification (§2.11.2 « modification des frais »)
+    const before = await prisma.feeStructure.findUnique({
+      where: { id: data.id },
+      select: { label: true, amount: true, period: true, classId: true, schoolId: true },
+    });
 
     await prisma.feeStructure.update({
       where: { id: data.id },
@@ -58,6 +76,23 @@ export const updateFee = async (
         schoolYearId: activeYear.id,
       },
     });
+
+    // W10 — journal d'audit : champs modifiés seulement
+    if (before) {
+      const diff = auditDiff(before as unknown as Record<string, unknown>, {
+        label: data.label,
+        amount: data.amount,
+        period: data.period,
+        classId: data.classId,
+      });
+      if (diff.changed) {
+        await auditWithSession(session, "fee.update", `FeeStructure#${data.id}`, {
+          before: diff.before,
+          after: diff.after,
+          schoolId: before.schoolId,
+        });
+      }
+    }
 
     revalidatePath("/list/fees");
     return { success: true, error: false };
@@ -73,10 +108,24 @@ export const deleteFee = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
+
+    // W10 — trace du frais supprimé
+    const before = await prisma.feeStructure.findUnique({
+      where: { id: parseInt(id) },
+      select: { label: true, amount: true, period: true, classId: true, schoolId: true },
+    });
 
     await prisma.feeStructure.delete({
       where: { id: parseInt(id) },
+    });
+
+    // W10 — journal d'audit : suppression d'un frais (§2.11.2)
+    await auditWithSession(session, "fee.delete", `FeeStructure#${id}`, {
+      before: before
+        ? { label: before.label, amount: before.amount, period: before.period, classId: before.classId }
+        : undefined,
+      schoolId: before?.schoolId,
     });
 
     revalidatePath("/list/fees");
@@ -97,7 +146,8 @@ export const duplicateFees = async (
   try {
     // W01 — plus de @default(1) : schoolId explicite depuis la session,
     // et classes source/cible vérifiées dans l'école de la session.
-    const { schoolId } = await requireSchool(["admin", "accountant"]);
+    const session = await requireSchool(["admin", "accountant"]);
+    const { schoolId } = session;
 
     if (!fromClassId || !toClassId || fromClassId === toClassId) {
       return { success: false, error: true };
@@ -120,7 +170,7 @@ export const duplicateFees = async (
       return { success: false, error: true };
     }
 
-    await prisma.feeStructure.createMany({
+    const { count } = await prisma.feeStructure.createMany({
       data: sourceFees.map((fee) => ({
         label: fee.label,
         amount: fee.amount,
@@ -131,6 +181,13 @@ export const duplicateFees = async (
       })),
       skipDuplicates: true,
     });
+
+    // W10 — journal d'audit : duplication de grille = UNE entrée résumé
+    if (count > 0) {
+      await auditWithSession(session, "fee.duplicate", `Class#${toClassId}`, {
+        after: { fromClassId, toClassId, fraisCopies: count },
+      });
+    }
 
     revalidatePath("/list/fees");
     return { success: true, error: false };

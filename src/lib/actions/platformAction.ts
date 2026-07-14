@@ -3,6 +3,7 @@
 import { z } from "zod";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { createAuthUser, removeAuthUser } from "../authAdmin";
 import { ensureMembership, SPACE_ROLES, SPACE_ROLE_LABELS } from "../membership";
 import { revalidatePath } from "next/cache";
@@ -41,7 +42,7 @@ export const createSchool = async (
   formData: FormData
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
+    const session = await requireRole(["superadmin"]);
 
     const parsed = createSchoolSchema.safeParse({
       name: formData.get("name"),
@@ -98,6 +99,13 @@ export const createSchool = async (
       throw err;
     }
 
+    // W10 — journal d'audit : création d'un établissement (§2.11.2) —
+    // journalisée avec le schoolId de l'école CIBLE (§2.11.5).
+    await auditWithSession(session, "school.create", `School#${school.id}`, {
+      after: { name, slug, adminEmail },
+      schoolId: school.id,
+    });
+
     revalidatePath("/platform");
     return {
       success: true,
@@ -120,11 +128,26 @@ export const toggleSchoolActive = async (
   active: boolean
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
-    await prisma.school.update({
+    const session = await requireRole(["superadmin"]);
+    const school = await prisma.school.update({
       where: { id: schoolId },
       data: { active },
+      select: { name: true },
     });
+
+    // W10 — journal d'audit : suspension/réactivation d'une école (§2.11.2),
+    // journalisée avec le schoolId de l'école CIBLE (§2.11.5).
+    await auditWithSession(
+      session,
+      active ? "school.activate" : "school.suspend",
+      `School#${schoolId}`,
+      {
+        before: { active: !active },
+        after: { active, name: school.name },
+        schoolId,
+      }
+    );
+
     revalidatePath("/platform");
     return {
       success: true,
@@ -158,7 +181,7 @@ export const upsertPlan = async (
   formData: FormData
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
+    const session = await requireRole(["superadmin"]);
     const parsed = planSchema.safeParse({
       id: formData.get("id") || undefined,
       name: formData.get("name"),
@@ -175,9 +198,23 @@ export const upsertPlan = async (
     }
     const { id, ...data } = parsed.data;
     if (id) {
+      // W10 — valeurs avant modification (before/after du journal)
+      const before = await prisma.subscriptionPlan.findUnique({
+        where: { id },
+        select: { name: true, priceMonthly: true, maxStudents: true, active: true },
+      });
       await prisma.subscriptionPlan.update({ where: { id }, data });
+      await auditWithSession(session, "plan.update", `SubscriptionPlan#${id}`, {
+        before: before ?? undefined,
+        after: data,
+        schoolId: null, // action plateforme pure
+      });
     } else {
-      await prisma.subscriptionPlan.create({ data });
+      const created = await prisma.subscriptionPlan.create({ data });
+      await auditWithSession(session, "plan.create", `SubscriptionPlan#${created.id}`, {
+        after: data,
+        schoolId: null,
+      });
     }
     revalidatePath("/platform/plans");
     return { success: true, error: false, message: id ? "Plan mis à jour." : "Plan créé." };
@@ -196,7 +233,7 @@ export const assignPlan = async (
   planId: number
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
+    const session = await requireRole(["superadmin"]);
     const plan = await prisma.subscriptionPlan.findFirst({
       where: { id: planId, active: true },
     });
@@ -205,6 +242,7 @@ export const assignPlan = async (
     }
     const existing = await prisma.schoolSubscription.findUnique({
       where: { schoolId },
+      include: { plan: { select: { name: true } } },
     });
     if (existing) {
       // changement de plan : les dates (essai/couverture) sont conservées
@@ -222,6 +260,15 @@ export const assignPlan = async (
         },
       });
     }
+
+    // W10 — journal d'audit : attribution/changement de plan (§2.11.2),
+    // journalisé avec le schoolId de l'école CIBLE (§2.11.5).
+    await auditWithSession(session, "subscription.assignPlan", `SchoolSubscription#school-${schoolId}`, {
+      before: existing ? { planId: existing.planId, plan: existing.plan.name } : undefined,
+      after: { planId, plan: plan.name, nouveau: !existing },
+      schoolId,
+    });
+
     revalidatePath("/platform");
     return { success: true, error: false, message: `Plan « ${plan.name} » attribué.` };
   } catch (error) {
@@ -253,7 +300,7 @@ export const addSchoolMembership = async (
   formData: FormData
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
+    const session = await requireRole(["superadmin"]);
     const parsed = membershipSchema.safeParse({
       schoolId: formData.get("schoolId"),
       email: formData.get("email"),
@@ -298,6 +345,13 @@ export const addSchoolMembership = async (
 
     await ensureMembership(user.id, schoolId, role);
 
+    // W10 — journal d'audit : rattachement d'un compte à une école (§2.11.2
+    // « changement de rôle »), journalisé avec le schoolId CIBLE (§2.11.5).
+    await auditWithSession(session, "membership.create", `User#${user.id}`, {
+      after: { email, role, school: school.name },
+      schoolId,
+    });
+
     revalidatePath(`/platform/schools/${schoolId}/members`);
     return {
       success: true,
@@ -316,11 +370,25 @@ export const toggleSchoolMembership = async (
   active: boolean
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
+    const session = await requireRole(["superadmin"]);
     const membership = await prisma.userSchoolMembership.update({
       where: { id: membershipId },
       data: { active },
     });
+
+    // W10 — journal d'audit : (dés)activation d'un rattachement (§2.11.2),
+    // journalisée avec le schoolId de l'école CIBLE (§2.11.5).
+    await auditWithSession(
+      session,
+      "membership.toggle",
+      `UserSchoolMembership#${membershipId}`,
+      {
+        before: { active: !active },
+        after: { active, userId: membership.userId, role: membership.role },
+        schoolId: membership.schoolId,
+      }
+    );
+
     revalidatePath(`/platform/schools/${membership.schoolId}/members`);
     return {
       success: true,
@@ -352,7 +420,7 @@ export const recordSubscriptionPayment = async (
   formData: FormData
 ): Promise<PlatformState> => {
   try {
-    await requireRole(["superadmin"]);
+    const session = await requireRole(["superadmin"]);
     const parsed = paymentSchema.safeParse({
       subscriptionId: formData.get("subscriptionId"),
       months: formData.get("months"),
@@ -382,7 +450,7 @@ export const recordSubscriptionPayment = async (
     const paidUntil = new Date(base);
     paidUntil.setMonth(paidUntil.getMonth() + months);
 
-    await prisma.$transaction([
+    const [createdPayment] = await prisma.$transaction([
       prisma.subscriptionPayment.create({
         data: { subscriptionId, amount, months, method, reference, note },
       }),
@@ -391,6 +459,19 @@ export const recordSubscriptionPayment = async (
         data: { paidUntil, status: "ACTIVE" },
       }),
     ]);
+
+    // W10 — journal d'audit : paiement d'abonnement (§2.11.2), journalisé
+    // avec le schoolId de l'école CIBLE (§2.11.5).
+    await auditWithSession(
+      session,
+      "subscription.recordPayment",
+      `SubscriptionPayment#${createdPayment.id}`,
+      {
+        before: { paidUntil: sub.paidUntil, status: sub.status },
+        after: { amount, months, method, paidUntil, status: "ACTIVE" },
+        schoolId: sub.schoolId,
+      }
+    );
 
     revalidatePath("/platform");
     return {

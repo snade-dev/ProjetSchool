@@ -4,6 +4,7 @@ import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } 
 import { createAuthUser, removeAuthUser, setAuthUserPassword } from './authAdmin';
 import prisma from './prisma';
 import { requireRole, requireSchool } from './authGuard';
+import { auditWithSession, auditDiff } from './audit';
 import { getActiveSchoolYear } from './schoolYear';
 import { upsertEnrollment } from './enrollment';
 import { impactedTrimesterAverages, markStale } from './staleBulletins';
@@ -148,12 +149,14 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
 
 export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
-        const { schoolId } = await requireSchool(["admin", "director"]);
+        const session = await requireSchool(["admin", "director"]);
+        const { schoolId } = session;
         // V03 — la classe doit appartenir à l'école de la session
         // W09 — homeworkWeight/année chargés pour détecter un changement de pondération
+        // W10 — evaluationSystem chargé pour journaliser un changement de régime
         const owned = await prisma.class.findFirst({
           where: { id: data.id, schoolId },
-          select: { id: true, homeworkWeight: true, schoolYearId: true },
+          select: { id: true, name: true, homeworkWeight: true, schoolYearId: true, evaluationSystem: true },
         });
         if (!owned) return { success: false, error: true, message: "" };
 
@@ -185,10 +188,24 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
           const { count } = await markStale(ids);
           if (count > 0) {
             staleMessage = `Pondération modifiée : ${count} bulletin(s) marqués « À régénérer » (écran Matières & coefficients).`;
-            console.log(
-              `[W09] homeworkWeight.update (ClassForm) classe ${owned.id} : ${owned.homeworkWeight} → ${data.homeworkWeight} — ${count} bulletin(s) périmés`
-            );
           }
+          // W10 — journal d'audit : pondération changée depuis le formulaire classe
+          await auditWithSession(session, "homeworkWeight.update", `Class#${owned.id}`, {
+            before: { homeworkWeight: owned.homeworkWeight },
+            after: {
+              homeworkWeight: data.homeworkWeight,
+              class: owned.name,
+              bulletinsPerimes: count,
+            },
+          });
+        }
+
+        // W10 — journal d'audit : changement du régime d'évaluation (§2.11.2)
+        if (data.evaluationSystem !== owned.evaluationSystem) {
+          await auditWithSession(session, "evaluationSystem.update", `Class#${owned.id}`, {
+            before: { evaluationSystem: owned.evaluationSystem },
+            after: { evaluationSystem: data.evaluationSystem, class: owned.name },
+          });
         }
 
         revalidatePath("/list/classes");
@@ -230,7 +247,7 @@ export const deleteClass = async (currentState: CurrentState ,data: FormData) =>
 export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
 
     try {
-        await requireRole(["admin"]);
+        const session = await requireRole(["admin"]);
 
         // S19 : e-mail = identifiant de connexion, mot de passe requis
         if (!data.email) {
@@ -304,6 +321,16 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
           throw err;
         }
 
+        // W10 — journal d'audit : création d'un enseignant (§2.11.2)
+        await auditWithSession(session, "teacher.create", `Teacher#${userId}`, {
+          after: {
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            email: data.email || null,
+          },
+        });
+
         revalidatePath("/list/teachers");
         return {success: true, error: false, message: ""};
     } catch (error) {
@@ -315,14 +342,17 @@ export const createTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 
 export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSchema) => {
     try {
-      const { schoolId } = await requireSchool(["admin"]);
+      const session = await requireSchool(["admin"]);
+      const { schoolId } = session;
 
       if (!data.id) {
         return {success: false, error: true, message: ""}
       }
       // V03 — l'enseignant doit appartenir à l'école de la session
+      // W10 — champs chargés pour le before/after du journal d'audit
       const ownedT = await prisma.teacher.findFirst({
-        where: { id: data.id, schoolId }, select: { id: true },
+        where: { id: data.id, schoolId },
+        select: { id: true, username: true, name: true, surname: true, email: true, phone: true, address: true },
       });
       if (!ownedT) return { success: false, error: true, message: "Enseignant introuvable dans votre établissement." };
 
@@ -369,6 +399,27 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
         },
       });
 
+        // W10 — journal d'audit : champs modifiés seulement (compact)
+        {
+          const diff = auditDiff(ownedT, {
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address,
+          });
+          if (diff.changed || (data.password && data.password !== "")) {
+            await auditWithSession(session, "teacher.update", `Teacher#${data.id}`, {
+              before: diff.before,
+              after: {
+                ...diff.after,
+                ...(data.password ? { motDePasseChange: true } : {}),
+              },
+            });
+          }
+        }
+
         revalidatePath("/list/teachers");
         return {success: true, error: false, message: ""};
     } catch (error) {
@@ -381,10 +432,12 @@ export const updateTeacher = async (currentState: CurrentState2 ,data: TeacherSc
 export const deleteTeacher = async (currentState: CurrentState ,data: FormData) => {
     const id = data.get("id") as string;
     try {
-      const { schoolId } = await requireSchool(["admin"]);
-      // V03 — cloisonnement
+      const session = await requireSchool(["admin"]);
+      const { schoolId } = session;
+      // V03 — cloisonnement (W10 : identité conservée pour le journal)
       const ownedDT = await prisma.teacher.findFirst({
-        where: { id, schoolId }, select: { id: true },
+        where: { id, schoolId },
+        select: { id: true, username: true, name: true, surname: true },
       });
       if (!ownedDT) return { success: false, error: true, message: "Enseignant introuvable dans votre établissement." };
 
@@ -406,6 +459,15 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
     // Compte de connexion en dernier (S19)
     await removeAuthUser(id);
 
+    // W10 — journal d'audit : suppression d'un enseignant (§2.11.2)
+    await auditWithSession(session, "teacher.delete", `Teacher#${id}`, {
+      before: {
+        username: ownedDT.username,
+        name: ownedDT.name,
+        surname: ownedDT.surname,
+      },
+    });
+
         revalidatePath("/list/teachers");
         return {success: true, error: false};
     } catch (error: any) {
@@ -425,7 +487,7 @@ export const deleteTeacher = async (currentState: CurrentState ,data: FormData) 
 //Student
 export const createStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      await requireRole(["admin"]);
+      const session = await requireRole(["admin"]);
 
       // S19 : e-mail = identifiant de connexion, mot de passe requis
       if (!data.email) {
@@ -547,6 +609,17 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
           throw err;
         }
 
+        // W10 — journal d'audit : création + inscription d'un élève (§2.11.2)
+        await auditWithSession(session, "student.create", `Student#${userId}`, {
+          after: {
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            classId: classItem.id,
+            tuteur: data.parentUsername,
+          },
+        });
+
         revalidatePath("/list/students");
         return {success: true, error: false, message: ""};
     } catch (error) {
@@ -558,13 +631,24 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
 
 export const updateStudent = async (currentState: CurrentState2 ,data: StudentSchema) => {
     try {
-      const { schoolId } = await requireSchool(["admin"]);
+      const session = await requireSchool(["admin"]);
+      const { schoolId } = session;
       if (!data.id) {
         return {success: false, error: true, message: "l'etudiant n'existe pas"}
       }
       // V03 — l'élève doit appartenir à l'école de la session
+      // W10 — champs chargés pour le before/after du journal d'audit
       const ownedE = await prisma.student.findFirst({
-        where: { id: data.id, schoolId }, select: { id: true },
+        where: { id: data.id, schoolId },
+        select: {
+          id: true, username: true, name: true, surname: true,
+          email: true, phone: true, address: true,
+          enrollments: {
+            where: { schoolYear: { isActive: true } },
+            select: { classId: true },
+            take: 1,
+          },
+        },
       });
       if (!ownedE) return { success: false, error: true, message: "Élève introuvable dans votre établissement." };
 
@@ -622,6 +706,39 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
         await upsertEnrollment(data.id!, targetClass.id, targetClass.schoolYearId, tx);
       });
 
+      // W10 — journal d'audit : champs modifiés seulement (dont la classe)
+      {
+        const diff = auditDiff(
+          {
+            username: ownedE.username,
+            name: ownedE.name,
+            surname: ownedE.surname,
+            email: ownedE.email,
+            phone: ownedE.phone,
+            address: ownedE.address,
+            classId: ownedE.enrollments[0]?.classId ?? null,
+          },
+          {
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address,
+            classId: targetClass.id,
+          }
+        );
+        if (diff.changed || (data.password && data.password !== "")) {
+          await auditWithSession(session, "student.update", `Student#${data.id}`, {
+            before: diff.before,
+            after: {
+              ...diff.after,
+              ...(data.password ? { motDePasseChange: true } : {}),
+            },
+          });
+        }
+      }
+
         revalidatePath("/list/students");
         return {success: true, error: false, message: ""};
     } catch (error) {
@@ -635,10 +752,12 @@ export const deleteStudent = async (currentState: CurrentState, data: FormData) 
   const id = data.get("id") as string;
 
   try {
-      const { schoolId } = await requireSchool(["admin"]);
-      // V03 — cloisonnement
+      const session = await requireSchool(["admin"]);
+      const { schoolId } = session;
+      // V03 — cloisonnement (W10 : identité conservée pour le journal)
       const ownedDel = await prisma.student.findFirst({
-        where: { id, schoolId }, select: { id: true },
+        where: { id, schoolId },
+        select: { id: true, username: true, name: true, surname: true },
       });
       if (!ownedDel) return { success: false, error: true };
 
@@ -651,6 +770,15 @@ export const deleteStudent = async (currentState: CurrentState, data: FormData) 
       });
 
       await removeAuthUser(id);
+
+      // W10 — journal d'audit : suppression d'un élève (§2.11.2)
+      await auditWithSession(session, "student.delete", `Student#${id}`, {
+        before: {
+          username: ownedDel.username,
+          name: ownedDel.name,
+          surname: ownedDel.surname,
+        },
+      });
 
       revalidatePath("/list/students");
       return { success: true, error: false };

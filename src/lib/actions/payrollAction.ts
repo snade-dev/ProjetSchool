@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { getActiveSchoolYear } from "../schoolYear";
 import {
   payrollGenerateSchema,
@@ -49,7 +50,8 @@ export const generatePayroll = async (
     // Employés actifs uniquement : les désactivés sont exclus des générations
     // futures (leurs paies passées restent, cf. fiche).
     // V03 — cloisonnement : employés de l'école de la session uniquement
-    const { schoolId: sidPay } = await requireSchool(["admin", "accountant"]);
+    const session = await requireSchool(["admin", "accountant"]);
+    const { schoolId: sidPay } = session;
     const employees = await prisma.employee.findMany({
       where: { active: true, schoolId: sidPay },
       select: { id: true, baseSalary: true },
@@ -81,6 +83,13 @@ export const generatePayroll = async (
     const generated = result.count;
     const existing = employees.length - generated;
 
+    // W10 — journal d'audit : génération de la paie = UNE entrée résumé (§2.11.2)
+    if (generated > 0) {
+      await auditWithSession(session, "payroll.generate", `SchoolYear#${activeYear.id}`, {
+        after: { month, year, generes: generated, existants: existing },
+      });
+    }
+
     revalidatePath("/list/payroll");
     return {
       success: true,
@@ -107,7 +116,7 @@ export const updateSalaryAdjustments = async (
   data: SalaryAdjustSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
 
     const parsed = salaryAdjustSchema.safeParse(data);
     if (!parsed.success) {
@@ -121,7 +130,7 @@ export const updateSalaryAdjustments = async (
 
     const payment = await prisma.salaryPayment.findUnique({
       where: { id },
-      select: { baseAmount: true, status: true },
+      select: { baseAmount: true, status: true, bonuses: true, deductions: true, netAmount: true },
     });
 
     if (!payment) {
@@ -150,6 +159,18 @@ export const updateSalaryAdjustments = async (
       data: { bonuses, deductions, netAmount: net },
     });
 
+    // W10 — journal d'audit : modification d'un salaire (§2.11.2)
+    if (payment.bonuses !== bonuses || payment.deductions !== deductions) {
+      await auditWithSession(session, "salary.update", `SalaryPayment#${id}`, {
+        before: {
+          bonuses: payment.bonuses,
+          deductions: payment.deductions,
+          netAmount: payment.netAmount,
+        },
+        after: { bonuses, deductions, netAmount: net },
+      });
+    }
+
     revalidatePath("/list/payroll");
     return { success: true, error: false, message: "Ajustements enregistrés." };
   } catch (err) {
@@ -170,7 +191,7 @@ export const markSalaryPaid = async (
   data: MarkPaidSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
 
     const parsed = markPaidSchema.safeParse(data);
     if (!parsed.success) {
@@ -202,6 +223,12 @@ export const markSalaryPaid = async (
       data: { status: "PAID", method, paidAt },
     });
 
+    // W10 — journal d'audit : fiche de paie payée (§2.11.2)
+    await auditWithSession(session, "salary.markPaid", `SalaryPayment#${id}`, {
+      before: { status: "PENDING" },
+      after: { status: "PAID", method, paidAt },
+    });
+
     revalidatePath("/list/payroll");
     return { success: true, error: false, message: "Salaire marqué payé." };
   } catch (err) {
@@ -221,11 +248,11 @@ export const unmarkSalaryPaid = async (
   id: string
 ): Promise<CurrentStateMsg> => {
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
 
     const payment = await prisma.salaryPayment.findUnique({
       where: { id },
-      select: { status: true },
+      select: { status: true, paidAt: true },
     });
     if (!payment) {
       return { success: false, error: true, message: "Bulletin introuvable." };
@@ -241,6 +268,12 @@ export const unmarkSalaryPaid = async (
     await prisma.salaryPayment.update({
       where: { id },
       data: { status: "PENDING", paidAt: null },
+    });
+
+    // W10 — journal d'audit : annulation du paiement d'une fiche de paie
+    await auditWithSession(session, "salary.unmarkPaid", `SalaryPayment#${id}`, {
+      before: { status: "PAID", paidAt: payment.paidAt },
+      after: { status: "PENDING" },
     });
 
     revalidatePath("/list/payroll");

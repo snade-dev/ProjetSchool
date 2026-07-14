@@ -959,6 +959,33 @@ model SalaryPayment {
 }
 
 // ---------------------------------------------------------------------------
+// W10 — Journal d'audit (§2.11) : APPEND-ONLY.
+// RÈGLE ABSOLUE : aucune server action / aucun code applicatif ne fait
+// d'update ou de delete sur cette table — le helper src/lib/audit.ts n'expose
+// QUE la création. Personne (pas même le superadmin) ne modifie une entrée ;
+// l'immuabilité au niveau DB (trigger/permissions) viendra plus tard.
+// Volontairement SANS relation Prisma (pas de cascade : supprimer un user ou
+// une école ne doit JAMAIS effacer son historique d'audit).
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id       BigInt   @id @default(autoincrement())
+  at       DateTime @default(now())
+  userId   String? // qui (User.id) — null si action système/anonyme
+  role     String? // rôle actif au moment de l'action
+  schoolId Int? // école concernée — null = action plateforme pure
+  action   String // convention "module.verbe" : "note.update", "payment.create"…
+  entity   String // modèle + id concerné, ex "Result#42"
+  before   Json? // ancienne valeur (champs pertinents seulement)
+  after    Json? // nouvelle valeur (champs pertinents seulement)
+  reason   String? // motif (obligatoire pour les actions sensibles, §2.11.3)
+  ip       String?
+
+  @@index([schoolId, at])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
 // V05 — Abonnements SaaS : les écoles paient pour utiliser la plateforme.
 // Encaissement MANUEL (espèces, Orange Money, virement) par le superadmin.
 // ---------------------------------------------------------------------------
