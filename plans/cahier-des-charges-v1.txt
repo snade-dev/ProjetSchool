@@ -1,0 +1,1487 @@
+CAHIER DES CHARGES
+Plateforme ERP scolaire multi-établissements
+Écoles privées francophones — Mali et ouverture progressive
+Document de vision produit
+Version 1.0
+Juillet 2026
+
+
+Table des matières
+TOC \h \o "1-3"
+
+
+
+Partie 1 — Vision et principes
+1.1 Nature du produit
+Ce n'est pas un simple logiciel de gestion scolaire. C'est une plateforme ERP (Enterprise Resource Planning) complète, spécialisée pour les établissements éducatifs, capable de couvrir l'ensemble des besoins d'un établissement ou d'un groupe d'établissements : administration académique, pédagogie, comptabilité, ressources humaines, communication, vie scolaire, présence en ligne et relation avec les familles.
+L'ambition est de fournir à chaque école une infrastructure numérique complète, remplaçant à elle seule plusieurs outils que les établissements utilisent aujourd'hui séparément (registres papier, fichiers Excel, groupes WhatsApp, sites web externes, logiciels de compta indépendants).
+À terme, la plateforme doit devenir l'équivalent de PowerSchool, Blackbaud ou FACTS SIS, mais adaptée aux réalités africaines : mobile money, systèmes éducatifs multiples, francophonie, connectivité intermittente, structures familiales complexes.
+1.2 Public cible
+Établissements privés de toutes tailles et de toutes natures éducatives :
+Crèches et préscolaire (Petite/Moyenne/Grande Section)
+Écoles primaires / fondamentales (1ère à 9ème année)
+Collèges et lycées (Seconde à Terminale)
+Établissements techniques et professionnels
+Medersas et écoles coraniques
+Établissements individuels comme groupes scolaires (plusieurs écoles appartenant au même propriétaire)
+
+Zone géographique de la V1 : Mali uniquement. L'application est développée, testée et lancée pour le marché malien. Cependant, l'architecture est conçue dès le départ pour supporter d'autres pays sans réécriture majeure : chaque établissement porte un identifiant de pays, une devise, un fuseau horaire et un jeu de paramètres localisables. L'ouverture à d'autres pays (Cameroun, Niger, Sénégal, Burkina Faso, Côte d'Ivoire) se fera progressivement, en s'appuyant sur le système de partenaires territoriaux.
+1.3 Les huit principes fondateurs
+Principe 1 — Flexibilité totale sur la structure éducative
+L'application n'impose aucune structure de classes, de niveaux, de matières ou de calendrier scolaire. Chaque établissement crée ses propres niveaux, ses propres classes, ses propres matières, avec sa propre nomenclature. Un même établissement peut coexister avec des structures très différentes (crèche + primaire + collège dans un même groupe scolaire).
+Principe 2 — Flexibilité totale sur l'évaluation
+C'est le cœur différenciateur du produit. L'application ne force pas une méthode d'évaluation unique. Chaque classe peut avoir son propre système : composition mensuelle seule, trimestre seul, composition + trimestre en parallèle, système par compétences, ou tout autre modèle configurable. Le moteur d'évaluation est paramétrable au niveau de la classe, pas au niveau de l'école.
+Principe 3 — Architecture multi-tenant native
+Une seule plateforme héberge un nombre illimité d'établissements. Chaque établissement est totalement isolé des autres : ses données, ses paramètres, son identité visuelle, son calendrier, sa comptabilité, ses règles pédagogiques. Aucune donnée n'est partagée entre établissements, sauf autorisation explicite de la plateforme.
+Principe 4 — Compte utilisateur unique multi-établissements
+Un utilisateur (parent, enseignant, élève, personnel) possède un seul compte sur la plateforme, quel que soit le nombre d'établissements auxquels il est rattaché. Une mère avec un enfant en primaire et un autre au lycée dans deux écoles différentes se connecte avec un seul compte et voit ses deux enfants.
+Principe 5 — Présence en ligne intégrée
+Chaque établissement dispose non seulement d'un logiciel de gestion, mais aussi de sa propre présence en ligne officielle (site vitrine avec nom de domaine personnalisé ou sous-domaine fourni), gérée depuis la même plateforme. Site vitrine, portail parent, portail élève, application mobile : tout est intégré et cohérent.
+Principe 6 — Localisation progressive
+L'application démarre au Mali mais son architecture est conçue pour accueillir de nouveaux pays sans réécriture. Chaque paramètre susceptible de varier d'un pays à l'autre (devise, fuseau horaire, calendrier, providers de paiement, systèmes éducatifs, structures administratives, formats de documents officiels) est configurable plutôt que codé en dur. Un nouveau pays s'ouvre par configuration, pas par développement.
+Principe 7 — Configurabilité au service de la réalité africaine
+L'application ne présuppose pas un modèle scolaire unique. Le nombre de mensualités de scolarité, le nombre de compositions, le nombre de trimestres et les montants associés sont entièrement configurables par l'école, année par année. Cette flexibilité couvre les cas les plus courants : années raccourcies, calendriers perturbés, écoles avec des rythmes atypiques. D'autres niveaux de configurabilité plus fine (calendrier complet des vacances, horaires détaillés, jours de classe) sont prévus dans les évolutions futures.
+Principe 8 — Collecte de données propre dès le premier jour
+L'application collecte, structure et historise toutes les données pédagogiques, comportementales, financières et administratives dès la V1, avec un modèle de données propre et cohérent. Cette discipline dès le départ est ce qui permettra, en V2 et V3, de proposer des fonctionnalités d'analyse prédictive et d'intelligence artificielle de qualité. Rien n'est supprimé, tout est daté, contextualisé, traçable.
+1.4 Modèle de distribution
+L'application est gratuite pour les établissements et gratuite pour les parents. Aucun frais d'abonnement, aucun paywall pour les utilisateurs finaux.
+La monétisation repose sur un système de partenaires représentant la plateforme dans chaque pays ou région, calqué sur le modèle éprouvé de Pharma Manager et Elite24. Le mode exact de génération des revenus est détaillé dans la Section 2.10.
+1.5 Les trois niveaux de gestion
+La plateforme distingue clairement trois niveaux :
+Niveau Plateforme : géré par le propriétaire de la solution et son équipe. Vision globale, gestion des partenaires, contrats, infrastructure.
+Niveau Partenaire : géré par les représentants territoriaux. Gestion de leur propre entreprise partenaire (personnel, comptabilité, commissions) et lecture limitée sur les établissements qu'ils ont apportés.
+Niveau Établissement : géré par le propriétaire de l'école ou du groupe scolaire, avec délégation possible à la direction, aux enseignants, au personnel administratif. C'est le niveau opérationnel principal.
+Chacun de ces trois niveaux dispose de son propre espace, avec ses propres droits, ses propres fonctionnalités, ses propres tableaux de bord. Ces espaces sont étanches.
+1.6 Vision à long terme
+La plateforme vise à devenir l'infrastructure numérique de référence pour les établissements éducatifs privés en Afrique francophone. À terme, elle intégrera :
+Cours en ligne et ressources pédagogiques (V2 ou V3)
+E-learning et exercices interactifs (V2 ou V3)
+Intelligence artificielle pour la personnalisation pédagogique (V3+)
+Intégrations avec les API gouvernementales des ministères de l'Éducation (selon pays)
+Ouverture d'une API publique pour les intégrations tierces
+Marketplace de plugins et modules complémentaires
+Ces évolutions ne sont pas prioritaires dans la version initiale, mais l'architecture doit être conçue pour les rendre possibles sans réécriture majeure.
+
+
+Partie 2 — Ce que fait l'application
+Section 2.1 — Structure éducative flexible
+2.1.1 Établissements
+L'unité de base de la plateforme est l'établissement. Un établissement représente une école physique, avec sa propre identité, son propre personnel, ses propres élèves, sa propre comptabilité, ses propres paramètres.
+Chaque établissement dispose de :
+Un nom officiel et un nom d'affichage
+Un logo et une identité visuelle (couleurs, polices)
+Une adresse physique et une localisation GPS
+Des coordonnées de contact (téléphone, email, WhatsApp)
+Un pays et une région d'appartenance
+Un fuseau horaire propre
+Une devise principale (FCFA, XAF, ou autre selon le pays)
+Un calendrier scolaire propre (dates de rentrée, vacances, jours fériés)
+Un régime pédagogique par défaut (composition, trimestre, ou autre)
+Une configuration comptable propre
+Un nom de domaine ou un sous-domaine pour son site vitrine
+Une date de création et un historique complet de ses paramètres
+Un établissement est totalement indépendant des autres. Aucune donnée ne circule entre deux établissements, sauf autorisation explicite.
+2.1.2 Groupes scolaires (multi-établissements)
+Un même propriétaire peut posséder plusieurs établissements. La plateforme reconnaît cette réalité et permet de créer un groupe scolaire qui regroupe plusieurs écoles sous une même entité propriétaire.
+Exemple : un propriétaire possède une crèche, une école primaire et un collège dans la même ville, ou trois lycées dans trois villes différentes. Il gère l'ensemble depuis un seul espace propriétaire, mais chaque établissement conserve son indépendance opérationnelle.
+Un groupe scolaire permet à son propriétaire de :
+Créer et gérer plusieurs établissements depuis un seul compte
+Consulter des statistiques consolidées à l'échelle du groupe
+Uniformiser certains paramètres si souhaité (règlements, chartes)
+Transférer des élèves d'un établissement à un autre du même groupe avec conservation de l'historique
+Nommer des directeurs différents pour chaque établissement du groupe
+Comparer les performances financières et pédagogiques entre établissements
+2.1.3 Années scolaires
+Chaque établissement fonctionne par années scolaires successives. Une année scolaire a un libellé, des dates de début et de fin, un statut (en préparation, en cours, terminée, archivée), et ses propres classes, inscriptions, notes et bulletins.
+Une seule année scolaire est active à la fois par établissement. Les années précédentes sont archivées mais restent consultables : on peut afficher les bulletins d'un ancien élève cinq ans après, retrouver la classe qu'il fréquentait, télécharger un duplicata.
+À la clôture d'une année scolaire, le passage à l'année suivante est guidé par un assistant :
+Reconduction ou création de nouvelles classes
+Passage en classe supérieure (avec possibilité de redoublement au cas par cas)
+Réinscription des élèves avec conservation de leur historique
+Report des impayés éventuels de l'année précédente
+Archivage automatique des données de l'année terminée
+Aucune donnée n'est jamais supprimée. Tout est conservé, historisé, consultable.
+2.1.4 Niveaux
+Un niveau représente un cycle ou une année d'études (Petite Section, CP, 6ème, Terminale, etc.). La plateforme n'impose aucune liste prédéfinie. Chaque établissement crée ses propres niveaux, avec ses propres libellés.
+Un niveau a un libellé, un ordre hiérarchique, un cycle de rattachement optionnel (préscolaire, primaire, collège, lycée), un régime pédagogique par défaut, et une politique de frais de scolarité par défaut.
+Cette flexibilité permet de gérer indifféremment un système francophone classique, un système anglophone, un système coranique, ou tout autre modèle.
+2.1.5 Classes
+Une classe est une instance opérationnelle d'un niveau, pour une année scolaire donnée. Un même niveau peut avoir plusieurs classes en parallèle (6ème A, 6ème B, 6ème C).
+Une classe a un libellé, un niveau de rattachement, une année scolaire de rattachement, un professeur principal, une salle attribuée, une capacité maximale, une liste d'élèves inscrits, un emploi du temps propre, un système d'évaluation propre qui surcharge le paramètre par défaut du niveau, et des frais de scolarité propres.
+Le fait que chaque classe puisse avoir son propre système d'évaluation est un principe fondamental. Une même école peut avoir la maternelle en évaluation par compétences, la 6ème en composition + trimestre, et la Terminale en trimestre pur.
+2.1.6 Matières
+Chaque établissement crée ses propres matières, avec ses propres libellés, ses propres regroupements. Aucune liste imposée.
+Une matière a un libellé, un libellé court pour les bulletins, une couleur d'affichage, un ou plusieurs niveaux/classes concernés, un ou plusieurs enseignants responsables, et un coefficient fixé au niveau de la matière dans une classe donnée.
+Point critique sur les coefficients : un coefficient est fixe pour toute l'année scolaire une fois défini. Il ne bouge pas d'un mois à l'autre. Cependant, en cas d'erreur de saisie, la direction peut le corriger. Dans ce cas, la plateforme alerte que des bulletins déjà générés sont désormais obsolètes, les marque comme à régénérer, demande une confirmation explicite avant application du changement, historise la modification, et permet de régénérer les bulletins impactés en un clic.
+2.1.7 Programmes scolaires (progression pédagogique)
+Chaque établissement peut définir un programme par matière et par niveau, découpé en chapitres et sous-chapitres. Les enseignants suivent leur progression au fil de l'année en cochant les chapitres traités, en indiquant les dates prévisionnelles et effectives.
+2.1.8 Salles et ressources
+Chaque établissement peut créer sa liste de salles (salles de classe, laboratoires, salle informatique, bibliothèque, salle des professeurs, gymnase, etc.) avec libellé, capacité, type, équipement associé, et disponibilité horaire. Les salles sont utilisées par l'emploi du temps (détection automatique des conflits) et par la gestion des examens.
+
+
+Section 2.2 — Personnes
+L'application gère quatre grandes catégories de personnes : les élèves, les parents et tuteurs, le personnel (enseignant, administratif, technique), et la direction. Toutes ces personnes disposent d'un compte unique sur la plateforme, quel que soit le nombre d'établissements auxquels elles sont rattachées.
+2.2.1 Élèves
+Chaque élève possède un dossier complet qui le suit tout au long de sa scolarité, année après année, même s'il change de classe, d'établissement, ou revient plusieurs années plus tard consulter ses archives.
+Identité et informations personnelles
+Nom, prénoms, sexe, date et lieu de naissance
+Nationalité
+Photo d'identité
+Numéro matricule unique dans l'établissement
+Identifiant public court (7 caractères) pour partage inter-espaces
+Adresse physique
+Contacts personnels si l'élève est majeur
+Groupe sanguin et allergies (utile pour l'infirmerie)
+Langue(s) parlée(s) à la maison
+Informations scolaires
+Classe actuelle et année scolaire en cours
+Historique complet des classes fréquentées
+Historique des établissements fréquentés (utile pour les groupes scolaires)
+Ancien établissement d'origine (si transfert)
+Date de première inscription dans l'établissement
+Statut : actif, suspendu, transféré, sorti, diplômé
+Bourse ou avantage éventuel (montant, source, durée)
+Redoublements (année, motif)
+Documents administratifs
+Acte de naissance
+Certificats médicaux
+Bulletins des années précédentes
+Certificats de scolarité
+Pièces d'identité des parents
+Autres documents personnalisables par l'établissement
+Historique complet : tout est conservé et consultable, même après le départ de l'élève.
+Un élève est rattaché à un ou plusieurs parents/tuteurs. Chaque représentant peut avoir des droits différents (paiement, consultation notes, autorisation de sortie, etc.).
+2.2.2 Anciens élèves
+Un élève qui a terminé sa scolarité dans l'établissement conserve son compte et peut y accéder en mode ancien élève. Cet accès permet de consulter ses bulletins et son historique scolaire, de télécharger ses certificats et attestations, de demander un duplicata de document officiel, de rester informé des actualités de l'établissement, de rejoindre un réseau d'anciens si l'établissement l'active.
+Ce mode est en lecture seule sur les données historiques. L'élève ne peut rien modifier.
+2.2.3 Parents et tuteurs
+Un parent est une personne rattachée à un ou plusieurs élèves. Un même compte parent peut couvrir plusieurs enfants dans le même établissement, dans plusieurs établissements de la plateforme, dans plusieurs pays si applicable.
+Informations d'un parent : nom, prénoms, sexe, date de naissance (optionnelle), profession, employeur (optionnel), coordonnées (téléphone principal, WhatsApp, email), adresse physique, pièce d'identité, lien avec l'enfant (père, mère, tuteur légal, tuteur de fait), statut de représentant légal, autorisations spécifiques.
+Un parent peut avoir plusieurs enfants dans plusieurs classes et plusieurs établissements. Son espace parent lui montre tous ses enfants de façon consolidée.
+Un enfant peut avoir plusieurs parents/tuteurs, avec des droits différents. Par exemple : la mère règle la scolarité, le père consulte les notes, un tuteur récupère l'enfant à la sortie.
+2.2.4 Personnel
+Le personnel regroupe tous les employés de l'établissement, avec des rôles différents. La plateforme distingue :
+Enseignants
+Personnel administratif (secrétariat, comptabilité, accueil)
+Personnel technique (entretien, sécurité, chauffeurs, cuisiniers)
+Personnel de santé (infirmier scolaire)
+Personnel bibliothèque
+Personnel de cantine
+Surveillants
+Direction (traitée séparément)
+Informations communes à tout membre du personnel
+Identité complète
+Photo
+Coordonnées
+Pièce d'identité
+Contact d'urgence
+Diplômes et qualifications
+Date d'embauche
+Type de contrat (CDI, CDD, vacation, stage)
+Salaire de base et primes éventuelles
+Statut : actif, en congé, suspendu, licencié, parti
+Historique des paiements
+Documents administratifs
+Spécifique aux enseignants
+Matières enseignées
+Classes enseignées avec matière et volume horaire
+Emploi du temps propre
+Progression pédagogique par classe et matière
+Historique des notes saisies (pour audit)
+Statut : titulaire, vacataire, stagiaire
+Un enseignant peut travailler dans plusieurs établissements de la plateforme. Il possède un seul compte, avec un emploi du temps consolidé et des espaces distincts par établissement.
+2.2.5 Direction
+La direction représente la personne responsable opérationnelle de l'établissement. Elle est distincte du propriétaire :
+Le propriétaire possède l'établissement
+La direction fait tourner l'établissement au quotidien
+Dans une petite école, propriétaire et direction sont souvent la même personne
+Dans un groupe scolaire, un propriétaire peut nommer un directeur différent pour chaque établissement
+La direction a des droits étendus sur son établissement : vue complète sur toutes les données, validation des inscriptions et des bulletins, décisions disciplinaires, gestion du personnel, vue financière consolidée, publication d'annonces, signature électronique des documents officiels.
+2.2.6 Propriétaire d'établissement
+Le propriétaire est la personne (ou l'entité) qui possède l'établissement ou le groupe scolaire. Il détient l'espace de plus haut niveau côté établissement.
+Ses droits : créer et paramétrer un ou plusieurs établissements, nommer et révoquer les directions, configurer les règles de fonctionnement, vue financière complète et consolidée, accès aux statistiques et tableaux de bord, signature des contrats avec la plateforme et les partenaires, configuration de l'identité visuelle et du site vitrine.
+Le propriétaire est le seul à pouvoir supprimer un établissement (avec archivage), transférer la propriété à un autre propriétaire, ou modifier les paramètres structurants.
+2.2.7 Rôles et permissions
+Les rôles ne sont pas figés dans le code. La plateforme fournit un système de rôles et permissions granulaire qui permet à chaque établissement de créer ses propres rôles personnalisés, d'attribuer des permissions fines à chaque rôle, de cumuler plusieurs rôles pour une même personne, d'historiser tous les changements, et de déléguer temporairement des droits.
+2.2.8 Compte utilisateur unique
+Une personne = un compte, quel que soit son nombre de rôles ou d'établissements de rattachement.
+Le compte est identifié par un email ou un numéro de téléphone. L'authentification supporte mot de passe classique, code envoyé par SMS ou WhatsApp, authentification à deux facteurs (optionnelle), reconnaissance biométrique sur mobile (optionnelle).
+2.2.9 Ce que la plateforme ne gère pas au niveau Personnes
+Recrutement (annonces, réception de candidatures externes)
+Gestion RH avancée (évaluations annuelles, plans de carrière, formation continue) — V2 ou V3
+Suivi psychologique ou social des élèves au-delà des observations disciplinaires
+Paiements de tiers non rattachés à l'établissement
+
+
+Section 2.3 — Vie académique
+Cette section couvre le cœur métier pédagogique du produit : les notes, le moteur d'évaluation configurable, les bulletins, les examens, l'emploi du temps et la présence.
+2.3.1 Le moteur d'évaluation configurable
+C'est le cœur différenciateur du produit. Contrairement aux logiciels concurrents qui imposent un système de notation unique, la plateforme permet à chaque classe d'utiliser son propre système d'évaluation.
+Principe fondamental : le système d'évaluation est défini au niveau de la classe, pas au niveau de l'établissement.
+Système 1 — Composition seule (mensuelle)
+Utilisé principalement dans les classes inférieures (préscolaire, primaire). Chaque mois, une composition est organisée sur chaque matière. Les élèves reçoivent une note par matière. La moyenne mensuelle = somme des notes ÷ nombre de matières. Pas de coefficient, pas de pondération. À la fin du mois, un bulletin de composition est généré.
+Système 2 — Trimestre seul
+Utilisé principalement au collège et au lycée. Chaque trimestre dure trois mois. Chaque matière a un coefficient fixe pour l'année scolaire. Pendant le trimestre, l'enseignant saisit une ou plusieurs notes de devoirs et une note de composition trimestrielle. La moyenne d'une matière = pondération devoirs/composition selon le barème configuré. La moyenne trimestrielle générale = somme (moyenne matière × coefficient) ÷ somme des coefficients.
+Système 3 — Composition + Trimestre en parallèle
+Utilisé dans certains collèges (exemple : classe de 6ème). Chaque mois sauf le mois de trimestre, une composition mensuelle est organisée. Tous les trois mois, un trimestre est organisé, avec devoirs + composition trimestrielle. Pendant le mois du trimestre, il n'y a pas de composition mensuelle. Deux types de bulletins distincts sont générés : bulletin de composition (mensuel) et bulletin de trimestre (trimestriel).
+Système 4 — Évaluation par compétences
+Utilisé dans certaines maternelles et primaires. Pas de notes chiffrées. L'élève est évalué sur des compétences définies par l'établissement (savoir lire, savoir compter, motricité, socialisation, etc.). Chaque compétence reçoit une appréciation qualitative (acquise / en cours d'acquisition / non acquise, ou pastilles de couleur). Bulletin descriptif, sans moyenne générale.
+Système 5 — Évaluation modulaire (formation professionnelle et technique)
+Programme découpé en modules. Chaque module est validé indépendamment (note ou compétences). Passage en année supérieure conditionné par la validation d'un nombre minimal de modules.
+Configuration du calendrier d'évaluation
+Chaque classe déclare le calendrier concret des évaluations pour l'année en cours. Rien n'est présupposé.
+Composition : nombre de compositions dans l'année (peut être 7, 8, 9, 10, variable selon l'année). Certains mois peuvent être sautés. Une composition peut être annulée en cours d'année si nécessaire.
+Trimestre : nombre de trimestres dans l'année (généralement 3, mais peut être 2 selon les cas). Dates de début et de fin de chaque trimestre. Nombre de devoirs par matière et par trimestre. Coefficient devoir vs composition dans le calcul de la moyenne trimestrielle. Un trimestre peut être écourté ou fusionné avec le suivant en cas de perturbation.
+Combiné : configuration des deux calendriers en parallèle. Règle claire pour les mois de trimestre.
+Règle critique sur les coefficients
+Un coefficient est fixe pour toute l'année scolaire une fois défini. Cependant, en cas d'erreur de saisie, la direction peut le corriger. Dans ce cas :
+La plateforme détecte automatiquement tous les bulletins déjà générés impactés
+Elle les marque comme obsolètes et demande leur régénération
+Elle affiche une alerte explicite avant confirmation
+Toute la modification est historisée
+Les anciens bulletins restent archivés mais sont marqués « version périmée »
+Les nouvelles versions sont générées en un clic
+2.3.2 Saisie des notes
+Les enseignants saisissent les notes depuis leur espace, matière par matière, classe par classe.
+Interface de saisie
+Vue tableau : lignes = élèves, colonnes = évaluations
+Saisie rapide au clavier (Tab pour passer d'une cellule à l'autre)
+Validation en temps réel
+Enregistrement automatique
+Statuts par note : brouillon, saisie, validée
+Sécurité
+Un enseignant ne peut saisir que les notes des classes et matières qui lui sont assignées
+Les notes saisies sont verrouillées après un délai configurable
+La direction peut débloquer une note pour correction, avec justification obligatoire
+Toutes les modifications sont historisées avec date, auteur, ancienne valeur, nouvelle valeur, motif
+Import et export : export Excel/CSV, import en masse depuis un fichier Excel, modèle d'import fourni.
+2.3.3 Bulletins
+Le bulletin est le document officiel qui synthétise les résultats d'un élève sur une période.
+Génération
+Automatique à la fin de la période, une fois toutes les notes saisies et validées
+Vérification préalable des notes manquantes
+Validation obligatoire par la direction avant émission officielle
+Après validation, le bulletin est verrouillé
+Contenu d'un bulletin
+En-tête : logo, nom, adresse, coordonnées, année scolaire, période
+Identité de l'élève : nom, matricule, classe, photo
+Tableau des matières : intitulé, notes, moyenne matière, coefficient, moyenne × coefficient, rang
+Moyenne générale et rang général dans la classe
+Moyenne de la classe et moyenne du rang le plus élevé
+Appréciations des enseignants matière par matière
+Appréciation générale du professeur principal
+Appréciation générale de la direction
+Nombre d'absences, retards, retenues
+Mention obtenue (si le système le prévoit)
+Décision du conseil de classe
+Signatures : professeur principal, direction, parent
+Le nombre de bulletins générés dans l'année dépend du calendrier déclaré. Une classe qui fait 8 compositions cette année aura 8 bulletins de composition. Une classe qui fait 2 trimestres cette année aura 2 bulletins de trimestre.
+Chaque établissement personnalise le logo, les couleurs, la disposition des colonnes, les mentions officielles, le pied de page, les textes types. Le modèle de bulletin est différent selon le système d'évaluation de la classe.
+Distribution : publication automatique dans l'espace parent, dans l'espace élève, impression pour distribution physique, envoi optionnel par email ou notification push. Tous les bulletins de toutes les années restent consultables.
+2.3.4 Examens et évaluations
+Types d'évaluations : devoir surveillé, composition, examen blanc, examen officiel.
+Organisation d'une évaluation : date et horaire, matière, classe(s), salle(s), surveillant(s), durée, barème et coefficient, documents autorisés.
+Génération automatique : convocations des élèves, planning des surveillants, attribution des salles avec détection des conflits, étiquettes de placement pour anonymisation.
+2.3.5 Emploi du temps
+Création : interface visuelle en grille, glisser-déposer pour placer les cours, chaque cellule contient matière, enseignant, salle, groupe, support des demi-groupes.
+Détection automatique des conflits
+Un enseignant ne peut pas être dans deux endroits en même temps
+Une salle ne peut pas accueillir deux cours en parallèle
+Une classe ne peut pas avoir deux cours simultanés
+Un élève de groupe TP ne peut pas être dans deux TP en même temps
+Consultation
+Vue enseignant : son propre emploi du temps
+Vue élève : l'emploi du temps de sa classe
+Vue classe : emploi du temps complet
+Vue salle : occupation d'une salle sur la semaine
+Vue direction : vue globale filtrable
+Modifications ponctuelles : absence d'enseignant avec cours annulé ou remplacé, notification automatique aux élèves et parents, historisation. Formats d'export : PDF, format iCal, affichage dans l'application mobile.
+2.3.6 Présence des élèves
+La présence est saisie quotidiennement, cours par cours ou par demi-journée selon la configuration de l'établissement.
+Modes de saisie
+Par l'enseignant en début de cours
+Par le surveillant général
+Par un pointage électronique si l'établissement en dispose
+Statuts possibles
+Présent
+Absent (non justifié)
+Absent justifié
+Retard (avec durée)
+Retard justifié
+Exclu de cours (avec motif)
+Sortie anticipée (avec autorisation)
+Notifications automatiques : SMS, push, ou email aux parents en cas d'absence, dans un délai configurable.
+Consultation : historique complet par élève, statistiques par classe, détection des absences répétées, bulletin cumulé mensuel et annuel des absences.
+Justifications : les parents peuvent envoyer une justification via leur espace, la direction valide ou refuse, historisation complète.
+2.3.7 Discipline et observations
+Les enseignants et la direction peuvent enregistrer des observations sur un élève : positives, neutres, négatives.
+Chaque observation est datée et signée par son auteur, peut être partagée ou non avec les parents, est archivée dans le dossier de l'élève, peut faire l'objet d'un suivi. Les observations apparaissent sur le bulletin dans une section dédiée.
+2.3.8 Devoirs et travaux à faire
+En V1, la plateforme permet aux enseignants de publier les devoirs à faire : date de publication et date de rendu, matière et classe concernées, consignes, documents joints.
+Les élèves et parents voient les devoirs à faire depuis leur espace, avec un calendrier consolidé.
+En V2 ou V3 : dépôt de devoirs en ligne, correction en ligne, quiz interactifs, plateforme e-learning complète.
+2.3.9 Progression pédagogique
+Chaque enseignant suit sa progression dans le programme : liste des chapitres et sous-chapitres définie par l'établissement, l'enseignant coche au fur et à mesure ce qui a été traité, date effective de traitement, observations éventuelles.
+2.3.10 Ce que la plateforme ne fait pas au niveau Vie académique
+Pas de correction automatique de copies (V2 ou plus tard)
+Pas d'IA de personnalisation pédagogique (V3+)
+Pas de détection de plagiat
+Pas de contenus pédagogiques préchargés
+Pas de plateforme d'échange entre enseignants de différentes écoles
+Pas de gestion des concours nationaux ou officiels
+
+
+Section 2.4 — Argent
+Cette section couvre tout le volet financier de la plateforme : les frais scolaires avec paiements partiels, les paiements des familles via mobile money et autres moyens, la comptabilité complète, les salaires du personnel, et les rapports financiers.
+2.4.1 Configuration des frais scolaires
+Chaque établissement configure ses frais scolaires par classe (et non de manière globale). Deux classes différentes peuvent avoir des frais différents.
+Types de frais configurables par classe
+Frais d'inscription
+Frais de réinscription
+Scolarité annuelle
+Frais de cantine
+Frais de transport
+Frais d'infirmerie ou mutuelle santé scolaire
+Frais d'uniforme ou de fournitures scolaires
+Frais d'assurance scolaire
+Frais d'examen
+Frais de sortie pédagogique
+Frais divers personnalisables par l'école
+Chaque type de frais a un libellé, un montant, un caractère obligatoire ou optionnel, une périodicité (unique, mensuelle, trimestrielle, annuelle), un statut.
+2.4.2 Échéanciers de paiement
+Pour chaque type de frais, l'établissement configure un échéancier de paiement :
+Paiement unique à la date X
+Paiement en plusieurs tranches
+Paiement en mensualités configurables
+Paiement personnalisé avec dates précises et montants exacts
+Paiement en mensualités configurables : l'école définit combien de mensualités pour l'année en cours et à quels mois elles correspondent. Il peut y avoir 7, 8, 9 ou 10 mensualités selon l'année, selon l'école, selon la classe. Certains mois peuvent être exclus. L'école configure explicitement les mois payables et le montant de chaque mois (les mensualités ne sont pas forcément égales).
+2.4.3 Paiements partiels — Le point clé
+Un parent peut payer une partie seulement d'une échéance. Ce point est fondamental et doit être supporté partout dans la plateforme.
+Exemple concret
+La scolarité annuelle est de 500 000 FCFA
+L'échéancier prévoit 10 mensualités de 50 000 FCFA
+La mensualité de novembre est de 50 000 FCFA
+Le parent paie 20 000 FCFA en espèces
+La plateforme enregistre : 20 000 FCFA payés, 30 000 FCFA restants sur la mensualité de novembre
+Une semaine plus tard, le parent paie 15 000 FCFA supplémentaires
+La plateforme enregistre : 35 000 FCFA payés, 15 000 FCFA restants
+Chaque paiement partiel est traçable : date exacte, montant, moyen de paiement, personne qui a enregistré, reçu numéroté généré automatiquement, signature électronique ou impression pour signature manuscrite.
+2.4.4 Vue consolidée des paiements par élève
+Chaque élève a une fiche financière qui montre en temps réel :
+Total dû pour l'année (tous frais confondus)
+Total payé à ce jour
+Total restant à payer
+Détail échéance par échéance : ce qui est dû, ce qui est payé, ce qui reste
+Détail paiement par paiement : historique complet chronologique
+Alertes en cas d'arriérés
+Prochaines échéances à venir
+Cette fiche est accessible à la comptabilité et à la direction (vue complète, toutes actions possibles), au parent (vue lecture avec possibilité de payer en ligne), à l'élève (vue lecture uniquement).
+2.4.5 Vue liste par la comptabilité et la direction
+Vue liste consolidée de tous les élèves, avec des filtres puissants :
+Élèves à jour de paiement
+Élèves en retard sur la mensualité courante
+Élèves avec des arriérés
+Élèves qui ont payé partiellement la mensualité courante
+Élèves qui n'ont rien payé du tout pour la période
+Filtres par classe, par niveau, par montant restant à payer
+Tri par montant décroissant pour cibler les gros arriérés
+2.4.6 Moyens de paiement supportés
+En V1 (Mali)
+Espèces (enregistrement manuel avec reçu généré)
+Orange Money Mali (intégration API pour paiement en ligne)
+Wave Mali
+Moov Money Mali
+Virement bancaire (enregistrement manuel avec numéro de transaction)
+Chèque (enregistrement manuel avec numéro et banque)
+Architecture prévue pour la suite
+CinetPay, PayDunya, FedaPay (ouverture Sénégal, Côte d'Ivoire, Cameroun)
+Cartes bancaires (Visa, Mastercard) via un agrégateur
+Le module de paiement est modulaire : ajouter un nouveau provider ne demande pas de réécriture du reste de la plateforme.
+2.4.7 Reçus et facturation
+Chaque paiement génère automatiquement un reçu : numéro unique séquentiel, date/heure/montant/moyen, nom élève/classe/année, type de frais, période concernée, solde restant, logo et cachet de l'établissement, nom et signature du comptable.
+Le reçu est envoyé automatiquement au parent (SMS ou email avec PDF), imprimable en cas de paiement en présentiel, archivé de manière permanente, retrouvable via recherche.
+Factures : la plateforme peut également émettre des factures officielles avec numéro fiscal si applicable et mentions légales. Chaque établissement paramètre son format selon les exigences fiscales locales.
+2.4.8 Frais infirmerie et cantine — Gestion souple
+Mode facturation individuelle : chaque soin infirmerie ou repas cantine génère une ligne facturable. Ces lignes s'ajoutent à la fiche financière de l'élève. Le parent les paie individuellement ou en cumulé.
+Mode abonnement inclus : l'établissement propose un forfait mensuel ou annuel. Une fois payé, aucune facturation par unité. La facturation individuelle peut coexister pour les soins ou repas hors forfait.
+Mode mixte : un forfait couvre les cas de base, mais certains soins ou repas exceptionnels sont facturés en plus.
+Chaque école choisit son mode au démarrage, et peut le modifier à chaque nouvelle année scolaire.
+2.4.9 Comptabilité complète (recettes et dépenses)
+Recettes
+Frais scolaires (automatiques depuis les paiements)
+Ventes annexes (uniformes, fournitures, manuels)
+Recettes de cantine, transport, infirmerie
+Subventions et dons
+Recettes d'événements (kermesse, spectacle)
+Autres recettes personnalisables
+Dépenses
+Salaires (générés automatiquement depuis la paie)
+Loyers
+Eau, électricité, internet, téléphone
+Fournitures pédagogiques
+Fournitures administratives
+Entretien et réparations
+Achats de mobilier et d'équipement
+Achats de matériel informatique
+Dépenses de cantine (matières premières)
+Dépenses de transport (carburant, entretien véhicules)
+Prestataires externes
+Charges sociales et taxes
+Autres dépenses personnalisables
+Chaque dépense est datée, catégorisée, montant précis, justifiée par un document scanné, rattachée à un fournisseur, validée par la direction si le montant dépasse un seuil, enregistrée avec le moyen de paiement utilisé.
+2.4.10 Fournisseurs
+L'établissement gère une base de fournisseurs : nom, coordonnées, personne de contact, types de biens ou services fournis, historique des achats et paiements, solde éventuel, documents (contrats, RIB, actes administratifs).
+2.4.11 Salaires et paie
+Chaque membre du personnel a une fiche financière : salaire de base, primes (ancienneté, performance, présence, indemnités de transport, etc.), retenues (avances, cotisations sociales, impôts), salaire net, périodicité, historique complet.
+Génération des fiches de paie
+Automatique en fin de mois pour tout le personnel actif
+Prise en compte des absences et présences si l'établissement le pratique
+Prise en compte des primes ponctuelles
+Validation par la direction avant émission
+Envoi par email ou WhatsApp au salarié
+Impression pour signature physique si demandé
+Archivage permanent
+Paiement du salaire : enregistrement du versement effectif (espèces, Orange Money, virement), génération d'un reçu signé, historisation, détection des salaires en retard.
+2.4.12 Rapports financiers
+Compte de résultat mensuel
+Compte de résultat annuel
+Trésorerie disponible
+Rapport des paiements reçus sur une période
+Rapport des dépenses par catégorie
+Rapport des arriérés de scolarité
+Rapport des salaires versés
+Rapport des transactions par moyen de paiement
+Prévisionnel de trésorerie
+Chaque rapport est exportable en PDF pour présentation, exportable en Excel pour analyse, filtrable par période, par catégorie, par classe.
+2.4.13 Gestion de plusieurs caisses et comptes bancaires
+Un établissement peut avoir plusieurs points de collecte financière :
+Caisse principale (comptable)
+Caisse annexe (cantine, économe)
+Compte bancaire principal
+Compte bancaire secondaire
+Compte Orange Money marchand
+Compte Wave marchand
+Chaque point de collecte a son propre solde, sa propre historique. Un transfert entre caisses est possible avec traçabilité complète.
+2.4.14 Journal comptable
+Toutes les opérations financières sont enregistrées dans un journal comptable chronologique, consultable et exportable. Ce journal est immuable (aucune ligne ne peut être supprimée, seulement annulée par une écriture inverse), traçable, numéroté séquentiellement, exportable au format standard pour transmission à un expert-comptable externe.
+2.4.15 Ce que la plateforme ne fait pas au niveau Argent
+Pas de comptabilité normée SYSCOHADA complète
+Pas de déclaration fiscale automatique (V2 ou plus tard)
+Pas de gestion de stock détaillée en dehors des modules dédiés
+Pas d'analyse budgétaire prévisionnelle avancée
+Pas de connexion bancaire automatique (open banking)
+Pas de gestion de la TVA complexe avec régimes multiples
+
+
+Section 2.5 — Vie scolaire
+Cette section couvre les modules opérationnels du quotidien de l'école : infirmerie, cantine, transport et bibliothèque. Ce sont des modules optionnels — chaque école active uniquement ceux qui correspondent à ses services.
+2.5.1 Infirmerie
+Le module infirmerie est plus simple que le module clinique d'Elite24. Il s'agit d'enregistrer des soins de premier niveau au sein de l'école, pas de gérer un cabinet médical complet.
+Inventaire des produits
+Chaque produit a un libellé, une catégorie, une unité
+Stock disponible en temps réel
+Seuil d'alerte de réapprovisionnement
+Date de péremption (pour les médicaments)
+Prix unitaire (si mode facturation individuelle)
+Fournisseur habituel
+Enregistrement d'un soin
+Élève identifié (recherche par nom, matricule, classe — la classe apparaît automatiquement)
+Date et heure
+Motif du passage
+Description libre du soin
+Produits utilisés avec quantité (décrément automatique du stock)
+Recommandation faite à l'élève
+Notification aux parents si nécessaire
+Signature de l'infirmier
+Historique médical scolaire : chaque élève a un historique de tous ses passages, consultable par l'infirmier et par la direction, confidentiel vis-à-vis des enseignants.
+Facturation ou abonnement : trois modes disponibles au choix de l'école (gratuit inclus dans la scolarité, facturation individuelle, abonnement).
+Alertes automatiques : stock sous le seuil, produit périmé ou proche péremption, passages fréquents d'un élève.
+2.5.2 Cantine
+Configuration de base
+Chaque école active ou non le module cantine
+Types d'abonnements proposés (journée complète, midi seulement, à la carte)
+Tarifs par type d'abonnement, par classe ou par niveau
+Périodicité (mensuel, trimestriel, annuel)
+Abonnement : les parents souscrivent ou non, ajouté aux frais scolaires, suivi du paiement comme pour les autres frais, suspension ou reprise possible en cours d'année.
+Présence quotidienne : enregistrement par le personnel de cantine, statut présent/absent, utile pour la gestion des matières premières.
+Repas à la carte : pour les élèves non abonnés, facturable individuellement.
+Menu de la semaine : publication hebdomadaire, consultation par les parents, publication optionnelle sur le site vitrine.
+Gestion basique du stock cantine : inventaire simple, enregistrement des achats et consommations, alerte si un ingrédient de base manque. Une vraie gestion de restauration collective avec fiches techniques est hors périmètre V1.
+2.5.3 Transport scolaire
+Configuration de base
+Chaque école active ou non le module transport
+Liste des véhicules (bus, minibus, taxi-brousse)
+Chauffeurs assignés à chaque véhicule
+Circuits desservis avec arrêts
+Circuits et arrêts : chaque circuit a un nom, un véhicule, un chauffeur, une liste ordonnée d'arrêts avec horaires estimés, circuits distincts matin et soir, capacité maximale.
+Abonnement : les parents souscrivent, choix du circuit et de l'arrêt, tarif variable selon la distance, ajouté aux frais scolaires.
+Suivi des trajets : en V1, saisie manuelle simple (liste des élèves du circuit avec cases à cocher). En V2 ou V3 : possibilité d'un système de badge ou QR code. Notifications aux parents à la descente à l'école et au retour.
+Gestion des chauffeurs et véhicules : fiche véhicule (immatriculation, assurance, visite technique, kilométrage), historique d'entretien, consommation de carburant, alertes pour les échéances.
+Incidents : signalement d'un incident de transport, notification aux parents concernés, journal des incidents.
+2.5.4 Bibliothèque
+Catalogue des ouvrages
+Titre, auteur, éditeur, année, ISBN
+Catégorie (roman, manuel scolaire, documentaire, revue)
+Niveau ou matière associée
+Nombre d'exemplaires disponibles / en prêt
+État (neuf, bon état, abîmé, perdu)
+Localisation physique (rayon, étagère)
+Code-barres ou identifiant unique par exemplaire
+Prêts et retours : enregistrement du prêt (livre + emprunteur + date), retour avec date effective et vérification de l'état, historique complet, limite d'ouvrages simultanés paramétrable.
+Retards et pénalités : détection automatique, notification aux parents et à l'élève, application éventuelle d'une pénalité, blocage éventuel de nouveaux prêts.
+Gestion des pertes et détériorations : signalement, facturation à la famille du coût de remplacement, historique des incidents par élève.
+2.5.5 Salles et ressources
+Chaque école définit ses salles (classes, laboratoires, salle informatique, gymnase, etc.) avec capacité et type. Ces salles sont utilisées automatiquement par les modules Emploi du temps et Examens.
+Ressources matérielles (V1 basique) : inventaire du gros matériel (ordinateurs, projecteurs, tableaux interactifs, mobilier), localisation, état, historique d'affectation. Un vrai module de gestion de parc informatique et de maintenance est hors périmètre V1.
+2.5.6 Événements et calendrier
+Chaque école dispose d'un calendrier interne pour publier :
+Réunions parents-enseignants
+Journées portes ouvertes
+Fêtes scolaires
+Voyages et sorties pédagogiques
+Examens officiels et blanc
+Vacances scolaires
+Événements religieux ou nationaux importants
+Les événements sont visibles dans l'espace de chaque catégorie d'utilisateur concernée, publiés optionnellement sur le site vitrine, envoyés en notification, ajoutables au calendrier personnel.
+2.5.7 Ce que la plateforme ne fait pas au niveau Vie scolaire
+Pas de gestion médicale approfondie en infirmerie
+Pas de gestion de restauration collective avancée
+Pas de tracking GPS des bus en temps réel en V1
+Pas de plateforme de lecture numérique ou d'ebooks
+Pas de gestion de maintenance des équipements au sens CMMS
+Pas de gestion de la sécurité et du contrôle d'accès
+
+
+Section 2.6 — Communication et documents
+2.6.1 Notifications automatiques
+La plateforme envoie automatiquement des notifications aux utilisateurs concernés lors d'événements importants. Ces notifications sont paramétrables.
+Événements générant une notification automatique
+Absence ou retard d'un élève (aux parents)
+Publication d'une nouvelle note ou d'un bulletin
+Paiement reçu (avec reçu joint)
+Rappel d'échéance de paiement à venir
+Alerte d'arriéré de paiement
+Passage à l'infirmerie
+Nouvelle communication de la direction
+Convocation
+Nouvel événement dans le calendrier de l'école
+Rappel d'un examen à venir
+Publication d'un nouveau devoir à faire
+Notification de retard de bibliothèque
+Notification de trajet transport
+Alerte de sécurité ou incident
+Canaux disponibles
+SMS : payant, utilisé pour les notifications critiques
+Email : gratuit, communications formelles avec pièces jointes
+Notification push (application mobile) : gratuit, notifications rapides
+WhatsApp Business : possible en V2 selon la disponibilité des API
+Notification dans l'espace utilisateur : toujours présente, sert d'historique
+Chaque utilisateur configure ce qu'il souhaite recevoir et par quel canal. L'école peut définir un socle obligatoire de notifications que le parent ne peut pas désactiver.
+2.6.2 SMS
+Le SMS reste le canal roi dans le contexte africain, parce qu'il fonctionne même sans internet et sans smartphone.
+Envoi de SMS
+Individuel
+Groupé (parents d'une classe, niveau, établissement)
+Programmé (envoi à une date/heure future)
+Automatique (déclenché par un événement)
+Modèles de SMS : bibliothèque de modèles prédéfinis, modèles personnalisables par l'école, variables dynamiques (nom élève, classe, montant, date).
+Suivi des envois : historique, statut (envoyé, reçu, échoué), coût par SMS et coût total mensuel, rapport de consommation.
+2.6.3 Email
+Utilisé pour les communications formelles, les documents officiels, les longs contenus. Envoi individuel ou en masse, pièces jointes automatiques (bulletins PDF, factures, reçus), modèles personnalisables avec logo et signature de l'école, historique, suivi d'ouverture optionnel.
+Serveur email : par défaut la plateforme utilise ses propres serveurs. Chaque école peut configurer son propre serveur SMTP si elle souhaite envoyer depuis son domaine.
+2.6.4 Notifications push mobiles
+Avantages : gratuit, instantané, interactif. Toutes les notifications non critiques passent par push. Les notifications critiques sont doublées en SMS pour ceux qui n'ont pas l'application.
+2.6.5 Messagerie interne
+La plateforme intègre une messagerie interne qui permet aux utilisateurs de communiquer entre eux dans un cadre officiel, avec traçabilité.
+Qui peut communiquer avec qui
+Parent ↔ direction
+Parent ↔ enseignant (des matières enseignées à son enfant)
+Enseignant ↔ direction
+Enseignant ↔ enseignant (même établissement)
+Direction ↔ tout membre du personnel
+Élève ↔ enseignant (optionnel, désactivable par l'école)
+Règles : messages entre parents d'élèves différents interdits, toute communication archivée par l'école, la direction peut consulter en cas de nécessité, signalement possible du harcèlement.
+Fonctionnalités : envoi de messages texte et pièces jointes, notifications, historique, recherche. En V1 : messagerie simple sans groupe ni messagerie vocale.
+2.6.6 Communications officielles (annonces)
+La direction peut publier des annonces officielles à destination de différents publics : toute l'école, une ou plusieurs classes, un ou plusieurs niveaux, le personnel, les parents, ou des utilisateurs spécifiques.
+Contenu : titre, contenu texte enrichi, pièces jointes, date de publication, date d'expiration, priorité (normale, importante, urgente).
+Publication et distribution : apparition dans l'espace des destinataires, notification, publication optionnelle sur le site vitrine, statistiques de lecture.
+2.6.7 Génération de documents
+La plateforme génère automatiquement tous les documents officiels de l'école. Chaque document est personnalisable au niveau de l'école.
+Documents pédagogiques
+Bulletins (composition, trimestre, annuel)
+Relevés de notes
+Certificats de scolarité
+Certificats de fréquentation
+Attestations de niveau
+Diplômes internes de fin d'année
+Livret scolaire consolidé
+Documents administratifs
+Certificats de sortie
+Attestations de transfert
+Duplicatas
+Convocations
+Autorisations diverses
+Documents financiers
+Reçus de paiement
+Factures officielles
+États de compte élève
+Fiches de paie du personnel
+Reçus de salaire signés
+Justificatifs de dépenses
+Documents RH
+Contrats de travail
+Avenants
+Attestations de travail
+Certificats de service
+Notifications d'affectation
+2.6.8 Personnalisation des documents
+Chaque école configure une seule fois ses éléments d'identité, qui apparaissent automatiquement sur tous les documents : logo, nom officiel et d'affichage, adresse et coordonnées, numéros d'identification légale, signature scannée, cachet officiel scanné, couleurs institutionnelles, mentions légales.
+2.6.9 Signature électronique
+En V1, la signature est numérique simple : la signature scannée du directeur apparaît sur le document. Pour une signature électronique légalement valable au sens juridique, cela viendra en V2 ou V3.
+2.6.10 Archivage et retrouvabilité des documents
+Tous les documents générés sont stockés de manière permanente, consultables et retéléchargeables par l'utilisateur concerné, retrouvables par la direction via une recherche puissante, horodatés, traçables.
+2.6.11 Ce que la plateforme ne fait pas au niveau Communication et documents
+Pas de visioconférence intégrée
+Pas de forum ouvert entre parents
+Pas d'envoi postal de courriers physiques
+Pas de traduction automatique en V1
+Pas de gestion de courrier entrant
+Pas de génération de documents dans des formats juridiques complexes
+
+
+Section 2.7 — Espaces utilisateurs
+La plateforme propose neuf espaces distincts, chacun avec ses propres fonctionnalités, ses propres droits, son propre tableau de bord. Chaque espace est totalement étanche vis-à-vis des autres.
+2.7.1 Espace Propriétaire de la plateforme
+C'est l'espace du propriétaire de la solution et de son équipe. Il est situé au sommet de la hiérarchie et invisible des autres utilisateurs.
+Ce que fait cet espace
+Vue globale sur toute la plateforme
+Création, modification, suspension d'établissements et de propriétaires
+Création, modification, suspension de partenaires et de leurs contrats
+Gestion des pays et régions
+Gestion des devises et taux de change
+Gestion des providers de paiement
+Gestion des providers SMS
+Facturation interne
+Tableau de bord commercial
+Support de dernier niveau avec traçabilité stricte
+Gestion des incidents techniques et opérationnels
+Publication des mises à jour
+Gestion de l'équipe
+Traçabilité : toutes les actions sont auditées de manière stricte. Même le propriétaire de la plateforme ne peut pas accéder aux données d'un établissement sans que cet accès soit historisé et consultable par le propriétaire de l'établissement.
+2.7.2 Espace Partenaire
+C'est l'espace des représentants territoriaux. Cet espace est complet : ce n'est pas juste un dashboard de commissions, c'est un véritable espace de gestion d'entreprise.
+Volet commercial
+Vue des établissements parrainés
+Suivi des commissions générées, mois par mois, école par école
+Historique des versements de commissions reçus
+Contrats en cours et documents commerciaux
+Prospects et pipeline commercial
+Génération de propositions commerciales pré-remplies
+Volet gestion d'entreprise partenaire
+Comptabilité propre du partenaire
+Gestion du personnel du partenaire
+Fiches de paie
+Gestion des dépenses de bureau
+Rapports financiers de l'activité partenaire
+Volet lecture sur les écoles parrainées
+Nombre d'écoles actives dans son territoire
+Nombre d'élèves total par école
+Montant des revenus générés par chaque école (base de calcul des commissions)
+Le partenaire n'a pas accès aux données pédagogiques ni personnelles. Cette étanchéité est absolue et non négociable.
+2.7.3 Espace Propriétaire d'établissement
+C'est l'espace du fondateur ou investisseur propriétaire d'un ou plusieurs établissements, distinct de l'espace direction.
+Gestion des établissements
+Créer, modifier, suspendre des établissements dans son groupe
+Configurer les paramètres structurants
+Nommer et révoquer les directions
+Uniformiser certains paramètres à l'échelle du groupe
+Vision financière consolidée
+Vue de tous les établissements du groupe côte à côte
+Comparaison des performances financières
+Consolidation des recettes et dépenses
+Rapports financiers à l'échelle du groupe
+Alertes sur les établissements en difficulté
+Vision stratégique : statistiques et tableaux de bord décisionnels, analyses prédictives (V2/V3), comparaison inter-établissements, suivi des KPIs.
+2.7.4 Espace Direction
+C'est l'espace du directeur ou de la directrice qui fait tourner l'établissement au quotidien.
+Vue globale de l'établissement
+Tableau de bord quotidien
+Statistiques en temps réel
+Validations et décisions
+Validation des inscriptions et réinscriptions
+Validation des bulletins avant émission officielle
+Décisions disciplinaires
+Validation des grosses dépenses au-delà d'un seuil configurable
+Validation des changements de coefficients ou de calendriers pédagogiques
+Gestion opérationnelle : emploi du temps global, gestion du personnel, gestion des enseignants, communication officielle.
+Suivi pédagogique : progressions pédagogiques, détection des retards de programme, consultation des notes, suivi des observations.
+Suivi financier : vue complète, suivi des impayés, validation des paiements et remboursements, gestion des caisses.
+2.7.5 Espace Enseignant
+C'est l'espace utilisé au quotidien par les enseignants.
+Fonctionnalités principales
+Emploi du temps personnel (multi-établissements si applicable)
+Saisie des notes
+Faire l'appel
+Progression pédagogique
+Devoirs et travaux à faire
+Observations et appréciations
+Consultation des fiches élèves de ses classes
+Communication avec les parents et la direction
+Consultation et téléchargement de ses fiches de paie
+Multi-établissements : si l'enseignant travaille dans plusieurs écoles, choix de l'établissement au moment de la connexion, étanchéité totale entre écoles.
+2.7.6 Espace Personnel administratif et technique
+Pour les autres membres du personnel (comptable, secrétaire, surveillant général, infirmier, bibliothécaire, cuisinier, chauffeur, agent d'entretien, etc.), l'espace est configuré selon leur rôle et leurs permissions.
+Éléments communs
+Tableau de bord adapté au rôle
+Accès uniquement aux modules concernés
+Fiche de paie personnelle
+Historique de leurs actions
+Messagerie interne selon les règles du rôle
+Exemples de configurations
+Comptable/Secrétaire aux paiements : enregistrement, reçus, factures, impayés, rapports
+Surveillant général : absences, retards, sanctions, convocations
+Infirmier scolaire : module infirmerie complet, fiches santé, communication parents
+Bibliothécaire : catalogue, prêts, retours, statistiques
+Personnel cantine : menu, présences repas, stock
+Chauffeur/Accompagnateur : circuit, montées/descentes, incidents
+2.7.7 Espace Parent
+C'est l'espace utilisé par le plus grand nombre d'utilisateurs. Il doit être extrêmement simple, clair, accessible à tous les niveaux de littératie numérique.
+Tableau de bord global
+Liste de tous les enfants (tous établissements confondus)
+Alertes du jour
+Événements à venir
+Solde de scolarité par enfant
+Fiche par enfant
+Notes récentes
+Bulletins téléchargeables (toutes les années)
+Emploi du temps
+Devoirs à faire
+Présences et absences
+Observations et appréciations
+Fiche santé et historique infirmerie (résumé)
+Historique des trajets transport
+Historique des repas cantine
+Statut de la bibliothèque
+Volet financier
+Vue consolidée de tous les frais
+Détail échéance par échéance
+Historique des paiements
+Téléchargement des reçus
+Paiement en ligne via mobile money
+Alertes d'échéances à venir
+Communication : messagerie avec les enseignants et la direction, réception des annonces, configuration des préférences de notification.
+Justifications d'absence : envoi via l'application (texte + document scanné), suivi du statut.
+Documents : téléchargement de tous les documents officiels, demande de duplicata.
+2.7.8 Espace Élève
+L'espace élève est plus simple que l'espace parent : il est centré sur la vie scolaire de l'élève lui-même.
+Consultation de ses notes
+Consultation de ses moyennes
+Téléchargement de ses bulletins
+Emploi du temps de la journée et de la semaine
+Devoirs à faire
+Historique de ses absences et retards
+Observations et appréciations reçues
+Annonces de son établissement
+Messagerie limitée avec ses enseignants (optionnel)
+Événements du calendrier scolaire
+Résultats aux examens et évaluations
+L'élève ne voit pas les données financières, les observations disciplinaires marquées confidentielles, ni les données concernant ses camarades.
+2.7.9 Espace Ancien élève
+Un élève qui a terminé sa scolarité conserve son compte et peut y accéder en mode ancien élève.
+Consultation de tout son historique scolaire
+Téléchargement de duplicatas de documents officiels
+Demande de nouveaux documents
+Réception d'actualités de son ancien établissement (optionnel)
+Participation à un réseau d'anciens si l'établissement l'active
+Droits : lecture seule sur les données archivées, aucune modification possible, traçabilité de tous les accès.
+2.7.10 Gestion des multi-rôles
+Une même personne peut avoir plusieurs espaces accessibles :
+Un directeur peut aussi être parent d'un élève
+Un enseignant peut être parent d'un élève
+Un ancien élève peut devenir enseignant plus tard
+Un partenaire peut aussi être propriétaire d'établissement (dans un pays différent)
+À la connexion, la plateforme propose un sélecteur d'espace si l'utilisateur a plusieurs rôles. Le basculement est rapide.
+2.7.11 Ce que la plateforme ne fait pas au niveau Espaces utilisateurs
+Pas de rôles cachés ou de portes dérobées
+Pas de personnalisation complète de l'interface par utilisateur en V1
+Pas de gamification de l'espace élève
+Pas de fonctionnalités communautaires au-delà de la messagerie
+Pas d'accès à distance à d'autres écoles hors du système de rattachement
+
+
+Section 2.8 — Site vitrine et présence en ligne
+Chaque établissement dispose d'une présence en ligne officielle générée et gérée depuis la plateforme. C'est un module natif intégré au produit.
+2.8.1 Principe fondateur
+Un site vitrine n'est pas un simple sous-produit de la plateforme, c'est une vitrine officielle de l'établissement. Il doit être professionnel et esthétique, rapide à charger, accessible depuis mobile et desktop, sécurisé (HTTPS obligatoire), optimisé pour le SEO, personnalisable sans intervention technique, et indépendant de l'espace de gestion.
+2.8.2 Ce que contient un site vitrine
+Pages principales
+Accueil avec bannière, présentation courte, appel à l'action
+Présentation de l'école (histoire, mission, valeurs, mot de la direction)
+Formations et niveaux proposés
+Équipe pédagogique et administrative
+Actualités et annonces
+Événements à venir
+Galerie photos
+Galerie vidéos
+Inscriptions
+Modalités financières
+Partenaires
+FAQ
+Contact avec formulaire et localisation
+Politique de confidentialité et mentions légales
+Éléments dynamiques
+Actualités récentes qui apparaissent automatiquement sur l'accueil
+Calendrier des événements
+Résultats académiques agrégés et anonymisés
+Témoignages d'anciens élèves
+Formulaire de contact qui arrive dans la messagerie de la direction
+Formulaire de pré-inscription qui alimente le tableau de bord des prospects
+2.8.3 Personnalisation
+L'école configure une seule fois son site à travers un assistant de configuration simple.
+Éléments personnalisables
+Logo (avec plusieurs déclinaisons)
+Couleurs principales
+Polices
+Bannière principale
+Images de couverture par section
+Textes de présentation
+Ordre et présence des sections
+Menu de navigation
+Réseaux sociaux liés
+Coordonnées de contact
+Localisation avec carte intégrée
+Pied de page
+Modèles disponibles : en V1, la plateforme fournit 5 à 8 modèles professionnellement conçus. L'école choisit un modèle et le personnalise. L'école ne peut pas modifier le code du site (choix délibéré pour éviter les catastrophes techniques). Modèles supplémentaires en V2/V3.
+2.8.4 Publication de contenu (mini-CMS intégré)
+L'école peut publier elle-même du contenu à travers un mini-CMS intégré. Ce n'est pas un CMS complet comme WordPress — c'est un système de blocs configurables qui couvre 90% des besoins.
+Types de contenu publiables
+Articles d'actualité
+Événements
+Galeries photos
+Annonces
+Pages statiques personnalisées
+Documents téléchargeables
+Interface : éditeur de texte enrichi, upload d'images et documents, prévisualisation, publication programmée, modification et suppression, historique des versions.
+Qui publie : la direction par défaut, peut déléguer à un membre du personnel, traçabilité de qui a publié quoi et quand, modération possible.
+2.8.5 Nom de domaine
+Options possibles
+Sous-domaine gratuit fourni par la plateforme (ecoleabc.plateforme.com)
+Nom de domaine personnalisé (www.ecoleabc.com ou www.ecoleabc.ml)
+Achat de domaine via la plateforme : l'école peut acheter son domaine directement, extensions courantes proposées (.com, .org, .ml pour le Mali), renouvellement automatique géré, l'école reste propriétaire de son domaine.
+Configuration technique : la plateforme configure automatiquement le domaine (DNS, certificat HTTPS gratuit), aucune intervention technique demandée à l'école, HTTPS obligatoire.
+2.8.6 Lien entre le site vitrine et la plateforme
+Le site vitrine est connecté à la plateforme mais techniquement séparé :
+Le site vitrine consomme les données de la plateforme via une API interne
+Le site vitrine est hébergé sur une infrastructure distincte de la plateforme de gestion
+Un problème sur le site vitrine (pic de trafic, attaque) n'impacte jamais la gestion scolaire
+Un problème sur la plateforme de gestion n'impacte jamais l'affichage du site vitrine
+Cette séparation architecturale est un choix délibéré. Elle protège l'école et la plateforme, et permet d'optimiser le site vitrine pour la performance publique sans que la gestion scolaire n'en souffre.
+2.8.7 Portail de connexion intégré au site
+Chaque site vitrine intègre un portail de connexion qui permet aux utilisateurs d'accéder à leurs espaces respectifs. La plateforme reconnaît automatiquement qu'un utilisateur se connecte depuis le site de l'école ABC et le redirige vers l'espace approprié dans cette école. Sécurité : un utilisateur non rattaché à cette école ne peut pas se connecter depuis ce site.
+2.8.8 Formulaires et interactions
+Le site vitrine peut contenir plusieurs formulaires interactifs qui alimentent la plateforme de gestion :
+Formulaire de contact (message arrive dans la messagerie de la direction)
+Formulaire de pré-inscription (alimente le tableau de bord des prospects)
+Demande de rendez-vous
+Demande de brochure
+Inscription à la newsletter
+Formulaire de candidature spontanée
+2.8.9 Site vitrine sur mobile
+Tous les sites vitrines sont responsives : design optimisé pour les petits écrans, menu hamburger, boutons d'appel à l'action prominents (WhatsApp, téléphone), chargement rapide même sur connexions faibles.
+2.8.10 Référencement (SEO)
+Chaque site vitrine est optimisé : structure sémantique propre, titres et descriptions personnalisables par page, sitemap généré automatiquement, robots.txt configuré, balises Open Graph, vitesse optimisée, URLs claires. L'école peut ajouter son propre code de suivi (Google Analytics, Facebook Pixel).
+2.8.11 Multi-langue
+Un site vitrine peut être publié en plusieurs langues : français, anglais (pour les écoles bilingues), arabe (pour les medersas), langues locales à terme. L'école configure les langues activées.
+2.8.12 Statistiques et pilotage
+L'école dispose d'un tableau de bord de son site vitrine : nombre de visiteurs, pages les plus consultées, sources de trafic, nombre de formulaires soumis, nombre de pré-inscriptions générées, taux de conversion. Statistiques de base en V1, analyses avancées en V2/V3.
+2.8.13 Ce que le module Site vitrine ne fait pas
+Pas de site e-commerce
+Pas de plateforme de blog complexe avec commentaires et communauté
+Pas d'éditeur de code libre
+Pas d'intégrations tierces complexes
+Pas de portail intranet complet pour les employés
+Pas d'application mobile dédiée pour le site vitrine
+Pas de gestion de campagnes marketing avancées
+
+
+Section 2.9 — Application mobile unifiée
+L'application mobile est un pilier central de la plateforme. Dans le contexte africain, la grande majorité des parents utilisera la plateforme depuis leur téléphone.
+2.9.1 Principe fondateur : une seule application pour toutes les écoles
+Une seule application pour tous les utilisateurs de la plateforme, quel que soit leur établissement. Un utilisateur ne télécharge pas une application différente pour chaque école.
+Un parent avec deux enfants dans deux écoles différentes télécharge une seule application
+Un enseignant qui travaille dans trois écoles utilise la même application
+Un ancien élève qui devient enseignant plus tard n'a pas à réinstaller
+2.9.2 Plateformes supportées
+Android : depuis Google Play Store, priorité absolue vu la dominance d'Android en Afrique
+iOS : depuis Apple App Store
+Android à partir de Android 7 (Nougat, 2016)
+iOS à partir de iOS 14 (2020)
+Alternative web mobile : pour les utilisateurs qui ne peuvent ou ne veulent pas installer l'application, le site web mobile responsive offre la quasi-totalité des fonctionnalités.
+2.9.3 Choix technologique
+L'application est développée en technologie multi-plateforme (Flutter, React Native, ou équivalent) pour partager le code entre iOS et Android. Ce choix permet de développer plus vite, maintenir une cohérence, réduire les coûts, corriger un bug une seule fois.
+2.9.4 Expérience à la première connexion
+Écran de bienvenue avec présentation rapide
+Choix de la langue
+Écran de connexion (identifiant + mot de passe)
+Détection automatique de tous les établissements auxquels le compte est rattaché
+Écran d'accueil personnalisé
+2.9.5 Navigation
+L'interface principale utilise une navigation par onglets en bas d'écran (standard mobile).
+Pour un parent
+Accueil (vue globale, alertes, événements)
+Enfants (fiche de chaque enfant)
+Paiements (impayés, historique, paiement rapide)
+Communications (messagerie, annonces, notifications)
+Profil (paramètres, préférences)
+Pour un enseignant
+Emploi du temps
+Classes
+Notes
+Communications
+Profil
+Pour un élève
+Aujourd'hui (cours du jour, devoirs, notes récentes)
+Notes et bulletins
+Emploi du temps
+Communications
+Profil
+2.9.6 Fonctionnalités clés par type d'utilisateur
+Parent
+Voir en temps réel où en est chaque enfant
+Recevoir les notifications d'absence, de note, de paiement
+Payer les frais en mobile money directement depuis l'application
+Télécharger et partager les bulletins et documents
+Envoyer une justification d'absence en prenant en photo un document
+Communiquer avec l'école
+Consulter les événements et le calendrier
+Enseignant
+Faire l'appel rapidement
+Saisir des notes en cours de journée
+Consulter l'emploi du temps
+Publier un devoir
+Envoyer un message aux parents
+Élève
+Consulter ses notes et bulletins
+Voir ses devoirs à faire
+Consulter son emploi du temps
+Recevoir les annonces
+Direction
+Vue tableau de bord synthétique
+Validation d'urgence (bulletin, dépense)
+Communication rapide
+Les fonctionnalités administratives complexes restent accessibles principalement depuis la version web.
+2.9.7 Fonctionnement hors ligne
+Le contexte africain impose de gérer les coupures d'internet fréquentes.
+Ce qui fonctionne hors ligne
+Consultation des données déjà chargées
+Faire l'appel (stockage local puis synchronisation)
+Saisir des notes
+Consulter les documents déjà téléchargés
+Consulter la messagerie déjà chargée
+Rédiger des messages ou des annonces en attente d'envoi
+Ce qui nécessite une connexion
+Envoi effectif des messages
+Paiements en ligne
+Téléchargement de nouveaux documents
+Rafraîchissement des données
+Indicateur clair : bannière discrète quand hors ligne, badge sur l'icône de synchronisation pour les actions en attente, notification à la synchronisation.
+2.9.8 Notifications push
+Types de notifications reçues
+Absence ou retard d'un enfant
+Nouvelle note disponible
+Bulletin publié
+Paiement reçu (confirmation)
+Rappel d'échéance de paiement
+Nouveau message reçu
+Nouvelle annonce
+Alerte urgente de l'école
+Événement à venir (rappel)
+Personnalisation : activer/désactiver par type, choisir les heures de silence, basculer entre push, SMS, ou les deux. Sons distincts pour urgent vs normal.
+2.9.9 Paiement mobile intégré
+Payer les frais scolaires directement depuis l'application en quelques taps.
+Parcours de paiement
+Parent voit « 50 000 FCFA restants sur la mensualité de novembre »
+Tap sur « Payer »
+Choix du montant à payer (total ou partiel)
+Choix du moyen de paiement : Orange Money Mali, Wave, Moov Money
+Redirection vers l'application du provider ou saisie du code
+Confirmation du paiement
+Reçu généré instantanément et disponible dans l'application
+2.9.10 Sécurité mobile
+Authentification
+Mot de passe obligatoire à la première connexion
+Possibilité d'activer la biométrie (empreinte, reconnaissance faciale)
+Possibilité d'activer la double authentification
+Verrouillage automatique après temps d'inactivité configurable. Chiffrement local des données (mode hors ligne). Détection de compromission : alerte si le compte est utilisé depuis un nouvel appareil, possibilité de déconnecter tous les appareils, historique des connexions.
+2.9.11 Multi-comptes et changement rapide d'espace
+Un utilisateur avec plusieurs rôles peut basculer rapidement entre ses espaces sans se reconnecter. Icône dans l'en-tête avec le rôle actif, tap pour ouvrir la liste, sélection instantanée.
+2.9.12 Performance et légèreté
+Objectifs
+Taille de l'application inférieure à 50 Mo
+Consommation de données optimisée
+Temps de chargement inférieur à 3 secondes
+Consommation batterie modérée
+Fonctionnement sur téléphones avec 2 Go de RAM
+2.9.13 Accessibilité
+Tailles de texte ajustables
+Contrastes suffisants
+Lecteurs d'écran supportés
+Navigation au clavier
+Support des paramètres système (mode sombre, taille de police)
+2.9.14 Mise à jour
+Diffusion via les stores. Notification à l'utilisateur qu'une mise à jour est disponible. Mise à jour obligatoire uniquement en cas de faille de sécurité majeure. Politique de rétrocompatibilité.
+Mise à jour des données : synchronisation automatique en tâche de fond, rafraîchissement manuel possible.
+2.9.15 Support et aide dans l'application
+Consultation d'une aide contextuelle
+Contact du support de l'établissement
+Contact du support de la plateforme
+Signalement de bug avec envoi automatique de logs anonymisés
+Mises à jour et nouveautés
+2.9.16 Ce que l'application mobile ne fait pas
+Pas de fonctionnalités administratives lourdes
+Pas de génération de gros documents
+Pas de version tablette optimisée en V1
+Pas de widgets d'écran d'accueil en V1
+Pas d'intégration avec les assistants vocaux
+Pas de version smartwatch
+Pas de fonctionnalités de type réseau social
+
+
+Section 2.10 — Système partenaires et modèle économique
+Cette section formalise le fonctionnement commercial et financier de la plateforme : d'où vient l'argent, comment il circule, comment les partenaires sont rémunérés, comment les contrats sont gérés.
+2.10.1 Principes fondateurs du modèle économique
+1. Gratuité totale pour les écoles et les parents
+Aucune école ne paie d'abonnement à la plateforme
+Aucun parent ne paie pour utiliser l'application ou consulter les notes
+Aucun frais d'installation, aucun frais de setup, aucun frais caché
+L'école n'a rien à sortir de son budget de fonctionnement pour la plateforme
+2. Revenus générés par les paiements traités
+La plateforme prélève une commission de service sur chaque paiement traité via la plateforme
+Cette commission est un petit pourcentage du montant du paiement
+Elle rémunère l'infrastructure, les frais de transaction, le support, le développement, et les partenaires
+Le taux exact est fixé par la plateforme et peut varier selon le type de paiement et le pays
+3. Alignement d'intérêts avec les partenaires
+Les partenaires ne sont pas payés à la signature d'une école mais au fur et à mesure de l'utilisation
+Plus une école apporte de volume, plus le partenaire est rémunéré
+Le partenaire a intérêt à signer des écoles solides et à les accompagner
+Ce mécanisme évite les partenaires « vendeurs » qui signent des écoles fantômes
+2.10.2 La commission de service — mécanique détaillée
+Sur quels paiements s'applique la commission
+Frais d'inscription et de réinscription
+Mensualités et trimestrialités de scolarité
+Frais de cantine
+Frais de transport
+Frais d'infirmerie (mode facturation individuelle)
+Frais d'examens, sorties, uniformes, fournitures
+Tout paiement effectué par une famille au bénéfice de l'école via la plateforme
+Sur quels paiements ne s'applique pas la commission
+Salaires versés au personnel
+Dépenses de fonctionnement de l'école
+Mouvements internes entre caisses
+Transferts entre comptes bancaires
+Remboursements aux familles
+Configuration du taux : configuré au niveau de la plateforme par pays, peut être différent selon le type de paiement, transparent (chaque école et chaque partenaire voit exactement combien la plateforme prélève).
+Absorption ou répercussion de la commission
+Mode absorbé : l'école absorbe la commission dans ses tarifs. Le parent paie 50 000 FCFA, l'école reçoit 49 000 FCFA. Le parent ne voit pas la commission. Mode recommandé.
+Mode répercuté : l'école ajoute la commission au montant. Le parent paie 51 000 FCFA, l'école reçoit 50 000 FCFA. Le parent voit une ligne « frais de service plateforme ».
+2.10.3 Répartition des revenus
+Sur chaque commission perçue par la plateforme, la répartition suit la règle 30/70 :
+30% — Charges opérationnelles
+Frais de transaction des providers mobile money
+Frais d'hébergement de l'infrastructure
+Frais de SMS et notifications
+Coûts de support technique
+Provisions pour évolutions et maintenance
+Frais bancaires et fiscaux
+70% — À répartir entre partenaire et plateforme
+20% des 70% = 14% de la commission totale : partenaire du pays/territoire
+80% des 70% = 56% de la commission totale : plateforme
+Illustration concrète
+Une mensualité de 50 000 FCFA est payée
+Commission plateforme à 2% = 1 000 FCFA
+300 FCFA vont aux charges opérationnelles
+140 FCFA vont au partenaire du pays
+560 FCFA vont à la plateforme
+2.10.4 Durée et évolution de la répartition partenaire
+Durée de la commission
+Le partenaire touche sa commission aussi longtemps que l'école qu'il a apportée reste cliente
+Ce n'est pas un one-shot à la signature — c'est un flux récurrent
+Cela aligne les intérêts sur la fidélisation et la satisfaction
+Dégressivité éventuelle
+Le contrat partenaire peut prévoir une dégressivité (par exemple, 20% pendant les 3 premières années, puis 15% par la suite). La dégressivité est configurée dans le contrat individuel.
+Perte de la commission
+Si le partenaire cesse son activité, ses commissions sont récupérées par la plateforme
+Si le partenaire est révoqué pour faute grave, ses commissions futures sont annulées
+Un partenaire remplacé peut voir ses écoles reprises par un nouveau partenaire
+2.10.5 Territoires des partenaires
+Un territoire peut être un pays entier
+Un territoire peut être une région spécifique dans un grand pays
+Un territoire peut être une ville
+Découpage territorial : défini par la plateforme au moment de la signature, peut évoluer avec le temps, un territoire est cartographié dans la plateforme.
+Plusieurs partenaires par territoire : par défaut un territoire = un partenaire (exclusivité), exceptionnellement plusieurs peuvent coexister.
+Rattachement d'une école à un partenaire : soit automatiquement selon la localisation, soit manuellement par la plateforme, soit via un code de parrainage. Une école est rattachée à un seul partenaire à la fois.
+2.10.6 Code de parrainage
+Format court et mémorisable (MALI-KEITA-042)
+Généré à la création du compte partenaire
+Immuable (ne peut pas être changé)
+Peut être partagé sur des supports commerciaux
+Utilisation : une école qui s'inscrit peut entrer le code. Ce code lie l'école à ce partenaire pour toute la durée de la relation.
+2.10.7 Espace Partenaire — vue commerciale
+Tableau de bord principal
+Nombre d'écoles rattachées actives, suspendues, en cours de résiliation
+Nombre total d'élèves dans les écoles rattachées
+Volume de paiements traité par les écoles rattachées
+Commissions générées et versées
+Prospects en cours de négociation
+Détail par école rattachée
+Nom, ville, coordonnées de contact
+Date de signature du contrat
+Nombre d'élèves
+Volume de paiements traité mensuellement
+Commission générée pour ce partenaire
+État de la relation
+Le partenaire ne voit jamais : les paiements individuels des familles, les noms des élèves, les notes/bulletins/données pédagogiques, les données personnelles des enseignants ou du personnel, la comptabilité interne de l'école. Cette étanchéité est absolue.
+2.10.8 Espace Partenaire — gestion d'entreprise
+L'espace partenaire est aussi un espace de gestion d'entreprise complet :
+Comptabilité du partenaire (recettes, dépenses, résultat)
+Personnel du partenaire (commerciaux, agents terrain, secrétariat)
+Prospects et pipeline commercial
+Documents commerciaux (propositions, brochures, contrats types)
+Suivi des versements de commissions
+2.10.9 Contrats partenaires — cycle de vie
+Création d'un partenaire
+Décision de la plateforme d'ouvrir un territoire
+Négociation des termes
+Signature du contrat
+Création du compte partenaire
+Génération du code de parrainage
+Formation du partenaire
+Vie du contrat
+Suivi mensuel des performances
+Revue trimestrielle avec le partenaire
+Ajustements possibles avec avenant
+Support permanent
+Fin du contrat
+À l'initiative de la plateforme ou du partenaire
+Période de préavis prévue au contrat
+Gestion des écoles rattachées (transfert ou reprise directe)
+Solde des commissions dues
+Archivage du contrat
+2.10.10 Versement des commissions
+Périodicité : calcul automatique en fin de mois
+Versement dans les X jours suivant la fin du mois
+Mode de versement : virement bancaire, mobile money, ou chèque
+Traçabilité : chaque versement génère un avis détaillé (période, écoles concernées, commissions, retenues, montant net)
+Gestion des taxes : le partenaire est responsable de sa propre imposition, la plateforme fournit les documents fiscaux
+2.10.11 Charges opérationnelles — détail des 30%
+Les 30% couvrent des postes réels : frais de transaction mobile money (1% à 2% du montant traité), infrastructure technique (hébergement, bande passante, stockage, sauvegardes), services annexes (SMS, emails, notifications, certificats), support et opérations, évolutions et maintenance, frais bancaires et fiscaux.
+2.10.12 Revenus complémentaires possibles
+Modules premium payants pour les écoles
+Volume de SMS au-delà d'un quota inclus
+Stockage étendu de documents et médias
+Modules IA avancés (analyse prédictive, aide à la rédaction)
+Personnalisation avancée du site vitrine
+Support prioritaire ou dédié
+Services annexes
+Achat de noms de domaine avec marge
+Impression de documents officiels en partenariat avec des imprimeurs
+Formations payantes pour les écoles
+Ces revenus complémentaires ne sont pas prévus pour la V1.
+2.10.13 Ce que le modèle ne fait pas
+Pas de facturation directe aux écoles en abonnement fixe
+Pas de facturation aux parents
+Pas de publicité affichée aux utilisateurs
+Pas de revente des données personnelles à des tiers commerciaux
+Pas de commissions cachées
+Pas de contrat d'exclusivité imposé aux écoles
+2.10.14 Éthique et transparence
+Le modèle repose sur une transparence totale : chaque école voit exactement combien la plateforme prélève, chaque partenaire voit exactement comment sa commission est calculée, aucun frais caché, les taux sont publics et documentés, les évolutions sont annoncées avec préavis. Cette transparence est un argument commercial fort.
+
+
+Section 2.11 — Audit et traçabilité
+2.11.1 Principe fondateur
+La plateforme enregistre toutes les actions importantes effectuées par tous les utilisateurs. Cet enregistrement est immuable : personne, pas même le propriétaire de la plateforme, ne peut modifier ou supprimer une entrée du journal d'audit.
+Confiance des écoles : une école doit pouvoir vérifier qui a fait quoi sur ses données
+Résolution des litiges : le journal fait foi
+Sécurité : détection des comportements anormaux
+2.11.2 Actions enregistrées
+Actions pédagogiques
+Saisie, modification, suppression d'une note
+Validation ou dévalidation d'un bulletin
+Modification d'un coefficient
+Changement du système d'évaluation d'une classe
+Régénération d'un bulletin après modification rétroactive
+Ajout, modification d'une observation ou appréciation
+Modification d'un emploi du temps
+Saisie ou modification d'une présence
+Actions financières
+Enregistrement, modification, annulation d'un paiement
+Émission d'un reçu ou d'une facture
+Enregistrement d'une dépense
+Modification d'un salaire
+Émission d'une fiche de paie
+Mouvement entre caisses ou comptes bancaires
+Modification des frais de scolarité en cours d'année
+Actions administratives
+Création, modification, suspension d'un élève, parent, personnel
+Inscription, réinscription, transfert d'un élève
+Modification d'un contrat de travail
+Changement de rôle ou de permissions
+Changement de rattachement partenaire
+Création ou suspension d'un établissement
+Actions de sécurité
+Connexions réussies et échouées
+Changements de mot de passe
+Activation/désactivation de la double authentification
+Déconnexions forcées
+Tentatives d'accès à des données non autorisées
+Changements de configuration sensible
+Actions sur les documents et communication
+Génération d'un document officiel
+Téléchargement d'un document par un utilisateur
+Envoi d'un document (email, SMS)
+Modification ou suppression d'un modèle
+Envoi d'une annonce ou d'un message
+Envoi d'un SMS ou email en masse
+Actions de la plateforme
+Accès aux données d'une école par la plateforme
+Toutes les actions effectuées par les membres de l'équipe plateforme
+Ajustement d'un taux de commission
+Modification d'un contrat partenaire
+2.11.3 Contenu d'une entrée d'audit
+Date et heure précises (avec fuseau horaire)
+Identité de l'utilisateur ayant effectué l'action
+Rôle actif au moment de l'action
+Établissement concerné (si applicable)
+Type d'action
+Description détaillée
+Ancienne valeur et nouvelle valeur (pour les modifications)
+Adresse IP et type d'appareil
+Motif ou justification (obligatoire pour certaines actions sensibles)
+2.11.4 Consultation du journal
+Qui peut consulter quoi
+Propriétaire de l'établissement : toutes les actions concernant son ou ses établissements
+Direction : toutes les actions dans son établissement
+Comptable : actions financières dans son périmètre
+Chaque utilisateur : actions qui le concernent personnellement
+Propriétaire de la plateforme : toutes les actions, chaque accès étant lui-même audité
+Recherche et filtres : par utilisateur, type d'action, période, module, mot-clé. Export du journal en PDF ou Excel.
+2.11.5 Alertes automatiques sur événements sensibles
+Modification d'une note validée
+Modification d'un paiement enregistré
+Modification rétroactive d'un coefficient ou d'un système d'évaluation
+Tentatives de connexion échouées répétées
+Accès depuis un nouvel appareil ou une nouvelle localisation
+Suppression massive de données
+Accès aux données d'un établissement par la plateforme (notifié au propriétaire)
+2.11.6 Rétention et archivage
+Les entrées du journal sont conservées de manière permanente
+Aucune suppression automatique
+Sauvegardes régulières et redondantes
+En cas d'archivage d'un établissement, le journal est archivé mais reste consultable
+2.11.7 Confidentialité et éthique
+Le journal contient des informations sensibles : il est protégé par les mêmes règles d'accès que les données qu'il concerne. Aucune donnée personnelle sensible n'est stockée au-delà du nécessaire. La consultation du journal par la plateforme suit un principe de « besoin d'en connaître ».
+2.11.8 Ce que le module Audit ne fait pas
+Pas d'enregistrement des consultations passives en V1
+Pas d'enregistrement vidéo ou d'espionnage
+Pas d'analyse comportementale automatique en V1
+
+
+Partie 3 — Ce que l'application NE FAIT PAS
+Cette partie regroupe toutes les limites explicites déjà mentionnées section par section, plus quelques limites globales. L'objectif est de prévenir le scope creep et de cadrer les attentes.
+3.1 Limites générales
+La plateforme n'est pas :
+Un logiciel comptable certifié aux normes SYSCOHADA complètes
+Un système d'information étatique
+Un ATS (Applicant Tracking System) pour le recrutement
+Un logiciel de travail social ou de suivi psychologique
+Une plateforme d'e-commerce
+Une plateforme de e-learning ou de cours en ligne (en V1)
+Un CMS complet type WordPress
+Un ERP généraliste
+Un logiciel de gestion de parc informatique
+Une plateforme de visioconférence
+3.2 Limites au niveau pédagogique
+La correction automatique de copies
+L'analyse par IA des performances pédagogiques (en V1)
+La détection de plagiat
+La gestion des concours nationaux officiels
+La fourniture de contenus pédagogiques préchargés
+La création d'exercices ou de quiz interactifs (en V1)
+La correction ou l'annotation en ligne de devoirs déposés (en V1)
+3.3 Limites au niveau financier
+La déclaration fiscale automatique
+La gestion de la TVA complexe avec régimes multiples
+Le rapprochement bancaire automatique (open banking)
+La gestion d'un budget prévisionnel avancé avec analyse d'écart
+La gestion d'un économat général
+La comptabilité analytique avancée
+La consolidation multi-devises pour les groupes internationaux (en V1)
+3.4 Limites au niveau personnel et RH
+Le recrutement externe
+Les évaluations annuelles du personnel
+Les plans de carrière et formation continue
+La gestion de la paie complexe avec cotisations sociales multi-régimes
+Le suivi médical du personnel
+3.5 Limites au niveau vie scolaire
+La gestion médicale approfondie en infirmerie
+La gestion de restauration collective avancée
+Le tracking GPS des bus en temps réel (en V1)
+La lecture numérique ou les ebooks
+La gestion de la sécurité et du contrôle d'accès physique
+La gestion des concours et compétitions inter-établissements
+3.6 Limites au niveau communication
+La visioconférence intégrée
+Les forums ouverts entre parents
+L'envoi postal de courriers physiques
+La traduction automatique multilingue avancée (en V1)
+La gestion du courrier entrant
+Les documents avec signature électronique juridiquement certifiée (en V1)
+3.7 Limites au niveau site vitrine
+Un site e-commerce
+Un blog complexe avec commentaires, communauté, forum
+Un éditeur de code libre
+Des intégrations tierces complexes (Salesforce, HubSpot)
+Des campagnes marketing avancées
+3.8 Limites au niveau mobile
+Les fonctionnalités administratives lourdes
+La génération de gros documents
+Les widgets d'écran d'accueil (en V1)
+L'intégration avec les assistants vocaux
+Une version smartwatch
+Des fonctionnalités de type réseau social
+3.9 Limites au niveau modèle économique
+La facturation directe aux écoles en abonnement fixe
+La facturation aux parents pour l'utilisation de l'application
+L'affichage de publicités aux utilisateurs
+La revente de données personnelles
+L'imposition de contrats d'exclusivité aux écoles
+3.10 Limites au niveau intelligence artificielle (V1)
+Analyse prédictive du passage en classe supérieure
+Détection automatique du décrochage
+Analyse comportementale
+Génération automatique d'appréciations
+Assistant conversationnel
+Reconnaissance vocale
+Recommandations pédagogiques personnalisées
+3.11 Principe général de scope
+Face à une demande non couverte, la plateforme suit une règle simple :
+Fonctionnalité structurante et alignée : ajoutée à la roadmap V2 ou V3
+Fonctionnalité utile mais accessoire : notée pour un module premium optionnel
+Fonctionnalité hors périmètre : redirection vers des outils tiers spécialisés
+
+
+Partie 4 — Fonctionnalités futures
+Cette partie décrit les fonctionnalités prévues au-delà de la V1, regroupées en trois horizons : V2 (court terme), V3 (moyen terme), Vision (long terme).
+4.1 V2 — Court terme (6 à 12 mois après la V1)
+4.1.1 Amélioration de la vie académique
+Dépôt de devoirs en ligne avec correction annotée
+Bibliothèque de ressources pédagogiques par enseignant
+Signature électronique juridiquement valable
+Rapports pédagogiques avancés (analyses comparatives, évolution des moyennes)
+4.1.2 Amélioration de la communication
+Traduction assistée des communications entre langues
+Messagerie vocale et messagerie de groupe
+Widgets sur l'écran d'accueil mobile (Android et iOS)
+Intégration WhatsApp Business
+Envoi programmé de campagnes
+4.1.3 Amélioration du site vitrine
+Bibliothèque de modèles élargie (15-20 modèles)
+Assistance à la traduction du site
+Statistiques avancées (entonnoirs de conversion)
+Optimisation SEO avancée (suggestions de contenu)
+4.1.4 Amélioration du calendrier scolaire
+Configuration structurée des vacances scolaires
+Configuration des horaires de journée et récréations
+Configuration du nombre de jours de classe par semaine
+Calendrier complet exploité dans l'emploi du temps et la présence
+4.1.5 Renforcement du modèle économique
+Modules premium optionnels pour les écoles
+Achat de nom de domaine directement dans la plateforme
+Impression physique de documents officiels en partenariat
+4.2 V3 — Moyen terme (12 à 24 mois après la V1)
+4.2.1 Intelligence artificielle et analyse prédictive
+C'est la grande avancée de la V3. En s'appuyant sur les données historiques collectées, la plateforme intègre progressivement une couche d'intelligence artificielle.
+Au niveau élève
+Analyse automatique des points forts et points faibles
+Détection des tendances (matières en progression, en régression)
+Prédiction de passage en classe supérieure
+Détection précoce du décrochage
+Recommandations personnalisées de révision
+Suggestion de matières à surveiller
+Au niveau classe
+Points forts et points faibles collectifs
+Comparaison à d'autres classes
+Prédiction du taux de passage
+Détection d'anomalies pédagogiques
+Au niveau établissement
+Prédiction des inscriptions et réinscriptions
+Prévision des flux financiers
+Détection des familles à risque d'arriérés
+Analyse discrète des performances pédagogiques (aide à la décision RH)
+Aide à la rédaction
+Suggestion d'appréciations personnalisées sur les bulletins
+Suggestion de courriers types
+Traduction automatique dans la langue préférée du parent
+4.2.2 E-learning et cours en ligne
+Plateforme de cours en ligne intégrée
+Quiz interactifs et auto-corrigés
+Suivi de progression pédagogique numérique
+Ressources multimédias
+Classes virtuelles pour les périodes de fermeture ou de soutien
+4.2.3 Fonctionnalités avancées mobiles
+Reconnaissance vocale pour la saisie des notes
+QR codes pour la présence
+Notifications intelligentes
+Mode hors ligne étendu
+4.2.4 Ouverture géographique et multi-pays
+Cameroun avec ses spécificités
+Sénégal, Côte d'Ivoire, Burkina Faso, Niger
+Adaptation aux systèmes éducatifs locaux
+Multi-devises avec conversion automatique
+4.2.5 Extensions écosystème
+API publique pour applications tierces
+Marketplace de plugins
+Intégrations avec des services externes
+Partenariats institutionnels
+4.3 Vision — Long terme (au-delà de 24 mois)
+4.3.1 Universités et enseignement supérieur
+Gestion des unités de valeur (UV), crédits ECTS
+Gestion des filières et parcours
+Emploi du temps universitaire complexe
+Gestion des mémoires et thèses
+Gestion des enseignants-chercheurs
+4.3.2 Écosystème étudiant
+Réseau d'anciens consolidé avec fonctionnalités communautaires
+Orientation post-études (filières, universités, métiers)
+Bourses et aides financières
+Stages et alternance
+4.3.3 Intelligence artificielle avancée
+Coach virtuel pour l'élève
+Assistant conversationnel pour les parents
+Analyse démographique et sociale
+Détection précoce de problèmes de santé
+Optimisation automatique des emplois du temps
+4.3.4 Impact social
+Programme d'accessibilité (malvoyants, malentendants, mobilité réduite)
+Programme d'inclusion (élèves en situation de handicap)
+Programme de solidarité (gratuité pour écoles défavorisées)
+Contribution à la mesure de la qualité éducative en Afrique
+4.3.5 Écosystème financier éducatif
+Micro-crédits éducatifs
+Épargne éducation
+Assurance scolaire intégrée
+Aide à la trésorerie des écoles
+4.3.6 Positionnement continental
+À long terme, la vision est de faire de la plateforme l'infrastructure numérique éducative de référence en Afrique francophone, capable de servir des dizaines de milliers d'établissements, toucher des millions d'élèves et de familles, générer des données précieuses pour la recherche et les politiques publiques, contribuer à l'essor du numérique éducatif africain.
+4.4 Principe d'évolution
+La roadmap n'est pas figée. Elle évolue en fonction des retours du terrain (écoles, parents, enseignants, partenaires), des opportunités technologiques, du contexte réglementaire, des priorités commerciales.
+Une feuille de route publique est maintenue et communiquée aux écoles clientes, avec les fonctionnalités en cours de développement et celles à venir. Les écoles peuvent voter pour prioriser certaines évolutions.
+
+
+Fin du document
+Ce cahier des charges est un document vivant. Il représente la vision produit au moment de sa rédaction et pourra être ajusté au fil des retours du terrain et des évolutions du marché.
+
+Document rédigé en juillet 2026. Version 1.0.
+
