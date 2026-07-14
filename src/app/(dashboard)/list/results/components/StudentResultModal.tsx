@@ -1,29 +1,15 @@
-import { Prisma } from "@/app/generated/prisma";
 import dynamic from "next/dynamic";
 import { ResultForm } from "./ResultForm";
 import { useState } from "react";
 import type { ReportCardData } from "@/lib/reportCard";
+import type { ResultRow } from "./types";
 
 const BulletinButton = dynamic(() => import("@/components/BulletinButton"), {
   ssr: false,
 });
 
-type ResultWithDetails = Prisma.ResultGetPayload<{
-  include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        surname: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}>;
+// W03 — type partagé (classe résolue via Enrollment côté serveur)
+type ResultWithDetails = ResultRow;
 
 interface StudentResultModalProps {
   isOpen: boolean;

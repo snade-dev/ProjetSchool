@@ -88,7 +88,8 @@ export async function getTeacherClassesOverview(
             classId,
             className: meta.name,
             mySubjects,
-            effectif: await prisma.student.count({ where: { classId } }),
+            // W03 — effectif = inscriptions (Enrollment) de la classe
+            effectif: await prisma.enrollment.count({ where: { classId } }),
             moyenneClasse: null,
             tauxReussite: null,
             tauxPresence: null,

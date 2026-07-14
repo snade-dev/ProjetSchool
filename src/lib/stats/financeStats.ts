@@ -197,7 +197,16 @@ export async function getFinanceStats(
       select: {
         total: true,
         payments: { select: { amount: true } },
-        student: { select: { class: { select: { id: true, name: true } } } },
+        // W03 — classe de l'élève = son inscription sur l'année de la facture
+        student: {
+          select: {
+            enrollments: {
+              where: { schoolYearId },
+              select: { class: { select: { id: true, name: true } } },
+              take: 1,
+            },
+          },
+        },
       },
     }),
   ]);
@@ -276,7 +285,9 @@ export async function getFinanceStats(
     const paid = inv.payments.reduce((s, p) => s + p.amount, 0);
     const solde = Math.max(0, inv.total - paid);
     totalOutstanding += solde;
-    const cls = inv.student.class;
+    // W03 — élève sans inscription sur l'année : compté dans le total, pas par classe
+    const cls = inv.student.enrollments[0]?.class;
+    if (!cls) continue;
     const cur = classAgg.get(cls.id) ?? {
       className: cls.name,
       amount: 0,

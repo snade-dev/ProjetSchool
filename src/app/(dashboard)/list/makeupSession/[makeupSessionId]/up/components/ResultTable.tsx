@@ -3,40 +3,13 @@
 import Table from "@/components/Table";
 import { useState } from "react";
 import StudentResultModal from "./StudentResultModal";
-import { Prisma } from "@/app/generated/prisma";
 import { getResults } from "./actions";
+import type { MakeupExamRow, MakeupExamSessionRow } from "./types";
 
-type ResultWithDetails = Prisma.MakeupExamGetPayload<{
-  include: {
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}>;
+// W03 — types partagés (classe résolue via Enrollment côté serveur)
+type ResultWithDetails = MakeupExamRow;
 
-type ResultWithDetails2 = Prisma.MakeupExamGetPayload<{
-  include: {
-    student: {
-      select: {
-        id: true;
-        name: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-    session: {
-      select: {
-        semester: true;
-      };
-    };
-  };
-}>;
+type ResultWithDetails2 = MakeupExamSessionRow;
 
 interface ResultTableProps {
   data: ResultWithDetails2[];

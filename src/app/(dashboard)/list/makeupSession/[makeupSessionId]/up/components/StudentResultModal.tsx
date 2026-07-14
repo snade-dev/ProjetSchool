@@ -1,25 +1,14 @@
-import { Prisma } from "@/app/generated/prisma";
 import dynamic from "next/dynamic";
 import { ResultForm } from "./ResultForm";
 import { useState } from "react";
+import type { MakeupExamRow } from "./types";
 
 const BulletinButton = dynamic(() => import("@/components/BulletinButton"), {
   ssr: false,
 });
 
-type ResultWithDetails = Prisma.MakeupExamGetPayload<{
-  include: {
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}>;
+// W03 — type partagé (classe résolue via Enrollment côté serveur)
+type ResultWithDetails = MakeupExamRow;
 
 interface StudentResultModalProps {
   isOpen: boolean;

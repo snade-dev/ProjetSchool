@@ -3,44 +3,14 @@
 import Table from "@/components/Table";
 import { useState } from "react";
 import StudentResultModal from "./StudentResultModal";
-import { Prisma } from "@/app/generated/prisma";
 import { getResults } from "./actions";
 import type { ReportCardData } from "@/lib/reportCard";
+import type { ResultRow } from "./types";
 
-type ResultWithDetails2 = Prisma.ResultGetPayload<{
-  include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        username: true;
-        surname: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}> & { moyenne: number };
+// W03 — types partagés (classe résolue via Enrollment côté serveur)
+type ResultWithDetails2 = ResultRow & { moyenne: number };
 
-type ResultWithDetails = Prisma.ResultGetPayload<{
-  include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        username: true;
-        surname: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}>;
+type ResultWithDetails = ResultRow;
 
 interface ResultTableProps {
   data: ResultWithDetails2[];

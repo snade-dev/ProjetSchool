@@ -12,7 +12,11 @@ import Link from "next/link";
 import { headers } from "next/headers";
 
 import { sessionSchoolId } from "@/lib/authGuard";
-type StudentList = Student & { class: Class; parent: Parent };
+// W03 — la classe vient de l'inscription de l'année active
+type StudentList = Student & {
+  enrollments: { class: Class }[];
+  parent: Parent;
+};
 
 const StudentListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -84,11 +88,15 @@ const StudentListPage = async (props: {
         />
         <div className=" flex flex-col">
           <h3 className=" font-semibold">{item.name}</h3>
-          <p className=" text-xs text-gray-500">{item.class.name}</p>
+          <p className=" text-xs text-gray-500">
+            {item.enrollments[0]?.class.name ?? "Non inscrit"}
+          </p>
         </div>
       </td>
       <td className=" hidden md:table-cell">{item.username}</td>
-      <td className=" hidden md:table-cell">{item.class.name[0]}</td>
+      <td className=" hidden md:table-cell">
+        {item.enrollments[0]?.class.name[0] ?? "-"}
+      </td>
       <td className=" hidden md:table-cell">{item.parent.name}</td>
       <td className=" hidden lg:table-cell">{item.phone}</td>
       <td className=" hidden lg:table-cell">{item.address}</td>
@@ -119,10 +127,15 @@ const StudentListPage = async (props: {
       if (value !== undefined) {
         switch (key) {
           case "teacherId":
-            query.class = {
-              lessons: {
-                some: {
-                  teacherId: value,
+            // W03 — l'appartenance à une classe passe par l'Enrollment
+            query.enrollments = {
+              some: {
+                class: {
+                  lessons: {
+                    some: {
+                      teacherId: value,
+                    },
+                  },
                 },
               },
             };
@@ -141,11 +154,16 @@ const StudentListPage = async (props: {
   }
 
   // Requete vers la base de donnéés
+  // W03 — la classe affichée = inscription de l'année scolaire ACTIVE de l'école
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
       where: { AND: [{ schoolId }, query] },
       include: {
-        class: true,
+        enrollments: {
+          where: { schoolYear: { isActive: true } },
+          include: { class: true },
+          take: 1,
+        },
         parent: true,
       },
       take: ITEM_PER_PAGE,

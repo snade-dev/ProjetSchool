@@ -105,12 +105,14 @@ const QuizListPage = async (props: {
   };
 
   // Si l'utilisateur est étudiant, filtrer uniquement par sa classe
+  // W03 — classe = inscription de l'année active (Enrollment)
   if (role === "student") {
     const studentClass = await prisma.class.findFirst({
       where: {
-        students: {
+        enrollments: {
           some: {
-            id: currentUserId!,
+            studentId: currentUserId!,
+            schoolYear: { isActive: true },
           },
         },
       },

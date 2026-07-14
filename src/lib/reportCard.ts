@@ -118,16 +118,33 @@ export async function buildClassReportCards(
   semesterId: number
 ): Promise<Map<string, ReportCardData>> {
   const [klass, semester, school, activeYear, results] = await Promise.all([
-    prisma.class.findUnique({
-      where: { id: classId },
-      select: {
-        name: true,
-        students: {
-          select: { id: true, name: true, surname: true, username: true },
-          orderBy: [{ name: "asc" }, { surname: "asc" }],
+    // W03 — l'effectif de la classe = ses inscriptions (Enrollment) ; la classe
+    // étant rattachée à UNE année (W02), pas besoin de filtrer par année ici.
+    prisma.class
+      .findUnique({
+        where: { id: classId },
+        select: {
+          name: true,
+          enrollments: {
+            select: {
+              student: {
+                select: { id: true, name: true, surname: true, username: true },
+              },
+            },
+            orderBy: [
+              { student: { name: "asc" } },
+              { student: { surname: "asc" } },
+            ],
+          },
         },
-      },
-    }),
+      })
+      .then(
+        (c) =>
+          c && {
+            name: c.name,
+            students: c.enrollments.map((e) => e.student),
+          }
+      ),
     prisma.semester.findUnique({
       where: { id: semesterId },
       select: { id: true, name: true, label: true, system: true },
@@ -147,8 +164,9 @@ export async function buildClassReportCards(
         })
       ),
     // TOUS les Results du couple (classe, semestre) en UNE requête (parade N+1).
+    // W03 — l'appartenance à la classe passe par l'Enrollment
     prisma.result.findMany({
-      where: { semesterId, student: { classId } },
+      where: { semesterId, student: { enrollments: { some: { classId } } } },
       include: {
         subject: { select: { id: true, name: true } },
         makeupExam: { select: { score: true } },
@@ -306,20 +324,33 @@ export async function buildClassReportCards(
 }
 
 /**
- * Bulletin d'UN élève pour un semestre. Charge l'élève + sa classe puis délègue
+ * Bulletin d'UN élève pour un semestre. W03 — la classe de l'élève est celle
+ * de son inscription (Enrollment) sur l'ANNÉE DE LA PÉRIODE (Semester.schoolYearId),
+ * ce qui garde les bulletins corrects pour les années passées. Délègue ensuite
  * le calcul de toute la classe (nécessaire pour rangs et moyennes de classe).
- * Retourne null si l'élève n'existe pas.
+ * Retourne null si l'élève n'existe pas ou n'est pas inscrit sur cette année.
  */
 export async function buildReportCard(
   studentId: string,
   semesterId: number
 ): Promise<ReportCardData | null> {
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
+  const semester = await prisma.semester.findUnique({
+    where: { id: semesterId },
+    select: { schoolYearId: true },
+  });
+  if (!semester) return null;
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: {
+      studentId_schoolYearId: {
+        studentId,
+        schoolYearId: semester.schoolYearId,
+      },
+    },
     select: { classId: true },
   });
-  if (!student) return null;
+  if (!enrollment) return null;
 
-  const cards = await buildClassReportCards(student.classId, semesterId);
+  const cards = await buildClassReportCards(enrollment.classId, semesterId);
   return cards.get(studentId) ?? null;
 }

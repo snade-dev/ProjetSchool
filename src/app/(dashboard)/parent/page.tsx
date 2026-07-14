@@ -213,21 +213,32 @@ const ParentPage = async () => {
     return notFound();
   }
 
-  const children = await prisma.student.findMany({
+  // W03 — la classe de chaque enfant = son inscription sur l'année active
+  const childrenRows = await prisma.student.findMany({
     where: { parentId: userId },
     select: {
       id: true,
       name: true,
       surname: true,
       img: true,
-      classId: true,
-      class: { select: { name: true } },
+      enrollments: {
+        where: { schoolYear: { isActive: true } },
+        select: { class: { select: { id: true, name: true } } },
+        take: 1,
+      },
     },
     orderBy: { name: "asc" },
   });
+  const children = childrenRows.map((c) => ({
+    id: c.id,
+    name: c.name,
+    surname: c.surname,
+    img: c.img,
+    class: c.enrollments[0]?.class ?? null,
+  }));
 
   const overviews = await Promise.all(
-    children.map((c) => getChildOverview(c.id, c.classId))
+    children.map((c) => getChildOverview(c.id, c.class?.id ?? -1))
   );
 
   const links = (childId: string) => [
@@ -283,7 +294,7 @@ const ParentPage = async () => {
                     {child.name} {child.surname}
                   </h2>
                   <p className="text-sm text-gray-400">
-                    Classe : {child.class.name}
+                    Classe : {child.class?.name ?? "Non inscrit"}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-gray-600">
@@ -304,14 +315,16 @@ const ParentPage = async () => {
               <ChildStats overview={overviews[i]} />
 
               {/* Emploi du temps de la classe de l'enfant */}
-              <div className="mt-4 h-[560px]">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">
-                  Emploi du temps — {child.class.name}
-                </h3>
-                <div className="h-[520px]">
-                  <BigCalandarContainer type="classId" id={child.classId} />
+              {child.class && (
+                <div className="mt-4 h-[560px]">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                    Emploi du temps — {child.class.name}
+                  </h3>
+                  <div className="h-[520px]">
+                    <BigCalandarContainer type="classId" id={child.class.id} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))
         )}

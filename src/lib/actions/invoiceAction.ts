@@ -332,8 +332,10 @@ export async function getGenerationPreview(
   const activeYear = await getActiveSchoolYear();
 
   const [facturables, dejaGeneres] = await Promise.all([
-    prisma.student.count({
+    // W03 — facturables = inscriptions de l'année active dont la classe a des frais mensuels
+    prisma.enrollment.count({
       where: {
+        schoolYearId: activeYear.id,
         class: {
           feeStructures: {
             some: { period: "MONTHLY", schoolYearId: activeYear.id },
@@ -383,8 +385,10 @@ export const generateMonthlyInvoices = async (
       ignored: number;
     }> => {
       // (1) Élèves facturables — UNE requête, frais MONTHLY inclus (pas de N+1).
-      const students = await prisma.student.findMany({
+      // W03 — via les inscriptions de l'année active (Enrollment)
+      const billableEnrollments = await prisma.enrollment.findMany({
         where: {
+          schoolYearId: activeYear.id,
           class: {
             feeStructures: {
               some: { period: "MONTHLY", schoolYearId: activeYear.id },
@@ -401,6 +405,10 @@ export const generateMonthlyInvoices = async (
           },
         },
       });
+      const students = billableEnrollments.map((e) => ({
+        id: e.studentId,
+        class: e.class,
+      }));
 
       if (students.length === 0) {
         return { created: 0, ignored: 0 };
@@ -432,7 +440,7 @@ export const generateMonthlyInvoices = async (
       });
 
       const payloads = toCreate.map((s, i) => {
-        const fees = s.class!.feeStructures;
+        const fees = s.class.feeStructures;
         const lines = fees.map((f) => ({
           label: f.label,
           quantity: 1,

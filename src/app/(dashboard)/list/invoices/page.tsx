@@ -26,8 +26,12 @@ import { headers } from "next/headers";
 import { Eye } from "lucide-react";
 
 import { sessionSchoolId } from "@/lib/authGuard";
+// W03 — la classe de l'élève vient de son inscription sur l'année de la facture
 type InvoiceList = Invoice & {
-  student: Student & { class: Class; parent: Parent };
+  student: Student & {
+    enrollments: { schoolYearId: number; class: Pick<Class, "name"> }[];
+    parent: Parent;
+  };
   payments: Payment[];
 };
 
@@ -69,7 +73,18 @@ const InvoicesListPage = async (props: {
     prisma.invoice.findMany({
       where: { AND: [{ student: { schoolId } }, query] },
       include: {
-        student: { include: { class: true, parent: true } },
+        student: {
+          include: {
+            // W03 — inscriptions (année → classe) pour retrouver la classe de la facture
+            enrollments: {
+              select: {
+                schoolYearId: true,
+                class: { select: { name: true } },
+              },
+            },
+            parent: true,
+          },
+        },
         payments: true,
       },
       orderBy: { createdAt: "desc" },
@@ -193,7 +208,9 @@ const InvoicesListPage = async (props: {
               {item.student.name} {item.student.surname}
             </span>
             <span className="text-xs text-gray-400">
-              {item.student.class?.name ?? "-"}
+              {item.student.enrollments.find(
+                (e) => e.schoolYearId === item.schoolYearId
+              )?.class.name ?? "-"}
             </span>
           </div>
         </td>
