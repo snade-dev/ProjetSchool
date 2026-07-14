@@ -213,53 +213,73 @@ const ParentPage = async () => {
     return notFound();
   }
 
+  // W05 — les enfants du parent viennent de StudentGuardian (tuteurs multiples),
+  // avec les droits différenciés du lien (§2.2.3).
   // W03 — la classe de chaque enfant = son inscription sur l'année active
-  const childrenRows = await prisma.student.findMany({
+  const guardianRows = await prisma.studentGuardian.findMany({
     where: { parentId: userId },
     select: {
-      id: true,
-      name: true,
-      surname: true,
-      img: true,
-      enrollments: {
-        where: { schoolYear: { isActive: true } },
-        select: { class: { select: { id: true, name: true } } },
-        take: 1,
+      canViewGrades: true,
+      canPay: true,
+      student: {
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          img: true,
+          enrollments: {
+            where: { schoolYear: { isActive: true } },
+            select: { class: { select: { id: true, name: true } } },
+            take: 1,
+          },
+        },
       },
     },
-    orderBy: { name: "asc" },
+    orderBy: { student: { name: "asc" } },
   });
-  const children = childrenRows.map((c) => ({
-    id: c.id,
-    name: c.name,
-    surname: c.surname,
-    img: c.img,
-    class: c.enrollments[0]?.class ?? null,
+  const children = guardianRows.map((g) => ({
+    id: g.student.id,
+    name: g.student.name,
+    surname: g.student.surname,
+    img: g.student.img,
+    class: g.student.enrollments[0]?.class ?? null,
+    canViewGrades: g.canViewGrades,
+    canPay: g.canPay,
   }));
 
+  // W05 — pas de calcul de stats pour un enfant dont les notes sont masquées
   const overviews = await Promise.all(
-    children.map((c) => getChildOverview(c.id, c.class?.id ?? -1))
+    children.map((c) =>
+      c.canViewGrades ? getChildOverview(c.id, c.class?.id ?? -1) : null
+    )
   );
 
-  const links = (childId: string) => [
+  const links = (child: (typeof children)[number]) => [
     {
-      href: `/list/students/${childId}`,
-      label: "Bulletin & fiche",
+      href: `/list/students/${child.id}`,
+      label: child.canViewGrades ? "Bulletin & fiche" : "Fiche élève",
       icon: Award,
       bg: "bg-lamaSkyLight",
     },
-    {
-      href: `/list/results?studentId=${childId}`,
-      label: "Résultats",
-      icon: GraduationCap,
-      bg: "bg-lamaPurpleLight",
-    },
+    // W05 — canViewGrades=false masque l'accès aux résultats
+    ...(child.canViewGrades
+      ? [
+          {
+            href: `/list/results?studentId=${child.id}`,
+            label: "Résultats",
+            icon: GraduationCap,
+            bg: "bg-lamaPurpleLight",
+          },
+        ]
+      : []),
     {
       href: `/list/attendances`,
       label: "Présences",
       icon: CheckSquare,
       bg: "bg-lamaYellowLight",
     },
+    // W05 — canPay=false : le solde reste consultable, seuls les écrans de
+    // paiement sont masqués (les encaissements sont côté admin de toute façon)
     {
       href: `/list/invoices`,
       label: "Factures",
@@ -298,7 +318,7 @@ const ParentPage = async () => {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                  {links(child.id).map(({ href, label, icon: Icon, bg }) => (
+                  {links(child).map(({ href, label, icon: Icon, bg }) => (
                     <Link
                       key={label}
                       href={href}
@@ -311,8 +331,16 @@ const ParentPage = async () => {
                 </div>
               </div>
 
-              {/* Notes, progression, comparaison, conseils */}
-              <ChildStats overview={overviews[i]} />
+              {/* Notes, progression, comparaison, conseils — W05 : masqués si
+                  le tuteur n'a pas le droit de voir les notes (canViewGrades) */}
+              {overviews[i] ? (
+                <ChildStats overview={overviews[i]!} />
+              ) : (
+                <p className="mt-4 rounded-xl bg-gray-50 px-3 py-2.5 text-[13px] text-gray-400">
+                  La consultation des notes et bulletins n&apos;est pas activée
+                  pour votre compte. Contactez l&apos;administration.
+                </p>
+              )}
 
               {/* Emploi du temps de la classe de l'enfant */}
               {child.class && (

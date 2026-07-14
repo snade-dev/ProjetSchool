@@ -109,13 +109,14 @@ export default async function ResultsSection({
   }
 
   // Si le rôle est "parent", ne voir que les résultats de ses enfants.
-  // On récupère les identifiants des enfants liés à ce parent (champ "parentId" sur Student)
+  // W05 — enfants via StudentGuardian, et UNIQUEMENT ceux pour lesquels le
+  // tuteur a le droit de consulter les notes (canViewGrades, §2.2.3).
   if (role === "parent") {
-    const children = await prisma.student.findMany({
-      where: { parentId: userId },
-      select: { id: true },
+    const children = await prisma.studentGuardian.findMany({
+      where: { parentId: userId, canViewGrades: true },
+      select: { studentId: true },
     });
-    const childrenIds = children.map((child) => child.id);
+    const childrenIds = children.map((child) => child.studentId);
     if (query.student) {
       query.student = {
         AND: [query.student, { id: { in: childrenIds } }],

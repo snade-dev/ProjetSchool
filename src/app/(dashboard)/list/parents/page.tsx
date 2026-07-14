@@ -5,11 +5,17 @@ import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
-import { Parent, Prisma, Student } from "@/app/generated/prisma";
+import { Parent, Prisma } from "@/app/generated/prisma";
 import { headers } from "next/headers";
 
 import { sessionSchoolId } from "@/lib/authGuard";
-type ParentList = Parent & { students: Student[] };
+// W05 — les enfants d'un parent passent par StudentGuardian
+type ParentList = Parent & {
+  guardians: {
+    relationship: string;
+    student: { name: string; surname: string };
+  }[];
+};
 
 const ParentListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -38,7 +44,7 @@ const ParentListPage = async (props: {
       </td>
       <td className=" hidden lg:table-cell">{item.name}</td>
       <td className=" hidden md:table-cell">
-        {item.students.map((student) => student.name).join(",")}
+        {item.guardians.map((g) => g.student.name).join(", ") || "-"}
       </td>
       <td className=" hidden lg:table-cell">{item.phone}</td>
       <td className=" hidden lg:table-cell">{item.address}</td>
@@ -114,7 +120,13 @@ const ParentListPage = async (props: {
     prisma.parent.findMany({
       where: { AND: [{ schoolId }, query] },
       include: {
-        students: true,
+        // W05 — enfants via la table de liaison StudentGuardian
+        guardians: {
+          select: {
+            relationship: true,
+            student: { select: { name: true, surname: true } },
+          },
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

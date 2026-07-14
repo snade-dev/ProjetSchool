@@ -30,8 +30,7 @@ model Student {
   bloodType   String
   sex         UserSex
   createdAt   DateTime     @default(now())
-  parentId    String
-  parent      Parent       @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  // W05 — Student.parentId supprimé : les tuteurs viennent de StudentGuardian
   // W03 — Student.classId supprimé : la classe vient de l'Enrollment de l'année active
   attendances Attendance[]
   results     Result[]
@@ -56,6 +55,9 @@ model Student {
 
   // W03 — inscriptions par année scolaire (§2.1.3) : remplacent Student.classId
   enrollments Enrollment[]
+
+  // W05 — tuteurs multiples (§2.2.3) : remplacent Student.parentId
+  guardians StudentGuardian[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -128,11 +130,33 @@ model Parent {
   phone     String?   @unique
   address   String
   createdAt DateTime  @default(now())
-  students  Student[]
+  // W05 — les élèves du parent passent par StudentGuardian (N-N + droits)
+  guardians StudentGuardian[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// W05 — tuteur d'un élève (§2.2.3) : remplace Student.parentId (1-N → N-N).
+// Chaque lien porte le type de relation et des droits différenciés :
+// canPay (paiements), canViewGrades (notes/bulletins), canPickup (récupération,
+// informatif — affiché sur la fiche élève côté admin).
+model StudentGuardian {
+  id            Int     @id @default(autoincrement())
+  studentId     String
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parentId      String
+  parent        Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  relationship  String // père, mère, tuteur légal, tuteur de fait
+  isLegal       Boolean @default(true)
+  canPay        Boolean @default(true)
+  canViewGrades Boolean @default(true)
+  canPickup     Boolean @default(false)
+
+  // Un même parent n'est tuteur d'un élève qu'une fois
+  @@unique([studentId, parentId])
+  @@index([parentId])
 }
 
 // W02 — niveau scolaire (§2.1.4) : créé librement par l'école (« CP », « 6ème »…).

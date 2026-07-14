@@ -103,10 +103,28 @@ export const studentSchema = z.object({
   birthday: z.coerce.date({ message: "La date de naissance est requise !" }),
   sex: z.enum(["MALE", "FEMALE"], { message: "Le sexe est requis !" }),
   classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
-  parentUsername: z.string().min(1, { message: "L'identifiant du parent est requis !" }),
+  // W05 — tuteur principal, requis à la CRÉATION seulement (crée la ligne
+  // StudentGuardian) ; à la modification, les tuteurs se gèrent sur la fiche élève.
+  parentUsername: z.string().optional(),
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;
+
+// W05 — lien tuteur↔élève avec droits différenciés (§2.2.3)
+export const guardianSchema = z.object({
+  id: z.coerce.number().optional(),
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  parentId: z.string().min(1, { message: "Le tuteur est requis !" }),
+  relationship: z
+    .string()
+    .min(1, { message: "Le lien de parenté est requis !" }),
+  isLegal: z.coerce.boolean(),
+  canPay: z.coerce.boolean(),
+  canViewGrades: z.coerce.boolean(),
+  canPickup: z.coerce.boolean(),
+});
+
+export type GuardianSchema = z.infer<typeof guardianSchema>;
 
 export const examSchema = z.object({
   id: z.coerce.number().optional(),

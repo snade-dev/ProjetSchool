@@ -5,7 +5,7 @@ import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
-import { Class, Parent, Prisma, Student } from "@/app/generated/prisma";
+import { Class, Prisma, Student } from "@/app/generated/prisma";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,9 +13,10 @@ import { headers } from "next/headers";
 
 import { sessionSchoolId } from "@/lib/authGuard";
 // W03 — la classe vient de l'inscription de l'année active
+// W05 — les tuteurs viennent de StudentGuardian
 type StudentList = Student & {
   enrollments: { class: Class }[];
-  parent: Parent;
+  guardians: { parent: { name: string; surname: string } }[];
 };
 
 const StudentListPage = async (props: {
@@ -49,8 +50,8 @@ const StudentListPage = async (props: {
       className: "hidden md:table-cell",
     },
     {
-      header: "Parent",
-      accessor: "parent",
+      header: "Tuteurs",
+      accessor: "guardians",
       className: "hidden md:table-cell",
     },
     {
@@ -97,7 +98,9 @@ const StudentListPage = async (props: {
       <td className=" hidden md:table-cell">
         {item.enrollments[0]?.class.name[0] ?? "-"}
       </td>
-      <td className=" hidden md:table-cell">{item.parent.name}</td>
+      <td className=" hidden md:table-cell">
+        {item.guardians.map((g) => g.parent.name).join(", ") || "-"}
+      </td>
       <td className=" hidden lg:table-cell">{item.phone}</td>
       <td className=" hidden lg:table-cell">{item.address}</td>
       <td>
@@ -164,7 +167,10 @@ const StudentListPage = async (props: {
           include: { class: true },
           take: 1,
         },
-        parent: true,
+        // W05 — tuteurs de l'élève (colonne « Tuteurs »)
+        guardians: {
+          select: { parent: { select: { name: true, surname: true } } },
+        },
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),

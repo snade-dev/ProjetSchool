@@ -168,7 +168,8 @@ const AttendanceListPage = async (props: {
   if (role === "student") {
     query.studentId = userId;
   } else if (role === "parent") {
-    query.student = { parentId: userId };
+    // W05 — les enfants du parent via StudentGuardian
+    query.student = { guardians: { some: { parentId: userId } } };
   } else if (role === "teacher") {
     query.class = { lessons: { some: { teacherId: userId } } };
   }
