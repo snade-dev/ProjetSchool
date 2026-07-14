@@ -36,7 +36,7 @@ export default async function DemandeDetailsPage(props: {
   //   ? !!(await prisma.teacher.findUnique({ where: { userId } }))
   //   : false;
 
-  const isTeacher = role === "admin";
+  const isTeacher = (role === "admin" || role === "director");
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 space-y-8">

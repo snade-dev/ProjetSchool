@@ -55,12 +55,18 @@ type MenuEntry =
   | { kind: "link"; link: MenuLink }
   | { kind: "group"; group: MenuGroup };
 
-const ALL = ["admin", "teacher", "student", "parent"];
+// W07 — « ALL » couvre les rôles historiques + la direction (qui voit tout
+// ce que voit l'admin hors paramètres). Comptable et surveillant ont des
+// périmètres restreints, listés explicitement entrée par entrée.
+const ALL = ["admin", "director", "teacher", "student", "parent"];
 
 /** Accueil selon le rôle : le tableau de bord de chacun, pas la landing. */
 const ROLE_HOME: Record<string, string> = {
   superadmin: "/platform",
   admin: "/admin",
+  director: "/director",
+  accountant: "/accountant",
+  supervisor: "/supervisor",
   teacher: "/teacher",
   student: "/student",
   parent: "/parent",
@@ -81,17 +87,17 @@ const MENU: MenuEntry[] = [
     group: {
       icon: School,
       label: "École",
-      visible: ["admin", "teacher"],
+      visible: ["admin", "director", "teacher", "supervisor"],
       items: [
-        { icon: Users, label: "Enseignants", href: "/list/teachers", visible: ["admin", "teacher"] },
-        { icon: GraduationCap, label: "Étudiants", href: "/list/students", visible: ["admin", "teacher"] },
-        { icon: UsersRound, label: "Parents", href: "/list/parents", visible: ["admin", "teacher"] },
-        { icon: BookOpen, label: "Matières", href: "/list/subjects", visible: ["admin"] },
-        { icon: Award, label: "Niveaux", href: "/list/levels", visible: ["admin"] },
-        { icon: ClipboardList, label: "Classes", href: "/list/classes", visible: ["admin", "teacher"] },
-        { icon: CalendarDays, label: "Périodes d'évaluation", href: "/list/semester", visible: ["admin", "teacher"] },
+        { icon: Users, label: "Enseignants", href: "/list/teachers", visible: ["admin", "director", "teacher"] },
+        { icon: GraduationCap, label: "Étudiants", href: "/list/students", visible: ["admin", "director", "teacher", "supervisor"] },
+        { icon: UsersRound, label: "Parents", href: "/list/parents", visible: ["admin", "director", "teacher"] },
+        { icon: BookOpen, label: "Matières", href: "/list/subjects", visible: ["admin", "director"] },
+        { icon: Award, label: "Niveaux", href: "/list/levels", visible: ["admin", "director"] },
+        { icon: ClipboardList, label: "Classes", href: "/list/classes", visible: ["admin", "director", "teacher", "supervisor"] },
+        { icon: CalendarDays, label: "Périodes d'évaluation", href: "/list/semester", visible: ["admin", "director", "teacher"] },
         { icon: ArrowRightLeft, label: "Passage d'année", href: "/settings/rollover", visible: ["admin"] },
-        { icon: NotebookPen, label: "Leçons", href: "/list/lessons", visible: ["admin", "teacher"] },
+        { icon: NotebookPen, label: "Leçons", href: "/list/lessons", visible: ["admin", "director", "teacher"] },
       ],
     },
   },
@@ -102,13 +108,13 @@ const MENU: MenuEntry[] = [
       label: "Notes & Examens",
       visible: ALL,
       items: [
-        { icon: Edit, label: "Saisie des notes", href: "/list/gradeEntry", visible: ["admin", "teacher"] },
+        { icon: Edit, label: "Saisie des notes", href: "/list/gradeEntry", visible: ["admin", "director", "teacher"] },
         // Fusion : examens + résultats/bulletins sur une seule page à onglets
         { icon: FileText, label: "Examens & résultats", href: "/list/exams", visible: ALL },
-        { icon: Repeat, label: "Rattrapage", href: "/list/makeupSession", visible: ["admin", "teacher", "student"] },
-        { icon: MonitorPlay, label: "Examens en ligne", href: "/list/onlineExam", visible: ["admin", "teacher", "student"] },
-        { icon: FileText, label: "Résultats en ligne", href: "/list/resultExam", visible: ["admin", "teacher", "student"] },
-        { icon: FilePlus, label: "Créer un examen", href: "/quiz", visible: ["admin", "teacher"] },
+        { icon: Repeat, label: "Rattrapage", href: "/list/makeupSession", visible: ["admin", "director", "teacher", "student"] },
+        { icon: MonitorPlay, label: "Examens en ligne", href: "/list/onlineExam", visible: ["admin", "director", "teacher", "student"] },
+        { icon: FileText, label: "Résultats en ligne", href: "/list/resultExam", visible: ["admin", "director", "teacher", "student"] },
+        { icon: FilePlus, label: "Créer un examen", href: "/quiz", visible: ["admin", "director", "teacher"] },
       ],
     },
   },
@@ -117,15 +123,15 @@ const MENU: MenuEntry[] = [
     group: {
       icon: CheckSquare,
       label: "Vie scolaire",
-      visible: ALL,
+      visible: [...ALL, "supervisor"],
       items: [
-        { icon: ClipboardCheck, label: "Faire l'appel", href: "/list/attendances/appel", visible: ["admin", "teacher"] },
-        { icon: CheckSquare, label: "Présences", href: "/list/attendances", visible: ALL },
+        { icon: ClipboardCheck, label: "Faire l'appel", href: "/list/attendances/appel", visible: ["admin", "director", "teacher", "supervisor"] },
+        { icon: CheckSquare, label: "Présences", href: "/list/attendances", visible: [...ALL, "supervisor"] },
         { icon: Calendar, label: "Événements", href: "/list/events", visible: ALL },
         { icon: Bell, label: "Annonces", href: "/list/announcements", visible: ALL },
-        { icon: FilePlus, label: "Réclamations", href: "/list/reclamation", visible: ["admin", "teacher", "student"] },
-        { icon: File, label: "Demandes", href: "/list/demande", visible: ["admin", "teacher", "student"] },
-        { icon: Video, label: "Cours en ligne", href: "https://meet.google.com/landing", visible: ["admin", "teacher"], external: true },
+        { icon: FilePlus, label: "Réclamations", href: "/list/reclamation", visible: ["admin", "director", "teacher", "student"] },
+        { icon: File, label: "Demandes", href: "/list/demande", visible: ["admin", "director", "teacher", "student"] },
+        { icon: Video, label: "Cours en ligne", href: "https://meet.google.com/landing", visible: ["admin", "director", "teacher"], external: true },
       ],
     },
   },
@@ -134,12 +140,12 @@ const MENU: MenuEntry[] = [
     group: {
       icon: Wallet,
       label: "Finance",
-      visible: ["admin", "student", "parent"],
+      visible: ["admin", "director", "accountant", "student", "parent"],
       items: [
-        { icon: BadgeDollarSign, label: "Grille des frais", href: "/list/fees", visible: ["admin"] },
-        { icon: FileText, label: "Factures", href: "/list/invoices", visible: ["admin"] },
+        { icon: BadgeDollarSign, label: "Grille des frais", href: "/list/fees", visible: ["admin", "director", "accountant"] },
+        { icon: FileText, label: "Factures", href: "/list/invoices", visible: ["admin", "director", "accountant"] },
         { icon: FileText, label: "Mes factures", href: "/list/invoices", visible: ["student", "parent"] },
-        { icon: Receipt, label: "Dépenses", href: "/list/expenses", visible: ["admin"] },
+        { icon: Receipt, label: "Dépenses", href: "/list/expenses", visible: ["admin", "director", "accountant"] },
       ],
     },
   },
@@ -148,10 +154,10 @@ const MENU: MenuEntry[] = [
     group: {
       icon: Briefcase,
       label: "RH & Paie",
-      visible: ["admin"],
+      visible: ["admin", "director", "accountant"],
       items: [
-        { icon: Users, label: "Employés", href: "/list/employees", visible: ["admin"] },
-        { icon: Wallet, label: "Paie", href: "/list/payroll", visible: ["admin"] },
+        { icon: Users, label: "Employés", href: "/list/employees", visible: ["admin", "director", "accountant"] },
+        { icon: Wallet, label: "Paie", href: "/list/payroll", visible: ["admin", "director", "accountant"] },
       ],
     },
   },
@@ -160,11 +166,11 @@ const MENU: MenuEntry[] = [
     group: {
       icon: BarChart2,
       label: "Statistiques",
-      visible: ["admin", "teacher"],
+      visible: ["admin", "director", "teacher", "accountant"],
       items: [
-        { icon: BarChart2, label: "Stats élèves", href: "/stats/students", visible: ["admin", "teacher"] },
-        { icon: BarChart2, label: "Stats enseignants", href: "/stats/teachers", visible: ["admin"] },
-        { icon: BarChart2, label: "Stats finance", href: "/stats/finance", visible: ["admin"] },
+        { icon: BarChart2, label: "Stats élèves", href: "/stats/students", visible: ["admin", "director", "teacher"] },
+        { icon: BarChart2, label: "Stats enseignants", href: "/stats/teachers", visible: ["admin", "director"] },
+        { icon: BarChart2, label: "Stats finance", href: "/stats/finance", visible: ["admin", "director", "accountant"] },
       ],
     },
   },

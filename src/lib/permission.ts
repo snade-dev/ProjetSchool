@@ -32,6 +32,19 @@ export const superadmin = ac.newRole({
 export const teacher = ac.newRole({
      project: ["create", "update"]
 });
+
+// W07 — rôles prédéfinis élargis (§2.7.4, §2.7.6). Côté better-auth ils ont
+// les mêmes pouvoirs « project » que teacher ; les VRAIS périmètres sont
+// portés par routeAccessMap (proxy) et les gardes requireRole/requireSchool.
+export const director = ac.newRole({
+     project: ["create", "update"]
+});
+export const accountant = ac.newRole({
+     project: ["create", "update"]
+});
+export const supervisor = ac.newRole({
+     project: ["create", "update"]
+});
 export const parent = ac.newRole({
      project: ["create", "update"]
 }); 

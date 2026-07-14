@@ -6,7 +6,16 @@ import prisma from "./prisma";
 import { getSelectableMemberships } from "./membership";
 
 /** Rôles ayant un tableau de bord ; tout autre rôle (dont "user") n'a pas d'accès. */
-const DASHBOARD_ROLES = ["admin", "teacher", "student", "parent", "superadmin"];
+const DASHBOARD_ROLES = [
+  "admin",
+  "director",
+  "teacher",
+  "accountant",
+  "supervisor",
+  "student",
+  "parent",
+  "superadmin",
+];
 
 export async function signUp(formData: FormData) {
   const name = formData.get("name")?.toString().trim() || "";

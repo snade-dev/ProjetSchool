@@ -31,7 +31,7 @@ export const createMakeupSession = async (
     }
   ) => {
     try {
-      const { userId, role } = await requireRole(["admin", "teacher"]);
+      const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
       if (role === "teacher" && data.userId !== userId) {
         return { success: false, error: true, message: "Accès refusé" };
@@ -60,7 +60,7 @@ export const createMakeupSession = async (
     data: MakeupSessionSchema
   ) => {
     try {
-      await requireRole(["admin", "teacher"]);
+      await requireRole(["admin", "director", "teacher"]);
 
       await prisma.makeupSession.update({
         where: {
@@ -89,7 +89,7 @@ export const createMakeupSession = async (
     const id = data.get("id") as string;
 
     try {
-      await requireRole(["admin"]);
+      await requireRole(["admin", "director"]);
       await prisma.makeupSession.delete({
         where: {
           id: id,

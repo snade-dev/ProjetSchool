@@ -12,7 +12,10 @@ import ChangePasswordForm from "./ChangePasswordForm";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrateur",
+  director: "Direction", // W07
   teacher: "Enseignant",
+  accountant: "Comptable", // W07
+  supervisor: "Surveillant général", // W07
   student: "Élève",
   parent: "Parent",
   user: "Compte en attente de rôle",

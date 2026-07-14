@@ -24,7 +24,7 @@ export const createExpense = async (
   data: ExpenseSchema
 ) => {
   try {
-    const { userId } = await requireRole(["admin"]);
+    const { userId } = await requireRole(["admin", "accountant"]);
     // Année scolaire active rattachée automatiquement (critère S09.4).
     const activeYear = await getActiveSchoolYear();
 
@@ -56,7 +56,7 @@ export const updateExpense = async (
   data: ExpenseSchema
 ) => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.expense.update({
       where: { id: data.id },
@@ -86,7 +86,7 @@ export const deleteExpense = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.expense.delete({
       where: { id },
@@ -115,7 +115,7 @@ export const createExpenseCategory = async (
   data: ExpenseCategorySchema
 ): Promise<CategoryState> => {
   try {
-    const { schoolId } = await requireSchool(["admin"]); // V03
+    const { schoolId } = await requireSchool(["admin", "accountant"]); // V03
 
     await prisma.expenseCategory.create({
       data: { name: data.name, schoolId },
@@ -142,7 +142,7 @@ export const updateExpenseCategory = async (
   data: ExpenseCategorySchema
 ): Promise<CategoryState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.expenseCategory.update({
       where: { id: data.id },
@@ -170,7 +170,7 @@ export const deleteExpenseCategory = async (
 ): Promise<CategoryState> => {
   const id = data.get("id") as string;
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.expenseCategory.delete({
       where: { id: parseInt(id) },

@@ -30,7 +30,7 @@ export const createComplain = async (
 
 
     try {
-      const { userId, role } = await requireRole(["admin", "student"]);
+      const { userId, role } = await requireRole(["admin", "director", "student"]);
 
       if (role === "student" && data.studentId !== userId) {
         return { success: false, error: true, message: "Accès refusé" };
@@ -60,7 +60,7 @@ export const updateComplain = async (
 
 
     try {
-      await requireRole(["admin", "teacher"]);
+      await requireRole(["admin", "director", "teacher"]);
 
       await prisma.complaint.update({
         where: {

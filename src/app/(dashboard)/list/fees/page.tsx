@@ -22,10 +22,13 @@ const FeesPage = async () => {
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user.role;
 
-  // Défense en profondeur : seul l'admin accède à la grille des frais
-  if (role !== "admin") {
+  // Défense en profondeur — W07 : admin et comptable gèrent la grille,
+  // la direction la consulte (finance en lecture).
+  if (!["admin", "accountant", "director"].includes(role ?? "")) {
     redirect(`/${role ?? "sign-in"}`);
   }
+  // Écriture : admin + comptable (les actions feeAction l'imposent aussi).
+  const canManage = role === "admin" || role === "accountant";
 
   // Aucune année active → bandeau au lieu d'un crash
   let activeYear;
@@ -76,12 +79,14 @@ const FeesPage = async () => {
             Année scolaire active : {activeYear.name}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500 hidden md:block">
-            Ajouter un frais
-          </span>
-          <FormContainer table="fee" type="create" />
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 hidden md:block">
+              Ajouter un frais
+            </span>
+            <FormContainer table="fee" type="create" />
+          </div>
+        )}
       </div>
 
       {classes.length === 0 && (
@@ -120,7 +125,7 @@ const FeesPage = async () => {
                   <p className="text-sm text-gray-400">
                     Aucun frais défini pour cette classe.
                   </p>
-                  <FormContainer table="fee" type="create" />
+                  {canManage && <FormContainer table="fee" type="create" />}
                 </div>
               ) : (
                 <table className="w-full text-sm">
@@ -153,24 +158,26 @@ const FeesPage = async () => {
                             {formatFCFA(fee.amount)}
                           </td>
                           <td className="p-2">
-                            <div className="flex items-center justify-end gap-2">
-                              <FormContainer
-                                table="fee"
-                                type="update"
-                                data={{
-                                  id: fee.id,
-                                  label: fee.label,
-                                  amount: fee.amount,
-                                  period: fee.period,
-                                  classId: fee.classId,
-                                }}
-                              />
-                              <FormContainer
-                                table="fee"
-                                type="delete"
-                                id={fee.id}
-                              />
-                            </div>
+                            {canManage && (
+                              <div className="flex items-center justify-end gap-2">
+                                <FormContainer
+                                  table="fee"
+                                  type="update"
+                                  data={{
+                                    id: fee.id,
+                                    label: fee.label,
+                                    amount: fee.amount,
+                                    period: fee.period,
+                                    classId: fee.classId,
+                                  }}
+                                />
+                                <FormContainer
+                                  table="fee"
+                                  type="delete"
+                                  id={fee.id}
+                                />
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -184,7 +191,7 @@ const FeesPage = async () => {
                 <span className="text-sm font-semibold">
                   Total mensuel : {formatFCFA(monthlyTotal)}
                 </span>
-                {fees.length > 0 && (
+                {canManage && fees.length > 0 && (
                   <DuplicateFeesButton
                     fromClassId={classItem.id}
                     fromClassName={classItem.name}

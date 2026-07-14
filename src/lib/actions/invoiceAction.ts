@@ -39,9 +39,9 @@ export const createInvoice = async (
   data: InvoiceSchema
 ): Promise<CurrentState> => {
   try {
-    const { userId } = await requireRole(["admin"]);
+    const { userId } = await requireRole(["admin", "accountant"]);
     // V03 — l'élève facturé doit appartenir à l'école de la session
-    const { schoolId: sidI } = await requireSchool(["admin"]);
+    const { schoolId: sidI } = await requireSchool(["admin", "accountant"]);
     const studentInSchool = await prisma.student.findFirst({
       where: { id: data.studentId, schoolId: sidI }, select: { id: true },
     });
@@ -106,7 +106,7 @@ export const addInvoiceLine = async (
   data: InvoiceLineSchema
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findUnique({
@@ -159,7 +159,7 @@ export const deleteInvoiceLine = async (
   lineId: number
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.$transaction(async (tx) => {
       const line = await tx.invoiceLine.findUnique({
@@ -210,7 +210,7 @@ export const deleteInvoice = async (
 ): Promise<CurrentState> => {
   const id = data.get("id") as string;
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     const paymentCount = await prisma.payment.count({
       where: { invoiceId: id },
@@ -236,7 +236,7 @@ export const cancelInvoice = async (
   id: string
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     const paymentCount = await prisma.payment.count({
       where: { invoiceId: id },
@@ -288,7 +288,7 @@ export const markReminded = async (
   note: string
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "accountant"]);
 
     await prisma.invoice.update({
       where: { id },
@@ -328,7 +328,7 @@ export async function getGenerationPreview(
   month: number,
   year: number
 ): Promise<{ facturables: number; dejaGeneres: number }> {
-  await requireRole(["admin"]);
+  await requireRole(["admin", "accountant"]);
   const activeYear = await getActiveSchoolYear();
 
   const [facturables, dejaGeneres] = await Promise.all([
@@ -366,7 +366,7 @@ export const generateMonthlyInvoices = async (
   { month, year }: { month: number; year: number }
 ): Promise<CurrentStateMsg> => {
   try {
-    const { userId } = await requireRole(["admin"]);
+    const { userId } = await requireRole(["admin", "accountant"]);
 
     if (!Number.isInteger(month) || month < 1 || month > 12) {
       return { success: false, error: true, message: "Mois invalide (1-12)." };

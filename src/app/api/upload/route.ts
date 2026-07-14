@@ -20,7 +20,8 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5 Mo
 
 export async function POST(req: NextRequest) {
   try {
-    await requireRole(["admin"]);
+    // W07 — accountant : justificatifs de dépenses (ExpenseForm).
+    await requireRole(["admin", "accountant"]);
   } catch {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }

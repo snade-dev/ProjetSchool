@@ -27,7 +27,7 @@ export const createResult = async (
   data: ResultSchema
 ): Promise<ActionResult> => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     const student = await prisma.student.findUnique({
       where: { username: data.studentUsername },
@@ -132,7 +132,7 @@ export const createResult = async (
 export async function updateResults(currentState: CurrentState2, resultsData: ResultFormSchema) {
   // Validation des données
   try {
-    await requireRole(["admin", "teacher"]);
+    await requireRole(["admin", "director", "teacher"]);
 
   // Mise à jour en transaction de tous les résultats
   await prisma.$transaction(
@@ -161,7 +161,7 @@ export const deleteResult = async (
   const id = data.get("id") as string;
 
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "director"]);
     await prisma.result.delete({
       where: {
         id: parseInt(id),

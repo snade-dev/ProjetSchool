@@ -254,7 +254,7 @@ export default async function ResultsSection({
           <TableSearch />
 
           <div className="flex items-center gap-4 self-end">
-            {(role === "admin" || role === "teacher") && (
+            {(role === "admin" || role === "director" || role === "teacher") && (
               <FormContainer table="result" type="create" />
             )}
           </div>

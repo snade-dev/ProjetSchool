@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin as adminPlugin  } from "better-auth/plugins"
 import prisma from "./prisma";
 import { nextCookies } from "better-auth/next-js";
-import { ac, admin, parent, student, superadmin, teacher, user } from './permission';
+import { ac, accountant, admin, director, parent, student, superadmin, supervisor, teacher, user } from './permission';
  
 export const auth = betterAuth({
     baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000",
@@ -36,7 +36,11 @@ export const auth = betterAuth({
                 teacher,
                 student,
                 parent,
-                superadmin
+                superadmin,
+                // W07 — rôles prédéfinis élargis
+                director,
+                accountant,
+                supervisor
             },
             // V04 — le superadmin peut créer des comptes via auth.api.createUser
             adminRoles: ["admin", "superadmin"],

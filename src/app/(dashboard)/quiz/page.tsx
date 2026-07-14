@@ -55,7 +55,7 @@ const QuizListPage = async (props: {
       accessor: "date",
       className: "hidden md:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -86,7 +86,7 @@ const QuizListPage = async (props: {
       </td>
       <td>
         <div className=" flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
+          {(role === "admin" || role === "director" || role === "teacher") && (
             <>
               <FormContainer table="quiz" type="update" data={item} />
               <FormContainer table="quiz" type="delete" id={item.id} />
@@ -128,7 +128,7 @@ const QuizListPage = async (props: {
     student: { enrollments: { some: { studentId: currentUserId! } } }, // W03
   };
 
-  if (role === "admin") {
+  if ((role === "admin" || role === "director")) {
     // L'admin peut tout voir, pas besoin de filtrer par classe
   } else {
     // Pour les autres rôles, appliquer des conditions spécifiques
@@ -166,7 +166,7 @@ const QuizListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center gap-4 self-end">
-            {role === "admin" && <FormContainer table="quiz" type="create" />}
+            {(role === "admin" || role === "director") && <FormContainer table="quiz" type="create" />}
           </div>
         </div>
       </div>

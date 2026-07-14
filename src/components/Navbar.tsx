@@ -9,7 +9,10 @@ import { getSelectableMemberships, SPACE_ROLE_LABELS } from "@/lib/membership";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "administrateur",
+  director: "direction", // W07
   teacher: "enseignant",
+  accountant: "comptable", // W07
+  supervisor: "surveillant général", // W07
   student: "étudiant",
   parent: "parent",
 };
@@ -21,8 +24,8 @@ const Navbar = async () => {
   const role = session?.user.role ?? "";
 
   // La recherche route vers la liste la plus utile selon le rôle.
-  const searchTarget =
-    role === "admin" || role === "teacher" ? "/list/students" : "/list/results";
+  const searchStudents = ["admin", "director", "teacher", "supervisor"].includes(role);
+  const searchTarget = searchStudents ? "/list/students" : "/list/results";
 
   // Badge réel : annonces des 7 derniers jours.
   let recentAnnouncements = 0;
@@ -73,9 +76,7 @@ const Navbar = async () => {
           type="text"
           name="search"
           placeholder={
-            role === "admin" || role === "teacher"
-              ? "Rechercher un élève…"
-              : "Rechercher un résultat…"
+            searchStudents ? "Rechercher un élève…" : "Rechercher un résultat…"
           }
           className="w-[200px] p-2 bg-transparent outline-none"
         />
@@ -85,7 +86,7 @@ const Navbar = async () => {
       <div className="flex items-center gap-6 justify-end w-full">
         {/* W06 — bascule d'espace (multi-écoles / multi-rôles) */}
         <SpaceSwitcher spaces={switcherSpaces} />
-        {["admin", "teacher", "student"].includes(role) && (
+        {["admin", "director", "teacher", "student"].includes(role) && (
           <Link
             href="/list/reclamation"
             title="Réclamations et demandes"

@@ -18,7 +18,8 @@ const RollCallPage = async (props: {
   const role = session?.user.role;
   const userId = session?.user.id;
 
-  if (!role || !userId || !["admin", "teacher"].includes(role)) {
+  // W07 — le surveillant général et la direction font l'appel comme l'admin.
+  if (!role || !userId || !["admin", "director", "teacher", "supervisor"].includes(role)) {
     return notFound();
   }
 
@@ -41,8 +42,9 @@ const RollCallPage = async (props: {
     if (!subjectsByClass.has(l.classId)) subjectsByClass.set(l.classId, new Map());
     subjectsByClass.get(l.classId)!.set(l.subjectId, l.subject);
   }
-  // Admin : si aucune Lesson (données incomplètes), retomber sur toutes les classes/matières.
-  if (role === "admin" && classesMap.size === 0) {
+  // Admin/direction/surveillant : si aucune Lesson (données incomplètes),
+  // retomber sur toutes les classes/matières de l'école.
+  if (role !== "teacher" && classesMap.size === 0) {
     // W02 — repli scopé à l'école ET à l'année scolaire active
     const schoolId = sessionSchoolId(session);
     const [classes, subjects] = await Promise.all([

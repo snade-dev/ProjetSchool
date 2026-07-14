@@ -70,7 +70,7 @@ const Tuition = async (props: { params: Promise<{ id: string }> }) => {
                 </td>
                 <td className="border border-gray-200 p-2 flex items-center justify-center gap-2">
                   {payment ? `${payment.amount} FCFA` : "Non payé"}
-                  {(role === "teacher" || role === "admin") && (
+                  {(role === "teacher" || role === "admin" || role === "accountant") && (
                     <EditButton
                       TuitionId={payment?.id}
                       studentId={student.id}

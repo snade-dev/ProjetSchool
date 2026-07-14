@@ -44,7 +44,7 @@ const LevelListPage = async (props: {
       accessor: "classes",
       className: "hidden lg:table-cell",
     },
-    ...(role === "admin"
+    ...((role === "admin" || role === "director")
       ? [
           {
             header: "Actions",
@@ -69,7 +69,7 @@ const LevelListPage = async (props: {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {(role === "admin" || role === "director") && (
             <>
               <FormContainer table="level" type="update" data={item} />
               <FormContainer table="level" type="delete" id={item.id} />
@@ -125,7 +125,7 @@ const LevelListPage = async (props: {
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-4">
-            {role === "admin" && <FormContainer table="level" type="create" />}
+            {(role === "admin" || role === "director") && <FormContainer table="level" type="create" />}
           </div>
         </div>
       </div>

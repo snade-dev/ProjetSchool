@@ -23,7 +23,7 @@ export const createLevel = async (
   data: LevelSchema
 ) => {
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
 
     // Unicité (schoolId, name) — contrôle applicatif pour un message clair
     const existing = await prisma.level.findFirst({
@@ -55,7 +55,7 @@ export const updateLevel = async (
   data: LevelSchema
 ) => {
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     // Cloisonnement : le niveau doit appartenir à l'école de la session
     const owned = await prisma.level.findFirst({
       where: { id: data.id, schoolId },
@@ -92,7 +92,7 @@ export const deleteLevel = async (
 ) => {
   const id = data.get("id") as string;
   try {
-    const { schoolId } = await requireSchool(["admin"]);
+    const { schoolId } = await requireSchool(["admin", "director"]);
     // Cloisonnement
     const owned = await prisma.level.findFirst({
       where: { id: parseInt(id), schoolId },

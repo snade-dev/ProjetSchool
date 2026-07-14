@@ -20,7 +20,7 @@ export const createQuiz = async (
   data: QuizSchema
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     const teacher = await prisma.teacher.findUnique({
       where: {
@@ -40,7 +40,7 @@ export const createQuiz = async (
       return { success: false, error: true, message: "Accès refusé" };
     }
 
-    const { schoolId } = await requireSchool(["admin", "teacher"]); // V03
+    const { schoolId } = await requireSchool(["admin", "director", "teacher"]); // V03
     const quiz = await prisma.quiz.create({
       data: {
         schoolId,
@@ -66,7 +66,7 @@ export const updateQuiz = async (
   data: QuizSchema
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     if (role === "teacher") {
       const owned = await prisma.quiz.findFirst({
@@ -102,7 +102,7 @@ export const deleteQuiz = async (
   data: FormData
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     const id = data.get("id") as string;
 
@@ -139,7 +139,7 @@ export const createQuestion = async (
   }
 ) => {
   try {
-    const { userId, role } = await requireRole(["admin", "teacher"]);
+    const { userId, role } = await requireRole(["admin", "director", "teacher"]);
 
     const quiz = await prisma.quiz.findUnique({
       where: {
@@ -184,7 +184,7 @@ export const updateQuestion = async (
   }
 ) => {
   try {
-    await requireRole(["admin", "teacher"]);
+    await requireRole(["admin", "director", "teacher"]);
 
     const quiz = await prisma.question.findUnique({
       where: {

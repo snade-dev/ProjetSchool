@@ -13,7 +13,10 @@ const INITIAL: PlatformState = { success: false, error: false, message: "" };
 
 const ROLE_OPTIONS = [
   { value: "admin", label: "Administrateur" },
+  { value: "director", label: "Direction" }, // W07
   { value: "teacher", label: "Enseignant" },
+  { value: "accountant", label: "Comptable" }, // W07
+  { value: "supervisor", label: "Surveillant général" }, // W07
   { value: "student", label: "Élève" },
   { value: "parent", label: "Parent" },
 ];

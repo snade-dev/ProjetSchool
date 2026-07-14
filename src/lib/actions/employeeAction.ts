@@ -20,7 +20,7 @@ export const createEmployee = async (
   data: EmployeeSchema
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "director"]);
 
     const teacherId = data.teacherId ? data.teacherId : null;
 
@@ -50,7 +50,7 @@ export const createEmployee = async (
       phone = teacher.phone ?? null;
     }
 
-    const { schoolId } = await requireSchool(["admin"]); // V03
+    const { schoolId } = await requireSchool(["admin", "director"]); // V03
     await prisma.employee.create({
       data: {
         schoolId,
@@ -87,7 +87,7 @@ export const updateEmployee = async (
   data: EmployeeSchema
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "director"]);
 
     if (!data.id) {
       return { success: false, error: true, message: "Identifiant manquant" };
@@ -120,7 +120,7 @@ export const deleteEmployee = async (
 ): Promise<CurrentState> => {
   const id = formData.get("id") as string;
   try {
-    await requireRole(["admin"]);
+    await requireRole(["admin", "director"]);
 
     // Refus de suppression si des bulletins de paie existent → désactiver plutôt.
     const salaryCount = await prisma.salaryPayment.count({
