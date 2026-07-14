@@ -3,6 +3,7 @@
 import { SemesterSchema } from "../formsValidationSchema";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { getActiveSchoolYear } from "../schoolYear";
 import { revalidatePath } from "next/cache";
 import { deleteErrorMessage } from '../actionErrors';
 
@@ -38,9 +39,13 @@ export const createSemester = async (
       };
     }
 
+    // W02 — une période appartient à UNE année scolaire : création sur l'année ACTIVE
+    const activeYear = await getActiveSchoolYear(schoolId);
+
     await prisma.semester.create({
       data: {
         schoolId,
+        schoolYearId: activeYear.id, // W02
         name: data.name,
         system: data.system,
         order: data.order,
@@ -122,11 +127,14 @@ export const generatePeriods = async (system: "TRIMESTER" | "MONTHLY") => {
 
   try {
     const { schoolId } = await requireSchool(["admin"]); // V03
+    // W02 — la génération cible l'année scolaire ACTIVE de l'école
+    const activeYear = await getActiveSchoolYear(schoolId);
     const wanted = system === "TRIMESTER" ? TRIMESTERS : MONTHS;
 
     const [existing, subjects] = await Promise.all([
       prisma.semester.findMany({
-        where: { system, schoolId },
+        // W02 — une période « manquante » s'apprécie sur l'année active
+        where: { system, schoolId, schoolYearId: activeYear.id },
         select: { order: true },
       }),
       prisma.subject.findMany({ where: { schoolId }, select: { id: true } }),
@@ -138,6 +146,7 @@ export const generatePeriods = async (system: "TRIMESTER" | "MONTHLY") => {
       await prisma.semester.create({
         data: {
           schoolId,
+          schoolYearId: activeYear.id, // W02
           name: w.name,
           system,
           order: w.order,

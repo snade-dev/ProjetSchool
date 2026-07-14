@@ -1,5 +1,6 @@
 import FormContainer from "@/components/FormContainer";
 import GeneratePeriodsButton from "./components/GeneratePeriodsButton";
+import YearFilter from "./components/YearFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -10,6 +11,7 @@ import {
   Class,
   Prisma,
   Result,
+  SchoolYear,
   Semester,
   Teacher,
   Subject,
@@ -21,6 +23,7 @@ type SemesterList = Semester & {
   classes: Class[];
   results: Result[];
   subjects: Subject[];
+  schoolYear: SchoolYear; // W02
 };
 
 const SemesterListPage = async (props: {
@@ -42,6 +45,11 @@ const SemesterListPage = async (props: {
     {
       header: "Régime",
       accessor: "system",
+    },
+    {
+      header: "Année",
+      accessor: "schoolYear",
+      className: "hidden md:table-cell",
     },
     {
       header: "Ordre",
@@ -84,6 +92,9 @@ const SemesterListPage = async (props: {
         >
           {item.system === "MONTHLY" ? "Composition" : "Trimestre"}
         </span>
+      </td>
+      <td className="hidden md:table-cell text-gray-500">
+        {item.schoolYear.name}
       </td>
       <td className="hidden md:table-cell">{item.order}</td>
       <td className="hidden md:table-cell text-gray-500">
@@ -128,6 +139,23 @@ const SemesterListPage = async (props: {
     }
   }
 
+  // W02 — filtre par année scolaire : `yearId` dans l'URL, sinon l'année ACTIVE
+  const years = await prisma.schoolYear.findMany({
+    where: { schoolId },
+    select: { id: true, name: true, isActive: true },
+    orderBy: [{ isActive: "desc" }, { startDate: "desc" }],
+  });
+  const requestedYearId = queryParams.yearId
+    ? parseInt(queryParams.yearId)
+    : undefined;
+  const selectedYearId =
+    requestedYearId != null && years.some((y) => y.id === requestedYearId)
+      ? requestedYearId
+      : years.find((y) => y.isActive)?.id;
+  if (selectedYearId != null) {
+    query.schoolYearId = selectedYearId;
+  }
+
   // Requête vers la base de données
   const [data, count] = await prisma.$transaction([
     prisma.semester.findMany({
@@ -136,6 +164,7 @@ const SemesterListPage = async (props: {
         results: true, // Inclure les résultats associés à ce semestre
         exams: true, // Inclure les examens associés à ce semestre
         subjects: true, // Inclure les matières associées à ce semestre
+        schoolYear: true, // W02 — année de rattachement
       },
       orderBy: [{ system: "asc" }, { order: "asc" }],
       take: ITEM_PER_PAGE,
@@ -153,6 +182,8 @@ const SemesterListPage = async (props: {
         </h1>
         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
           <TableSearch />
+          {/* W02 — filtre par année scolaire (année active par défaut) */}
+          <YearFilter years={years} selectedYearId={selectedYearId} />
           <div className="flex items-center self-end gap-4">
             {role === "admin" && (
               <>
