@@ -39,10 +39,13 @@ export async function createAuthUser(input: {
       ?.schoolId;
     if (creatorSchoolId != null) {
       const { default: prisma } = await import("./prisma");
+      const { ensureMembership } = await import("./membership");
       await prisma.user.update({
         where: { id: res.user.id },
         data: { schoolId: creatorSchoolId },
       });
+      // W06 — la vérité des rattachements : membership école+rôle du compte
+      await ensureMembership(res.user.id, creatorSchoolId, input.role);
     }
     return res.user.id;
   } catch (err: any) {

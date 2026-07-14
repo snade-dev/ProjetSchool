@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "../auth";
 import prisma from "../prisma";
+import { ensureMembership } from "../membership";
 
 /**
  * V07 — Inscription self-service d'un établissement (page publique
@@ -67,10 +68,14 @@ export async function registerSchool(formData: FormData) {
         data: { name: schoolName, slug },
       });
 
-      // 3. Promotion : le créateur devient l'admin de SON école
-      await prisma.user.update({
-        where: { id: userId },
-        data: { role: "admin", schoolId: school.id },
+      // 3. Promotion : le créateur devient l'admin de SON école — contexte
+      // actif + membership (W06, vérité des rattachements) en transaction.
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: userId },
+          data: { role: "admin", schoolId: school.id },
+        });
+        await ensureMembership(userId, school.id, "admin", tx);
       });
 
       // 4. Essai gratuit 30 j sur le plan actif le moins cher (s'il existe)

@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { createAuthUser, removeAuthUser } from "../authAdmin";
+import { ensureMembership, SPACE_ROLES, SPACE_ROLE_LABELS } from "../membership";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -82,10 +83,14 @@ export const createSchool = async (
 
     try {
       // rattacher l'admin à SA nouvelle école (le superadmin n'a pas d'école,
-      // createAuthUser n'a donc rien posé automatiquement)
-      await prisma.user.update({
-        where: { id: adminId },
-        data: { schoolId: school.id },
+      // createAuthUser n'a donc rien posé automatiquement) — contexte actif
+      // + membership (W06) dans la même transaction.
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: adminId },
+          data: { schoolId: school.id },
+        });
+        await ensureMembership(adminId, school.id, "admin", tx);
       });
     } catch (err) {
       await removeAuthUser(adminId);
@@ -222,6 +227,109 @@ export const assignPlan = async (
   } catch (error) {
     console.error("assignPlan:", error);
     return { success: false, error: true, message: "Attribution impossible." };
+  }
+};
+
+/* ------------------------------------------------------------------ */
+/* W06 — Memberships : rattacher un compte existant à une école         */
+/* ------------------------------------------------------------------ */
+
+const membershipSchema = z.object({
+  schoolId: z.coerce.number().int(),
+  email: z.string().email("Adresse e-mail invalide."),
+  role: z.enum(SPACE_ROLES, {
+    errorMap: () => ({ message: "Rôle invalide." }),
+  }),
+});
+
+/**
+ * Rattache un compte EXISTANT (par e-mail) à une école avec un rôle :
+ * crée la membership, ou la réactive si elle existait désactivée.
+ * L'utilisateur verra le nouvel espace à sa prochaine connexion (ou via la
+ * bascule du header s'il est déjà connecté).
+ */
+export const addSchoolMembership = async (
+  currentState: PlatformState,
+  formData: FormData
+): Promise<PlatformState> => {
+  try {
+    await requireRole(["superadmin"]);
+    const parsed = membershipSchema.safeParse({
+      schoolId: formData.get("schoolId"),
+      email: formData.get("email"),
+      role: formData.get("role"),
+    });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: true,
+        message: parsed.error.issues[0]?.message ?? "Données invalides.",
+      };
+    }
+    const { schoolId, email, role } = parsed.data;
+
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true, name: true },
+    });
+    if (!school) {
+      return { success: false, error: true, message: "École introuvable." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, role: true },
+    });
+    if (!user) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "Aucun compte n'existe avec cette adresse e-mail — créez d'abord le compte.",
+      };
+    }
+    if (user.role === "superadmin") {
+      return {
+        success: false,
+        error: true,
+        message: "Le superadmin est un rôle global : pas de membership.",
+      };
+    }
+
+    await ensureMembership(user.id, schoolId, role);
+
+    revalidatePath(`/platform/schools/${schoolId}/members`);
+    return {
+      success: true,
+      error: false,
+      message: `${email} rattaché à « ${school.name} » comme ${SPACE_ROLE_LABELS[role] ?? role}.`,
+    };
+  } catch (error) {
+    console.error("addSchoolMembership:", error);
+    return { success: false, error: true, message: "Rattachement impossible." };
+  }
+};
+
+/** Active / désactive une membership (une membership inactive n'est plus sélectionnable). */
+export const toggleSchoolMembership = async (
+  membershipId: number,
+  active: boolean
+): Promise<PlatformState> => {
+  try {
+    await requireRole(["superadmin"]);
+    const membership = await prisma.userSchoolMembership.update({
+      where: { id: membershipId },
+      data: { active },
+    });
+    revalidatePath(`/platform/schools/${membership.schoolId}/members`);
+    return {
+      success: true,
+      error: false,
+      message: active ? "Rattachement réactivé." : "Rattachement désactivé.",
+    };
+  } catch (error) {
+    console.error("toggleSchoolMembership:", error);
+    return { success: false, error: true, message: "Opération impossible." };
   }
 };
 

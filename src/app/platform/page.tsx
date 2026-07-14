@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import Link from "next/link";
 import { Users, GraduationCap, TrendingUp, Wallet, Clock, Receipt } from "lucide-react";
 import { getPlatformKpis } from "@/lib/platformStats";
 import CreateSchoolForm from "./components/CreateSchoolForm";
@@ -258,8 +259,15 @@ export default async function PlatformSchoolsPage() {
                     <span className="text-xs text-gray-400">—</span>
                   )}
                 </td>
-                <td className="hidden p-3 text-gray-500 md:table-cell">
-                  {s._count.users}
+                <td className="hidden p-3 md:table-cell">
+                  {/* W06 — gestion des rattachements (memberships) */}
+                  <Link
+                    href={`/platform/schools/${s.id}/members`}
+                    className="inline-flex items-center gap-1 text-gray-600 underline decoration-gray-300 underline-offset-2 transition hover:text-gray-900"
+                  >
+                    <Users size={13} />
+                    {s._count.users}
+                  </Link>
                 </td>
                 <td className="hidden p-3 text-gray-500 lg:table-cell">
                   {fmtDate(s.createdAt)}

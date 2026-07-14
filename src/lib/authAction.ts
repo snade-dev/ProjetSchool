@@ -3,6 +3,7 @@
 import { auth } from "./auth";
 import { redirect } from "next/navigation";
 import prisma from "./prisma";
+import { getSelectableMemberships } from "./membership";
 
 /** Rôles ayant un tableau de bord ; tout autre rôle (dont "user") n'a pas d'accès. */
 const DASHBOARD_ROLES = ["admin", "teacher", "student", "parent", "superadmin"];
@@ -53,6 +54,8 @@ export async function signIn(formData: FormData) {
   const password = formData.get("password")?.toString() || "";
 
   let role = "";
+  // W06 — cible calculée depuis les memberships (sélecteur d'espace §2.7.10)
+  let membershipTarget: string | null = null;
   try {
     const response = await auth.api.signInEmail({
       body: {
@@ -69,15 +72,41 @@ export async function signIn(formData: FormData) {
     // réponse — cf. better-auth sign-in/email) : on lit le rôle en base (H40).
     const dbUser = await prisma.user.findUnique({
       where: { email },
-      select: { role: true },
+      select: { id: true, role: true, schoolId: true },
     });
     role = dbUser?.role ?? "";
+
+    // W06 — la vérité des rattachements est UserSchoolMembership (le
+    // superadmin, rôle global, n'en a pas) :
+    // - plusieurs espaces → écran de choix /select-space ;
+    // - un seul → sélection silencieuse (contexte actif resynchronisé si besoin) ;
+    // - aucun → comportement historique sur le rôle actif (compte sans espace).
+    if (dbUser && role !== "superadmin") {
+      const spaces = await getSelectableMemberships(dbUser.id);
+      if (spaces.length > 1) {
+        membershipTarget = "/select-space";
+      } else if (spaces.length === 1) {
+        const space = spaces[0];
+        if (dbUser.schoolId !== space.schoolId || dbUser.role !== space.role) {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { schoolId: space.schoolId, role: space.role },
+          });
+        }
+        membershipTarget = `/${space.role}`;
+      }
+    }
   } catch (error) {
     console.error("Erreur de connexion Better Auth:", error);
     redirect("/sign-in?error=invalid-credentials");
   }
 
-  // Redirection selon le rôle réel (hors du try : redirect() lève NEXT_REDIRECT).
+  // Redirections hors du try : redirect() lève NEXT_REDIRECT.
+  if (membershipTarget) {
+    redirect(membershipTarget);
+  }
+
+  // Aucune membership sélectionnable : redirection selon le rôle actif.
   // Un rôle inconnu ("user", "") n'a pas de dashboard → message explicite.
   if (!role || !DASHBOARD_ROLES.includes(role)) {
     redirect("/sign-in?error=no-role");

@@ -619,9 +619,31 @@ model User {
   @@unique([email])
   @@map("user")
 
-  // V02 — école de rattachement (null = superadmin plateforme)
+  // V02 — école de rattachement. Depuis W06 : CONTEXTE ACTIF de la session
+  // (école + rôle courants, alimentés par le sélecteur d'espace) ; la vérité
+  // des rattachements est UserSchoolMembership. null = superadmin plateforme.
   schoolId Int?
   school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  // W06 — rattachements du compte (1 compte, N écoles/rôles)
+  memberships UserSchoolMembership[]
+}
+
+// W06 — rattachement d'un compte à une école avec un rôle (§2.2.8, §2.7.10).
+// Un même compte peut avoir plusieurs memberships (écoles ou rôles différents) ;
+// User.schoolId/User.role restent le contexte actif choisi via le sélecteur
+// d'espace. Le superadmin (rôle global) n'a AUCUNE membership.
+model UserSchoolMembership {
+  id       Int     @id @default(autoincrement())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolId Int
+  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  role     String // admin, teacher, parent, student (rôles élargis en W07)
+  active   Boolean @default(true)
+
+  @@unique([userId, schoolId, role])
+  @@index([schoolId])
 }
 
 model Session {
@@ -730,6 +752,7 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   feeStructures     FeeStructure[]
   quizzes           Quiz[]
   subscription      SchoolSubscription? // V05
+  memberships       UserSchoolMembership[] // W06
 
   @@map("SchoolSettings")
 }
