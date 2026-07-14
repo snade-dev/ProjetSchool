@@ -3,6 +3,7 @@
 import { AnnounceSchema, EventSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
 import { requireRole, requireSchool } from "../authGuard";
+import { announcementAudience, notify } from '../notify';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from '../actionErrors';
 
@@ -35,6 +36,16 @@ export const createEvent = async (
           endTime : data.endTime,
           classId: data.classId,
         },
+      });
+
+      // W12 — même logique que les annonces : classe → élèves + tuteurs +
+      // prof principal ; sans classe → tous les comptes de l'école.
+      await notify(await announcementAudience(schoolId, data.classId), {
+        schoolId,
+        type: "ANNOUNCEMENT",
+        title: "Nouvel événement",
+        body: `${data.title} — le ${data.startTime.toLocaleDateString("fr-FR")}.`,
+        link: "/list/events",
       });
 
       revalidatePath("/list/events");

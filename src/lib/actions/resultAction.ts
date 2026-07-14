@@ -6,6 +6,31 @@ import { requireRole } from "../authGuard";
 import { auditWithSession } from "../audit";
 import { revalidatePath } from "next/cache";
 import { deleteErrorMessage } from '../actionErrors';
+import { createNotifications, guardianUserIds, notify } from "../notify";
+
+/**
+ * W12 — notification de notes : l'élève + ses tuteurs `canViewGrades`
+ * reçoivent UNE notification par élève (jamais une par note). Résolution en
+ * try/catch : un échec de notification ne casse jamais la saisie.
+ */
+const notifyGradesForStudent = async (
+  studentId: string,
+  schoolId: number,
+  body: string
+) => {
+  try {
+    const guardians = await guardianUserIds([studentId], "canViewGrades");
+    await notify([studentId, ...guardians], {
+      schoolId,
+      type: "GRADE",
+      title: "Notes",
+      body,
+      link: "/list/exams?tab=results",
+    });
+  } catch (err) {
+    console.error("[notify] note non notifiée:", err);
+  }
+};
 
 type CurrentState = {
   success: boolean;
@@ -122,6 +147,29 @@ export const createResult = async (
       schoolId: student.schoolId,
     });
 
+    // W12 — élève + tuteurs canViewGrades : notes de la matière publiées
+    try {
+      const [subject, semester] = await Promise.all([
+        prisma.subject.findUnique({
+          where: { id: data.subjectId },
+          select: { name: true },
+        }),
+        prisma.semester.findUnique({
+          where: { id: data.semesterId },
+          select: { name: true, label: true },
+        }),
+      ]);
+      await notifyGradesForStudent(
+        student.id,
+        student.schoolId,
+        `Notes de ${subject?.name ?? "matière"} publiées (${
+          semester?.label ?? semester?.name ?? "période"
+        }).`
+      );
+    } catch (err) {
+      console.error("[notify] note non notifiée:", err);
+    }
+
     console.log("Note enregistrée avec succès");
 
     revalidatePath("/list/results");
@@ -155,6 +203,8 @@ export async function updateResults(currentState: CurrentState2, resultsData: Re
         id: true,
         score: true,
         classScore: true,
+        studentId: true, // W12 — regroupement des notifications par élève
+        subject: { select: { name: true } }, // W12
         student: { select: { username: true, schoolId: true } },
       },
     });
@@ -171,6 +221,11 @@ export async function updateResults(currentState: CurrentState2, resultsData: Re
   );
 
     // W10 — journal d'audit : une entrée par note réellement modifiée (§2.11.2)
+    // W12 — collecte des élèves réellement modifiés (matières concernées)
+    const changedByStudent = new Map<
+      string,
+      { schoolId: number; subjects: Set<string> }
+    >();
     for (const { id, score, classscore } of resultsData.results) {
       const prev = beforeById.get(id);
       if (!prev) continue;
@@ -185,6 +240,45 @@ export async function updateResults(currentState: CurrentState2, resultsData: Re
         },
         schoolId: prev.student.schoolId,
       });
+      const entry = changedByStudent.get(prev.studentId) ?? {
+        schoolId: prev.student.schoolId,
+        subjects: new Set<string>(),
+      };
+      entry.subjects.add(prev.subject.name);
+      changedByStudent.set(prev.studentId, entry);
+    }
+
+    // W12 — UNE notification par élève modifié (élève + tuteurs canViewGrades)
+    try {
+      const studentIds = [...changedByStudent.keys()];
+      if (studentIds.length > 0) {
+        const guardians = await prisma.studentGuardian.findMany({
+          where: { studentId: { in: studentIds }, canViewGrades: true },
+          select: { studentId: true, parentId: true },
+        });
+        await createNotifications(
+          studentIds.flatMap((studentId) => {
+            const { schoolId, subjects } = changedByStudent.get(studentId)!;
+            const body = `Notes de ${[...subjects].join(", ")} mises à jour.`;
+            const recipients = [
+              studentId,
+              ...guardians
+                .filter((g) => g.studentId === studentId)
+                .map((g) => g.parentId),
+            ];
+            return recipients.map((userId) => ({
+              userId,
+              schoolId,
+              type: "GRADE" as const,
+              title: "Notes",
+              body,
+              link: "/list/exams?tab=results",
+            }));
+          })
+        );
+      }
+    } catch (err) {
+      console.error("[notify] mise à jour de notes non notifiée:", err);
     }
 
     revalidatePath("/list/results");

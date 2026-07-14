@@ -2,9 +2,10 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Bell, MessageSquare, Search } from "lucide-react";
+import { MessageSquare, Search } from "lucide-react";
 import UserMenu from "./UserMenu";
 import SpaceSwitcher, { type SwitcherSpace } from "./SpaceSwitcher";
+import NotificationBell, { type BellNotification } from "./NotificationBell";
 import { getSelectableMemberships, SPACE_ROLE_LABELS } from "@/lib/membership";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -27,19 +28,45 @@ const Navbar = async () => {
   const searchStudents = ["admin", "director", "teacher", "supervisor"].includes(role);
   const searchTarget = searchStudents ? "/list/students" : "/list/results";
 
-  // Badge réel : annonces des 7 derniers jours.
-  let recentAnnouncements = 0;
-  try {
-    // V03 — cloisonnement : annonces de l'école de la session
-    const schoolId = (session?.user as { schoolId?: number | null })?.schoolId ?? -1;
-    recentAnnouncements = await prisma.announcement.count({
-      where: {
-        schoolId,
-        date: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) },
-      },
-    });
-  } catch {
-    recentAnnouncements = 0;
+  // W12 — cloche : compteur de non-lus + 8 dernières notifications DU compte
+  // (remplace l'ancien badge « annonces des 7 derniers jours »).
+  let unreadCount = 0;
+  let bellItems: BellNotification[] = [];
+  if (session) {
+    try {
+      const [unread, items] = await prisma.$transaction([
+        prisma.notification.count({
+          where: { userId: session.user.id, readAt: null },
+        }),
+        prisma.notification.findMany({
+          where: { userId: session.user.id },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            body: true,
+            link: true,
+            readAt: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+      unreadCount = unread;
+      bellItems = items.map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        link: n.link,
+        unread: n.readAt === null,
+        createdAt: n.createdAt.toISOString(),
+      }));
+    } catch {
+      unreadCount = 0;
+      bellItems = [];
+    }
   }
 
   // W06 — bascule d'espace : proposée seulement si le compte a PLUSIEURS
@@ -95,18 +122,8 @@ const Navbar = async () => {
             <MessageSquare size={16} className="text-gray-600" />
           </Link>
         )}
-        <Link
-          href="/list/announcements"
-          title="Annonces"
-          className="bg-white rounded-full w-8 h-8 flex items-center justify-center relative text-xs hover:bg-lamaSkyLight transition"
-        >
-          <Bell size={16} className="text-gray-600" />
-          {recentAnnouncements > 0 && (
-            <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-purple-500 text-white rounded-full text-[10px]">
-              {recentAnnouncements > 9 ? "9+" : recentAnnouncements}
-            </span>
-          )}
-        </Link>
+        {/* W12 — cloche des notifications in-app (compteur + dropdown) */}
+        <NotificationBell unreadCount={unreadCount} items={bellItems} />
         <UserMenu
           name={session?.user.name || "Utilisateur"}
           roleLabel={ROLE_LABELS[role] ?? role}

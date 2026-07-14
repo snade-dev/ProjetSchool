@@ -5,6 +5,7 @@ import { Prisma } from "@/app/generated/prisma";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
 import { auditWithSession } from "../audit";
+import { createNotifications, notifyGuardians } from "../notify";
 import { getActiveSchoolYear } from "../schoolYear";
 import { nextInvoiceReference } from "../invoiceRef";
 import { runMonthlyGeneration, monthlyFeeFilter } from "../invoiceGeneration";
@@ -103,6 +104,19 @@ export const createInvoice = async (
         lignes: data.lines.length,
       },
     });
+
+    // W12 — nouvelle facture → tuteurs canPay de l'élève (jamais bloquant)
+    await notifyGuardians(
+      [data.studentId],
+      {
+        schoolId: sidI,
+        type: "PAYMENT",
+        title: "Nouvelle facture",
+        body: `Nouvelle facture ${invoice.reference} de ${total.toLocaleString("fr-FR")} FCFA.`,
+        link: `/list/invoices/${invoice.id}`,
+      },
+      "canPay"
+    );
 
     revalidatePath("/list/invoices");
     return { success: true, error: false };
@@ -406,6 +420,9 @@ export const generateMonthlyInvoices = async (
 
     const activeYear = await getActiveSchoolYear();
 
+    // W12 — borne temporelle pour retrouver les factures créées par CE run
+    const startedAt = new Date();
+
     // W11 — le cœur (facturables, idempotence, échéanciers, écriture par
     // paquets, retry P2002) vit dans lib/invoiceGeneration.ts.
     const result = await runMonthlyGeneration({
@@ -425,6 +442,53 @@ export const generateMonthlyInvoices = async (
           ignorees: result.ignored,
         },
       });
+    }
+
+    // W12 — « Nouvelle facture {ref} de {montant} FCFA » → tuteurs canPay de
+    // chaque élève facturé par CE run (résolution en bloc + UN createMany :
+    // pas de boucle d'inserts, un tuteur de N enfants reçoit N références
+    // distinctes). Jamais bloquant.
+    if (result.created > 0) {
+      try {
+        const invoices = await prisma.invoice.findMany({
+          where: {
+            schoolYearId: activeYear.id,
+            month,
+            generationKey: { not: null },
+            createdAt: { gte: startedAt },
+          },
+          select: {
+            id: true,
+            reference: true,
+            total: true,
+            studentId: true,
+            student: { select: { schoolId: true } },
+          },
+        });
+        const guardians = await prisma.studentGuardian.findMany({
+          where: {
+            studentId: { in: [...new Set(invoices.map((i) => i.studentId))] },
+            canPay: true,
+          },
+          select: { studentId: true, parentId: true },
+        });
+        await createNotifications(
+          invoices.flatMap((inv) =>
+            guardians
+              .filter((g) => g.studentId === inv.studentId)
+              .map((g) => ({
+                userId: g.parentId,
+                schoolId: inv.student.schoolId,
+                type: "PAYMENT" as const,
+                title: "Nouvelle facture",
+                body: `Nouvelle facture ${inv.reference} de ${inv.total.toLocaleString("fr-FR")} FCFA.`,
+                link: `/list/invoices/${inv.id}`,
+              }))
+          )
+        );
+      } catch (err) {
+        console.error("[notify] génération mensuelle non notifiée:", err);
+      }
     }
 
     revalidatePath("/list/invoices");
