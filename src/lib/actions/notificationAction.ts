@@ -63,20 +63,27 @@ export const markAllNotificationsRead = async (): Promise<ActionState> => {
  * Active/désactive UN type de notification pour MON compte.
  * Absence de ligne = activé : on upserte la ligne avec la valeur choisie
  * (garder la ligne enabled=true est inoffensif et évite les deletes).
+ * W13 — `channel` : "inapp" (colonne enabled) ou "email" (colonne
+ * emailEnabled) ; les deux canaux sont indépendants.
  */
 export const setNotificationPreference = async (
   type: string,
-  enabled: boolean
+  enabled: boolean,
+  channel: "inapp" | "email" = "inapp"
 ): Promise<ActionState> => {
   try {
     const info = await getSessionInfo();
     if (!info) return { success: false, error: true };
     if (!isNotificationType(type)) return { success: false, error: true };
 
+    const column =
+      channel === "email" ? { emailEnabled: !!enabled } : { enabled: !!enabled };
     await prisma.notificationPreference.upsert({
       where: { userId_type: { userId: info.userId, type } },
-      update: { enabled: !!enabled },
-      create: { userId: info.userId, type, enabled: !!enabled },
+      update: column,
+      // Ligne absente = les deux canaux actifs : la création ne fixe que la
+      // colonne touchée, l'autre garde son défaut (true).
+      create: { userId: info.userId, type, ...column },
     });
 
     revalidatePath("/account");

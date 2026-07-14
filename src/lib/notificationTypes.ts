@@ -46,5 +46,22 @@ export const NOTIFICATION_TYPE_HINTS: Record<NotificationType, string> = {
 export const isNotificationType = (v: string): v is NotificationType =>
   (NOTIFICATION_TYPES as readonly string[]).includes(v);
 
+/**
+ * W13 — types CRITIQUES doublés par email (§2.6.3, allégé) : seuls ces types
+ * déclenchent un envoi SMTP (si l'école a un canal email résolu) ; les autres
+ * restent in-app uniquement. Sert aussi à n'afficher le toggle « Email » de
+ * /account que sur ces types.
+ */
+export const EMAIL_CRITICAL_TYPES = [
+  "ABSENCE",
+  "REPORT_CARD",
+  "PAYMENT",
+] as const satisfies readonly NotificationType[];
+
+export const isEmailCriticalType = (
+  v: string
+): v is (typeof EMAIL_CRITICAL_TYPES)[number] =>
+  (EMAIL_CRITICAL_TYPES as readonly string[]).includes(v);
+
 /** Rétention (§ W12) : les notifications lues de plus de 90 jours sont purgées. */
 export const NOTIFICATION_RETENTION_DAYS = 90;

@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import SchoolSettingsForm from "@/components/forms/SchoolSettingsForm";
+import SmtpSettingsForm from "@/components/forms/SmtpSettingsForm";
 import ActivateYearButton from "@/components/forms/ActivateYearButton";
 import FormContainer from "@/components/FormContainer";
 
@@ -32,15 +33,47 @@ const SettingsPage = async () => {
 
   return (
     <div className="flex-1 m-4 mt-0 flex flex-col gap-6">
-      {/* CARTE 1 : Établissement */}
+      {/* CARTE 1 : Établissement — W13 : on ne passe JAMAIS les champs SMTP
+          (surtout smtpPass) à un composant client. */}
       <div className="bg-white p-4 rounded-md">
         <h1 className="text-lg font-semibold mb-4">
           Paramètres de l&apos;établissement
         </h1>
-        <SchoolSettingsForm data={settings} />
+        <SchoolSettingsForm
+          data={
+            settings && {
+              name: settings.name,
+              address: settings.address,
+              phone: settings.phone,
+              email: settings.email,
+              logo: settings.logo,
+              currency: settings.currency,
+              legalFooter: settings.legalFooter,
+              themePrimary: settings.themePrimary,
+              themeSecondary: settings.themeSecondary,
+              themeAccent: settings.themeAccent,
+            }
+          }
+        />
       </div>
 
-      {/* CARTE 2 : Années scolaires */}
+      {/* CARTE 2 : Email (SMTP) — W13. Le mot de passe ne QUITTE JAMAIS le
+          serveur : seul hasPassword (booléen) est transmis au client. */}
+      <div className="bg-white p-4 rounded-md">
+        <h1 className="text-lg font-semibold mb-4">Email (SMTP)</h1>
+        <SmtpSettingsForm
+          data={{
+            emailEnabled: settings?.emailEnabled ?? false,
+            smtpHost: settings?.smtpHost ?? null,
+            smtpPort: settings?.smtpPort ?? null,
+            smtpUser: settings?.smtpUser ?? null,
+            smtpFrom: settings?.smtpFrom ?? null,
+          }}
+          hasPassword={!!settings?.smtpPass}
+        />
+      </div>
+
+      {/* CARTE 3 : Années scolaires */}
       <div className="bg-white p-4 rounded-md">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Années scolaires</h1>

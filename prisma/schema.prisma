@@ -760,6 +760,17 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   slug      String   @unique          // identifiant lisible (URL, support)
   active    Boolean  @default(true)   // coupure plateforme (superadmin)
   createdAt DateTime @default(now())
+  // W13 — config SMTP PROPRE à l'école (§2.6.3). emailEnabled = l'école utilise
+  // SON serveur ; sinon fallback plateforme (env SMTP_HOST/PORT/USER/PASS/FROM),
+  // et sans aucun des deux → canal in-app seulement, jamais bloquant.
+  // AMÉLIORATION NOTÉE : smtpPass est stocké en clair — à chiffrer au repos
+  // (pgcrypto ou clé applicative) dans une story ultérieure.
+  smtpHost     String?
+  smtpPort     Int?
+  smtpUser     String?
+  smtpPass     String?                // write-only côté UI (jamais renvoyé au client)
+  smtpFrom     String?                // adresse expéditeur ("École <no-reply@...>")
+  emailEnabled Boolean @default(false)
 
   users             User[]
   classes           Class[]
@@ -1017,13 +1028,16 @@ model Notification {
   @@index([userId, createdAt])
 }
 
-// W12 — préférence par type : ABSENCE de ligne = activé par défaut.
-// Pas de notion de canal ici — W13 (email) ajoutera la sienne.
+// W12 — préférence par type : ABSENCE de ligne = activé par défaut (les DEUX
+// canaux). W13 — `enabled` = canal in-app, `emailEnabled` = canal email
+// (types critiques ABSENCE / REPORT_CARD / PAYMENT uniquement) ; les deux
+// toggles sont indépendants.
 model NotificationPreference {
-  id      Int     @id @default(autoincrement())
-  userId  String // User.id
-  type    String // cf. notificationTypes.ts
-  enabled Boolean @default(true)
+  id           Int     @id @default(autoincrement())
+  userId       String // User.id
+  type         String // cf. notificationTypes.ts
+  enabled      Boolean @default(true)
+  emailEnabled Boolean @default(true) // W13 — canal email
 
   @@unique([userId, type])
 }

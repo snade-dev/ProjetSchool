@@ -237,6 +237,29 @@ export const schoolSettingsSchema = z.object({
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
+// ---- W13 : Config SMTP de l'école (section « Email (SMTP) » de /settings) ----
+// smtpPass est WRITE-ONLY : champ laissé vide = mot de passe inchangé (le
+// mot de passe stocké n'est JAMAIS renvoyé au client).
+export const smtpSettingsSchema = z.object({
+  emailEnabled: z.coerce.boolean(),
+  smtpHost: z.string().trim().optional().or(z.literal("")),
+  smtpPort: z
+    .union([
+      z.literal(""),
+      z.coerce
+        .number({ message: "Port invalide !" })
+        .int({ message: "Port invalide !" })
+        .min(1, { message: "Port invalide !" })
+        .max(65535, { message: "Port invalide !" }),
+    ])
+    .optional(),
+  smtpUser: z.string().trim().optional().or(z.literal("")),
+  smtpPass: z.string().optional().or(z.literal("")),
+  smtpFrom: z.string().trim().optional().or(z.literal("")),
+});
+
+export type SmtpSettingsSchema = z.infer<typeof smtpSettingsSchema>;
+
 // ---- S04 : Grille des frais de scolarité ----
 export const feeStructureSchema = z.object({
   id: z.coerce.number().optional(),
