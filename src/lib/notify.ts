@@ -266,3 +266,25 @@ export async function announcementAudience(
     return [];
   }
 }
+
+/**
+ * W14 — audience d'un devoir (§2.3.8) : élèves inscrits de la classe + leurs
+ * tuteurs (tous droits). Motif d'announcementAudience RESTREINT — sans le
+ * professeur (l'auteur n'a pas à être notifié de sa propre publication).
+ * Dédupliquée ; ne lève jamais ([] en cas d'échec).
+ */
+export async function homeworkAudience(classId: number): Promise<string[]> {
+  try {
+    const klass = await prisma.class.findUnique({
+      where: { id: classId },
+      select: { enrollments: { select: { studentId: true } } },
+    });
+    if (!klass) return [];
+    const studentIds = klass.enrollments.map((e) => e.studentId);
+    const guardians = await guardianUserIds(studentIds);
+    return [...new Set([...studentIds, ...guardians])];
+  } catch (err) {
+    console.error("[notify] résolution de l'audience du devoir impossible:", err);
+    return [];
+  }
+}

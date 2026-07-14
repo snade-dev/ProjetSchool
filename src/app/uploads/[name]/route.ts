@@ -7,13 +7,15 @@ import path from "path";
 // après le build. Les noms sont générés par /api/upload (hex + extension) :
 // tout autre motif est refusé (pas de traversée de chemin possible).
 
-const NAME_RE = /^[0-9]+-[a-f0-9]+\.(jpg|png|webp|gif)$/;
+const NAME_RE = /^[0-9]+-[a-f0-9]+\.(jpg|png|webp|gif|pdf)$/;
 
 const CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
   gif: "image/gif",
+  // W14 — pièces jointes de devoirs
+  pdf: "application/pdf",
 };
 
 export async function GET(

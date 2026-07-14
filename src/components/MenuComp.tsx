@@ -127,6 +127,8 @@ const MENU: MenuEntry[] = [
       label: "Vie scolaire",
       visible: [...ALL, "supervisor", "accountant"],
       items: [
+        // W14 — devoirs à faire (§2.3.8)
+        { icon: NotebookPen, label: "Devoirs à faire", href: "/list/homeworks", visible: [...ALL, "supervisor"] },
         { icon: ClipboardCheck, label: "Faire l'appel", href: "/list/attendances/appel", visible: ["admin", "director", "teacher", "supervisor"] },
         { icon: CheckSquare, label: "Présences", href: "/list/attendances", visible: [...ALL, "supervisor"] },
         { icon: Calendar, label: "Événements", href: "/list/events", visible: ALL },

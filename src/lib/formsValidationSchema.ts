@@ -701,3 +701,26 @@ export const makeupExamFormSchema = z.object({
 });
 
 export type MakeupExamFormSchema = z.infer<typeof makeupExamFormSchema>;
+
+// ---- W14 : Devoirs à faire (§2.3.8) ----
+export const homeworkSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z.string().min(1, { message: "Le titre est requis !" }),
+  content: z.string().min(1, { message: "Les consignes sont requises !" }),
+  dueDate: z.coerce
+    .date({ message: "La date de rendu est requise !" })
+    .refine(
+      (d) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return d >= today;
+      },
+      { message: "La date de rendu doit être future !" }
+    ),
+  classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
+  subjectId: z.coerce.number().min(1, { message: "La matière est requise !" }),
+  // pièce jointe optionnelle (URL /uploads/… du flux d'upload existant)
+  fileUrl: z.string().optional().or(z.literal("")),
+});
+
+export type HomeworkSchema = z.infer<typeof homeworkSchema>;

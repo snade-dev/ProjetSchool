@@ -1,5 +1,6 @@
 import Annoucement from "@/components/Annoucement";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
+import UpcomingHomeworksCard from "@/components/UpcomingHomeworksCard";
 import ChildSubjectCompareChart from "@/components/stats/ChildSubjectCompareChart";
 import ChildTrendChart from "@/components/stats/ChildTrendChart";
 import prisma from "@/lib/prisma";
@@ -360,6 +361,17 @@ const ParentPage = async () => {
 
       {/* RIGHT */}
       <div className="w-full xl:w-1/3 flex flex-col gap-8">
+        {/* W14 — devoirs des enfants à rendre dans les 7 prochains jours */}
+        <UpcomingHomeworksCard
+          classIds={[
+            ...new Set(
+              children
+                .map((c) => c.class?.id)
+                .filter((id): id is number => id != null)
+            ),
+          ]}
+          showClass={children.length > 1}
+        />
         <Annoucement />
       </div>
     </div>

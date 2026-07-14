@@ -211,6 +211,9 @@ model Class {
   // W08 — matières enseignées dans la classe avec leur coefficient (§2.1.6)
   classSubjects ClassSubject[]
 
+  // W14 — devoirs à faire publiés pour la classe (§2.3.8)
+  homeworks Homework[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -250,6 +253,9 @@ model Subject {
 
   // W08 — classes où la matière est enseignée (coefficient par classe)
   classSubjects ClassSubject[]
+
+  // W14 — devoirs à faire de la matière (§2.3.8)
+  homeworks Homework[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -789,6 +795,7 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   quizzes           Quiz[]
   subscription      SchoolSubscription? // V05
   memberships       UserSchoolMembership[] // W06
+  homeworks         Homework[] // W14
 
   @@map("SchoolSettings")
 }
@@ -1040,6 +1047,36 @@ model NotificationPreference {
   emailEnabled Boolean @default(true) // W13 — canal email
 
   @@unique([userId, type])
+}
+
+// ---------------------------------------------------------------------------
+// W14 — Devoirs à faire (§2.3.8). V1 : publication (enseignant) + consultation
+// (élève/parent/direction) UNIQUEMENT — pas de dépôt en ligne ni de correction
+// (explicitement V2). `teacherId` est le User.id de l'AUTEUR (convention du
+// repo : Invoice.createdById, Expense.createdById) — volontairement SANS FK
+// vers Teacher car admin/director peuvent aussi publier (toute classe de
+// l'école) et n'ont pas de profil Teacher.
+// ---------------------------------------------------------------------------
+
+model Homework {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String // consignes (texte libre)
+  dueDate   DateTime // date de rendu
+  classId   Int
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId Int
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId String // User.id de l'auteur (teacher, admin ou director)
+  fileUrl   String? // pièce jointe (flux /api/upload existant)
+  createdAt DateTime @default(now())
+
+  // W01 — cohérence multi-tenant : entité racine rattachée à son école
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([classId, dueDate])
+  @@index([teacherId])
 }
 
 // ---------------------------------------------------------------------------
