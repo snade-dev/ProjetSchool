@@ -76,9 +76,14 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "student":
         // W02 — seules les classes de l'année scolaire ACTIVE sont proposées
+        // W03 — effectif affiché = inscriptions ACTIVE de la classe
         const studentClasses = await prisma.class.findMany({
           where: { schoolId, schoolYear: { isActive: true } },
-          include: { _count: { select: { students: true } } },
+          include: {
+            _count: {
+              select: { enrollments: { where: { status: "ACTIVE" } } },
+            },
+          },
         });
         relatedData = { classes: studentClasses };
         break;
@@ -245,16 +250,27 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { classes: feeClasses };
         break;
       case "invoice":
-        const invoiceStudents = await prisma.student.findMany({
+        // W03 — la classe affichée = inscription de l'année active
+        const invoiceStudentRows = await prisma.student.findMany({
           where: { schoolId },
           select: {
             id: true,
             name: true,
             surname: true,
-            class: { select: { name: true } },
+            enrollments: {
+              where: { schoolYear: { isActive: true } },
+              select: { class: { select: { name: true } } },
+              take: 1,
+            },
           },
           orderBy: [{ name: "asc" }, { surname: "asc" }],
         });
+        const invoiceStudents = invoiceStudentRows.map((s) => ({
+          id: s.id,
+          name: s.name,
+          surname: s.surname,
+          class: s.enrollments[0]?.class ?? null,
+        }));
         relatedData = { students: invoiceStudents };
         break;
       case "expense":

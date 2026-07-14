@@ -5,6 +5,7 @@ import { createAuthUser, removeAuthUser, setAuthUserPassword } from './authAdmin
 import prisma from './prisma';
 import { requireRole, requireSchool } from './authGuard';
 import { getActiveSchoolYear } from './schoolYear';
+import { upsertEnrollment } from './enrollment';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from './actionErrors';
 
@@ -439,12 +440,16 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
 
 
       // Verifier si il y a de la place dans la classe
+      // W03 — l'effectif d'une classe = ses inscriptions ACTIVE (Enrollment)
        const classItem = await prisma.class.findUnique({
         where: {id: data.classId},
-        include:  {_count: {select: {students: true}}}
+        include:  {_count: {select: {enrollments: {where: {status: "ACTIVE"}}}}}
        })
 
-       if (classItem && classItem.capacity === classItem._count.students) {
+       if (!classItem) {
+         return {success: false, error: true, message: "La classe choisie n'existe pas"}
+       }
+       if (classItem.capacity === classItem._count.enrollments) {
          return {success: false, error: true, message: "La classe à déja ateint sa capacité maximale"}
        }
         // Recherchez le parent par son nom
@@ -470,23 +475,31 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
 
         try {
         const { schoolId } = await requireSchool(["admin"]); // V03
-        await prisma.student.create({
-          data: {
-            schoolId,
-            id: userId,
-            username: data.username,
-            name: data.name,
-            surname: data.surname,
-            email: data.email || null,
-            phone: data.phone || null,
-            address: data.address,
-            img: data.img || null,
-            bloodType: data.bloodType,
-            sex: data.sex,
-            birthday: data.birthday,
-            classId: data.classId,
-            parentId: parent.id
-          },
+        // W03 — la classe choisie doit appartenir à l'école de la session
+        if (classItem.schoolId !== schoolId) {
+          await removeAuthUser(userId);
+          return { success: false, error: true, message: "Classe introuvable dans votre établissement." };
+        }
+        // W03 — l'élève et son inscription (Enrollment) dans la même transaction
+        await prisma.$transaction(async (tx) => {
+          await tx.student.create({
+            data: {
+              schoolId,
+              id: userId,
+              username: data.username,
+              name: data.name,
+              surname: data.surname,
+              email: data.email || null,
+              phone: data.phone || null,
+              address: data.address,
+              img: data.img || null,
+              bloodType: data.bloodType,
+              sex: data.sex,
+              birthday: data.birthday,
+              parentId: parent.id
+            },
+          });
+          await upsertEnrollment(userId, classItem.id, classItem.schoolYearId, tx);
         });
         } catch (err) {
           // compensation : ne pas laisser un compte de connexion orphelin
@@ -543,26 +556,37 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
         console.warn(`Erreur lors de la mise à jour de l'utilisateur dans Better Auth: ${authError}`);
       }
 
-      await prisma.student.update({
-        where: {
-          id: data.id
-        },
-        data: {
-          // Bug corrigé : le modèle Student n'a PAS de colonne password
-          // (mot de passe géré par better-auth plus haut).
-          username: data.username,
-          name: data.name,
-          surname: data.surname,
-          email: data.email || null,
-          phone: data.phone || null,
-          address: data.address,
-          img: data.img || null,
-          bloodType: data.bloodType,
-          sex: data.sex,
-          birthday: data.birthday,
-            classId: data.classId,
+      // W03 — la classe choisie pilote l'Enrollment de son année scolaire
+      const targetClass = await prisma.class.findFirst({
+        where: { id: data.classId, schoolId },
+        select: { id: true, schoolYearId: true },
+      });
+      if (!targetClass) {
+        return { success: false, error: true, message: "Classe introuvable dans votre établissement." };
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.student.update({
+          where: {
+            id: data.id!
+          },
+          data: {
+            // Bug corrigé : le modèle Student n'a PAS de colonne password
+            // (mot de passe géré par better-auth plus haut).
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address,
+            img: data.img || null,
+            bloodType: data.bloodType,
+            sex: data.sex,
+            birthday: data.birthday,
             parentId: parent.id
-        },
+          },
+        });
+        await upsertEnrollment(data.id!, targetClass.id, targetClass.schoolYearId, tx);
       });
 
         revalidatePath("/list/students");
