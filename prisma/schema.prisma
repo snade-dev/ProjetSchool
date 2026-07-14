@@ -790,6 +790,10 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   smtpFrom     String?                // adresse expéditeur ("École <no-reply@...>")
   emailEnabled Boolean @default(false)
 
+  // W16 — messagerie élève↔enseignant (§2.6.5 : « optionnel, désactivable par
+  // l'école ») : false = les élèves ne peuvent pas écrire à leurs enseignants.
+  studentMessagingEnabled Boolean @default(false)
+
   users             User[]
   classes           Class[]
   levels            Level[] // W02
@@ -810,6 +814,7 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   homeworks         Homework[] // W14
   observations      Observation[] // W15
   absenceJustifications AbsenceJustification[] // W15
+  messages          Message[] // W16
 
   @@map("SchoolSettings")
 }
@@ -1198,4 +1203,33 @@ model SubscriptionPayment {
   reference      String?            // n° de transaction / reçu
   note           String?
   paidAt         DateTime           @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// W16 — Messagerie interne 1-à-1 (§2.6.5). V1 : texte + pièce jointe, sans
+// groupes ni vocal. senderId/receiverId sont des User.id (convention du repo :
+// Homework.teacherId, Notification.userId — volontairement SANS FK vers User,
+// tous les rôles école peuvent écrire). Les RÈGLES de mise en relation sont
+// codées en dur dans src/lib/messaging.ts (canMessage) : parent↔direction,
+// parent↔enseignant d'un de ses enfants, enseignant↔enseignant/direction,
+// direction↔personnel, élève↔enseignant de sa classe si l'école l'a activé
+// (School.studentMessagingEnabled) ; parent↔parent, élève↔élève et tout
+// inter-écoles INTERDITS. Toute communication est archivée par l'école : la
+// direction peut consulter (page supervision, chaque consultation auditée).
+// ---------------------------------------------------------------------------
+
+model Message {
+  id         Int       @id @default(autoincrement())
+  schoolId   Int // école du fil (celle de l'expéditeur — inter-écoles interdit)
+  school     School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  senderId   String // User.id de l'expéditeur
+  receiverId String // User.id du destinataire
+  content    String
+  fileUrl    String? // pièce jointe (flux /api/upload existant, image ou PDF)
+  readAt     DateTime? // marqué à l'ouverture du fil par le destinataire
+  createdAt  DateTime  @default(now())
+
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, readAt])
+  @@index([schoolId, createdAt])
 }

@@ -750,3 +750,17 @@ export const justificationSchema = z.object({
 });
 
 export type JustificationSchema = z.infer<typeof justificationSchema>;
+
+// ---- W16 : Messagerie interne 1-à-1 (§2.6.5) ----
+export const messageSchema = z.object({
+  receiverId: z.string().min(1, { message: "Le destinataire est requis !" }),
+  content: z
+    .string()
+    .trim()
+    .min(1, { message: "Le message est vide !" })
+    .max(5000, { message: "Message trop long (5000 caractères max) !" }),
+  // pièce jointe optionnelle (URL /uploads/… du flux d'upload existant)
+  fileUrl: z.string().optional().or(z.literal("")),
+});
+
+export type MessageSchema = z.infer<typeof messageSchema>;
