@@ -101,11 +101,14 @@ export const deleteSubject = async (currentState: CurrentState ,data: FormData) 
 // CLASS
 export const createClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
     try {
-        await requireRole(["admin"]);
+        // V03 — création rattachée à l'école de la session
+        const { schoolId } = await requireSchool(["admin"]);
 
+        // W01 — le contrôle de doublon est scopé à l'école (unicité par école)
         const existingClass = await prisma.class.findFirst({
           where: {
-            name: data.name
+            name: data.name,
+            schoolId
           }
         })
 
@@ -113,8 +116,6 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
           return {success: false, error: true, message: "La class existe déjà"};
         }
 
-        // V03 — création rattachée à l'école de la session
-        const { schoolId } = await requireSchool(["admin"]);
         await prisma.class.create({
           data: { ...data, schoolId }
         });

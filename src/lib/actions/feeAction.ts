@@ -95,16 +95,25 @@ export const duplicateFees = async (
   toClassId: number
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin"]);
+    // W01 — plus de @default(1) : schoolId explicite depuis la session,
+    // et classes source/cible vérifiées dans l'école de la session.
+    const { schoolId } = await requireSchool(["admin"]);
 
     if (!fromClassId || !toClassId || fromClassId === toClassId) {
       return { success: false, error: true };
     }
 
-    const activeYear = await getActiveSchoolYear();
+    const ownedClasses = await prisma.class.count({
+      where: { id: { in: [fromClassId, toClassId] }, schoolId },
+    });
+    if (ownedClasses !== 2) {
+      return { success: false, error: true };
+    }
+
+    const activeYear = await getActiveSchoolYear(schoolId);
 
     const sourceFees = await prisma.feeStructure.findMany({
-      where: { classId: fromClassId, schoolYearId: activeYear.id },
+      where: { classId: fromClassId, schoolYearId: activeYear.id, schoolId },
     });
 
     if (sourceFees.length === 0) {
@@ -118,6 +127,7 @@ export const duplicateFees = async (
         period: fee.period,
         classId: toClassId,
         schoolYearId: activeYear.id,
+        schoolId,
       })),
       skipDuplicates: true,
     });
