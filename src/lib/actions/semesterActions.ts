@@ -24,8 +24,9 @@ export const createSemester = async (
   try {
     const { schoolId } = await requireSchool(["admin"]); // V03
 
+    // W01 — le contrôle de doublon est scopé à l'école (unicité par école)
     const existingSemester = await prisma.semester.findFirst({
-      where: { name: data.name },
+      where: { name: data.name, schoolId },
     });
 
     if (existingSemester) {

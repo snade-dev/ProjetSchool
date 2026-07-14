@@ -2,8 +2,23 @@ import { PrismaClient } from "../src/app/generated/prisma";
 
 const prisma = new PrismaClient();
 
+// W01 — plus de @default(1) sur schoolId : le seed cible EXPLICITEMENT l'école #1.
+const SEED_SCHOOL_ID = 1;
+
 async function seed() {
-  // SUBJECT (idempotent : upsert sur le nom unique)
+  // SCHOOL SETTINGS (école #1 — créée AVANT toute donnée qui la référence)
+  await prisma.school.upsert({
+    where: { id: SEED_SCHOOL_ID },
+    update: {},
+    create: {
+      id: SEED_SCHOOL_ID,
+      name: "Mon Établissement",
+      currency: "FCFA",
+      slug: "mon-etablissement-1", // V02 — identifiant SaaS
+    },
+  });
+
+  // SUBJECT (idempotent : upsert sur la clé composite école + nom, W01)
   const subjectData = [
     { name: "Mathématiques" },
     { name: "Sciences" },
@@ -19,38 +34,33 @@ async function seed() {
 
   for (const subject of subjectData) {
     await prisma.subject.upsert({
-      where: { name: subject.name },
+      where: {
+        schoolId_name: { schoolId: SEED_SCHOOL_ID, name: subject.name },
+      },
       update: {},
-      create: subject,
+      create: { ...subject, schoolId: SEED_SCHOOL_ID },
     });
   }
 
-  // SCHOOL SETTINGS (singleton id = 1)
-  await prisma.school.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      name: "Mon Établissement",
-      currency: "FCFA",
-      slug: "mon-etablissement-1", // V02 — identifiant SaaS
-    },
-  });
-
-  // SCHOOL YEAR active (upsert sur le nom unique)
+  // SCHOOL YEAR active (upsert sur la clé composite école + nom, W01)
   await prisma.schoolYear.upsert({
-    where: { name: "2025-2026" },
+    where: {
+      schoolId_name: { schoolId: SEED_SCHOOL_ID, name: "2025-2026" },
+    },
     update: { isActive: true },
     create: {
       name: "2025-2026",
       startDate: new Date("2025-09-01"),
       endDate: new Date("2026-06-30"),
       isActive: true,
+      schoolId: SEED_SCHOOL_ID,
     },
   });
 
-  // Vérifie l'invariant "une seule année active" via le helper
-  const active = await prisma.schoolYear.findFirst({ where: { isActive: true } });
+  // Vérifie l'invariant "une seule année active PAR ÉCOLE" via le helper
+  const active = await prisma.schoolYear.findFirst({
+    where: { isActive: true, schoolId: SEED_SCHOOL_ID },
+  });
   if (!active) {
     throw new Error("Aucune année scolaire active — configurez /settings");
   }
@@ -61,7 +71,7 @@ async function seed() {
   // S'appuie sur les Class/Teacher EXISTANTS en base (findMany), pas d'ids codés.
   // ==========================================================================
 
-  // ---- ExpenseCategory : 4 catégories (name @unique) ----
+  // ---- ExpenseCategory : 4 catégories (unicité école + nom, W01) ----
   const expenseCategories = [
     "Fournitures",
     "Électricité & eau",
@@ -70,15 +80,17 @@ async function seed() {
   ];
   for (const name of expenseCategories) {
     await prisma.expenseCategory.upsert({
-      where: { name },
+      where: { schoolId_name: { schoolId: SEED_SCHOOL_ID, name } },
       update: {},
-      create: { name },
+      create: { name, schoolId: SEED_SCHOOL_ID },
     });
   }
   console.log(`ExpenseCategory : ${expenseCategories.length} catégories (upsert)`);
 
   // ---- FeeStructure : 2 par Class existante, rattachées à l'année active ----
-  const classes = await prisma.class.findMany();
+  const classes = await prisma.class.findMany({
+    where: { schoolId: SEED_SCHOOL_ID },
+  });
   for (const cls of classes) {
     const fees = [
       { label: "Scolarité mensuelle", amount: 25000, period: "MONTHLY" as const },
@@ -100,6 +112,7 @@ async function seed() {
           period: fee.period,
           classId: cls.id,
           schoolYearId: active.id,
+          schoolId: SEED_SCHOOL_ID, // W01 — plus de défaut
         },
       });
     }
@@ -109,7 +122,11 @@ async function seed() {
   );
 
   // ---- Employee : 2 liés aux 2 premiers Teachers existants + 1 staff ----
-  const teachers = await prisma.teacher.findMany({ orderBy: { id: "asc" }, take: 2 });
+  const teachers = await prisma.teacher.findMany({
+    where: { schoolId: SEED_SCHOOL_ID },
+    orderBy: { id: "asc" },
+    take: 2,
+  });
   for (const teacher of teachers) {
     await prisma.employee.upsert({
       where: { teacherId: teacher.id },
@@ -123,6 +140,7 @@ async function seed() {
         email: teacher.email ?? undefined,
         hireDate: new Date("2025-09-01"),
         baseSalary: 150000,
+        schoolId: SEED_SCHOOL_ID, // W01 — plus de défaut
       },
     });
   }
@@ -137,6 +155,7 @@ async function seed() {
       position: "Secrétaire",
       hireDate: new Date("2025-09-01"),
       baseSalary: 80000,
+      schoolId: SEED_SCHOOL_ID, // W01 — plus de défaut
     },
   });
   console.log(`Employee : ${teachers.length} enseignants + 1 staff (upsert)`);
@@ -144,13 +163,15 @@ async function seed() {
   // ---- Expense : quelques dépenses de démonstration sur 3 mois ----
   // Idempotent via id fixe (upsert). Réparties sur 3 mois différents (stats S16).
   const suppliesCat = await prisma.expenseCategory.findUniqueOrThrow({
-    where: { name: "Fournitures" },
+    where: { schoolId_name: { schoolId: SEED_SCHOOL_ID, name: "Fournitures" } },
   });
   const rentCat = await prisma.expenseCategory.findUniqueOrThrow({
-    where: { name: "Loyer" },
+    where: { schoolId_name: { schoolId: SEED_SCHOOL_ID, name: "Loyer" } },
   });
   const utilitiesCat = await prisma.expenseCategory.findUniqueOrThrow({
-    where: { name: "Électricité & eau" },
+    where: {
+      schoolId_name: { schoolId: SEED_SCHOOL_ID, name: "Électricité & eau" },
+    },
   });
   const demoExpenses = [
     {
