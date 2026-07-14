@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession, auditDiff } from "../audit";
 import { EmployeeSchema } from "../formsValidationSchema";
 
 type CurrentState = {
@@ -50,8 +51,9 @@ export const createEmployee = async (
       phone = teacher.phone ?? null;
     }
 
-    const { schoolId } = await requireSchool(["admin", "director"]); // V03
-    await prisma.employee.create({
+    const session = await requireSchool(["admin", "director"]); // V03
+    const { schoolId } = session;
+    const created = await prisma.employee.create({
       data: {
         schoolId,
         teacherId,
@@ -63,6 +65,17 @@ export const createEmployee = async (
         hireDate: data.hireDate,
         baseSalary: data.baseSalary,
         active: data.active ?? true,
+      },
+    });
+
+    // W10 — journal d'audit : création d'un employé (§2.11.2)
+    await auditWithSession(session, "employee.create", `Employee#${created.id}`, {
+      after: {
+        name,
+        surname,
+        position: data.position,
+        baseSalary: data.baseSalary,
+        teacherId,
       },
     });
 
@@ -87,11 +100,17 @@ export const updateEmployee = async (
   data: EmployeeSchema
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin", "director"]);
+    const session = await requireRole(["admin", "director"]);
 
     if (!data.id) {
       return { success: false, error: true, message: "Identifiant manquant" };
     }
+
+    // W10 — valeurs avant modification (before/after du journal d'audit)
+    const before = await prisma.employee.findUnique({
+      where: { id: data.id },
+      select: { position: true, phone: true, email: true, baseSalary: true, active: true, schoolId: true },
+    });
 
     // On ne modifie que les champs éditables : salaire, poste, contacts, statut.
     // Le lien à l'enseignant et l'identité liée ne se remodifient pas ici.
@@ -105,6 +124,25 @@ export const updateEmployee = async (
         active: data.active ?? true,
       },
     });
+
+    // W10 — journal d'audit : champs modifiés seulement (dont baseSalary,
+    // §2.11.2 « modification d'un salaire »)
+    if (before) {
+      const diff = auditDiff(before as unknown as Record<string, unknown>, {
+        position: data.position,
+        phone: data.phone ? data.phone : null,
+        email: data.email ? data.email : null,
+        baseSalary: data.baseSalary,
+        active: data.active ?? true,
+      });
+      if (diff.changed) {
+        await auditWithSession(session, "employee.update", `Employee#${data.id}`, {
+          before: diff.before,
+          after: diff.after,
+          schoolId: before.schoolId,
+        });
+      }
+    }
 
     revalidatePath("/list/employees");
     return { success: true, error: false };
@@ -120,7 +158,7 @@ export const deleteEmployee = async (
 ): Promise<CurrentState> => {
   const id = formData.get("id") as string;
   try {
-    await requireRole(["admin", "director"]);
+    const session = await requireRole(["admin", "director"]);
 
     // Refus de suppression si des bulletins de paie existent → désactiver plutôt.
     const salaryCount = await prisma.salaryPayment.count({
@@ -134,7 +172,21 @@ export const deleteEmployee = async (
       };
     }
 
+    // W10 — identité conservée pour le journal d'audit
+    const before = await prisma.employee.findUnique({
+      where: { id },
+      select: { name: true, surname: true, position: true, schoolId: true },
+    });
+
     await prisma.employee.delete({ where: { id } });
+
+    // W10 — journal d'audit : suppression d'un employé (§2.11.2)
+    await auditWithSession(session, "employee.delete", `Employee#${id}`, {
+      before: before
+        ? { name: before.name, surname: before.surname, position: before.position }
+        : undefined,
+      schoolId: before?.schoolId,
+    });
 
     revalidatePath("/list/employees");
     return { success: true, error: false };

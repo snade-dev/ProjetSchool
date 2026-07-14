@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { classSubjectSchema, ClassSubjectSchema } from "../formsValidationSchema";
 import { buildClassReportCards } from "../reportCard";
 import {
@@ -57,7 +58,8 @@ export const addClassSubject = async (
   data: ClassSubjectSchema
 ): Promise<ActionResult> => {
   try {
-    const { schoolId, userId } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     const parsed = classSubjectSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: true, message: "Données invalides." };
@@ -92,7 +94,7 @@ export const addClassSubject = async (
       };
     }
 
-    await prisma.classSubject.create({
+    const created = await prisma.classSubject.create({
       data: {
         classId: klass.id,
         subjectId: subject.id,
@@ -102,16 +104,22 @@ export const addClassSubject = async (
 
     // Un ajout à coefficient ≠ 1 change la pondération de matières déjà notées
     // (une matière SANS ligne comptait pour 1) → bulletins existants périmés.
+    let staleCount = 0;
     if (parsed.data.coefficient !== 1 && klass.evaluationSystem !== "MONTHLY") {
       const { ids } = await impactedTrimesterAverages(klass.id, klass.schoolYearId);
       const { count } = await markStale(ids);
-      if (count > 0) {
-        // TODO W10 — journal d'audit : coefficient.create (before/after, userId)
-        console.log(
-          `[W08] coefficient.create ${klass.name}/${subject.name}=${parsed.data.coefficient} par ${userId} — ${count} bulletin(s) marqués à régénérer`
-        );
-      }
+      staleCount = count;
     }
+
+    // W10 — journal d'audit : rattachement d'une matière avec son coefficient
+    await auditWithSession(session, "coefficient.create", `ClassSubject#${created.id}`, {
+      after: {
+        class: klass.name,
+        subject: subject.name,
+        coefficient: parsed.data.coefficient,
+        bulletinsPerimes: staleCount,
+      },
+    });
 
     revalidatePath(`/list/classes/${klass.id}/subjects`);
     return { success: true, error: false, message: "" };
@@ -129,10 +137,11 @@ export const addClassSubject = async (
  */
 export const updateCoefficient = async (
   currentState: ActionResult,
-  data: ClassSubjectSchema & { confirmed?: boolean }
+  data: ClassSubjectSchema & { confirmed?: boolean; reason?: string }
 ): Promise<CoefficientUpdateResult> => {
   try {
-    const { schoolId, userId, role } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     const parsed = classSubjectSchema.safeParse(data);
     if (!parsed.success || !parsed.data.id) {
       return { success: false, error: true, message: "Données invalides." };
@@ -186,6 +195,17 @@ export const updateCoefficient = async (
       };
     }
 
+    // W10 — motif OBLIGATOIRE pour une correction rétroactive (§2.11.3) :
+    // des bulletins existent → le changement doit être justifié.
+    const reason = typeof data.reason === "string" ? data.reason.trim().slice(0, 500) : "";
+    if (impact.ids.length > 0 && data.confirmed && !reason) {
+      return {
+        success: false,
+        error: true,
+        message: "Motif obligatoire pour modifier un coefficient dont des bulletins existent.",
+      };
+    }
+
     // 2e temps (ou aucun bulletin existant) : écriture + marquage stale.
     await prisma.$transaction(async (tx) => {
       await tx.classSubject.update({
@@ -200,10 +220,17 @@ export const updateCoefficient = async (
       }
     });
 
-    // TODO W10 — journal d'audit : coefficient.update (before/after, reason)
-    console.log(
-      `[W08] coefficient.update ${line.class.name}/${line.subject.name} : ${line.coefficient} → ${parsed.data.coefficient} par ${userId} (${role}) — ${impact.ids.length} bulletin(s) marqués à régénérer`
-    );
+    // W10 — journal d'audit : coefficient.update (before/after + motif)
+    await auditWithSession(session, "coefficient.update", `ClassSubject#${line.id}`, {
+      before: { coefficient: line.coefficient },
+      after: {
+        coefficient: parsed.data.coefficient,
+        class: line.class.name,
+        subject: line.subject.name,
+        bulletinsPerimes: impact.ids.length,
+      },
+      reason,
+    });
 
     revalidatePath(`/list/classes/${line.class.id}/subjects`);
     return {
@@ -230,10 +257,11 @@ export const updateCoefficient = async (
  */
 export const updateHomeworkWeight = async (
   currentState: ActionResult,
-  data: { classId: number; homeworkWeight: number; confirmed?: boolean }
+  data: { classId: number; homeworkWeight: number; confirmed?: boolean; reason?: string }
 ): Promise<CoefficientUpdateResult> => {
   try {
-    const { schoolId, userId, role } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     const weight = Number(data.homeworkWeight);
     if (
       !Number.isInteger(data.classId) ||
@@ -280,6 +308,16 @@ export const updateHomeworkWeight = async (
       };
     }
 
+    // W10 — motif OBLIGATOIRE pour une correction rétroactive (§2.11.3).
+    const reason = typeof data.reason === "string" ? data.reason.trim().slice(0, 500) : "";
+    if (impact.ids.length > 0 && data.confirmed && !reason) {
+      return {
+        success: false,
+        error: true,
+        message: "Motif obligatoire pour modifier la pondération alors que des bulletins existent.",
+      };
+    }
+
     // 2e temps (ou aucun bulletin existant) : écriture + marquage stale.
     await prisma.$transaction(async (tx) => {
       await tx.class.update({
@@ -294,10 +332,16 @@ export const updateHomeworkWeight = async (
       }
     });
 
-    // TODO W10 — journal d'audit : homeworkWeight.update (before/after, reason)
-    console.log(
-      `[W09] homeworkWeight.update ${klass.name} : ${klass.homeworkWeight} → ${weight} par ${userId} (${role}) — ${impact.ids.length} bulletin(s) marqués à régénérer`
-    );
+    // W10 — journal d'audit : homeworkWeight.update (before/after + motif)
+    await auditWithSession(session, "homeworkWeight.update", `Class#${klass.id}`, {
+      before: { homeworkWeight: klass.homeworkWeight },
+      after: {
+        homeworkWeight: weight,
+        class: klass.name,
+        bulletinsPerimes: impact.ids.length,
+      },
+      reason,
+    });
 
     revalidatePath(`/list/classes/${klass.id}/subjects`);
     return {
@@ -321,7 +365,8 @@ export const removeClassSubject = async (
 ): Promise<ActionResult> => {
   const id = parseInt(data.get("id") as string);
   try {
-    const { schoolId, userId } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     if (Number.isNaN(id)) {
       return { success: false, error: true, message: "Données invalides." };
     }
@@ -354,19 +399,25 @@ export const removeClassSubject = async (
 
     // Retirer une ligne à coefficient ≠ 1 ramène la matière à 1 (fallback) →
     // les bulletins existants d'un régime pondéré sont périmés.
+    let staleCount = 0;
     if (line.coefficient !== 1 && line.class.evaluationSystem !== "MONTHLY") {
       const { ids } = await impactedTrimesterAverages(
         line.class.id,
         line.class.schoolYearId
       );
       const { count } = await markStale(ids);
-      if (count > 0) {
-        // TODO W10 — journal d'audit : coefficient.delete
-        console.log(
-          `[W08] coefficient.delete ${line.class.name}/${line.subject.name} (coef ${line.coefficient}) par ${userId} — ${count} bulletin(s) marqués à régénérer`
-        );
-      }
+      staleCount = count;
     }
+
+    // W10 — journal d'audit : retrait de la matière (le coefficient retombe à 1)
+    await auditWithSession(session, "coefficient.delete", `ClassSubject#${line.id}`, {
+      before: {
+        class: line.class.name,
+        subject: line.subject.name,
+        coefficient: line.coefficient,
+      },
+      after: { bulletinsPerimes: staleCount },
+    });
 
     revalidatePath(`/list/classes/${line.class.id}/subjects`);
     return { success: true, error: false, message: "" };
@@ -388,7 +439,8 @@ export const regenerateClassBulletins = async (
 ): Promise<ActionResult> => {
   const classId = parseInt(data.get("classId") as string);
   try {
-    const { schoolId, userId } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     if (Number.isNaN(classId)) {
       return { success: false, error: true, message: "Données invalides." };
     }
@@ -435,10 +487,14 @@ export const regenerateClassBulletins = async (
       });
     }
 
-    // TODO W10 — journal d'audit : reportCard.regenerate
-    console.log(
-      `[W08] reportCard.regenerate ${klass.name} par ${userId} — ${staleRows.length} période(s) recalculée(s)`
-    );
+    // W10 — journal d'audit : régénération des bulletins périmés de la classe
+    await auditWithSession(session, "reportCard.regenerate", `Class#${klass.id}`, {
+      after: {
+        class: klass.name,
+        periodes: staleRows.length,
+        bulletins: regenerated,
+      },
+    });
 
     revalidatePath(`/list/classes/${klass.id}/subjects`);
     revalidatePath("/list/exams");

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "../prisma";
 import { requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { schoolYearSchema } from "../formsValidationSchema";
 import {
   performRollover,
@@ -113,7 +114,8 @@ export const executeRollover = async (
   payload: RolloverExecuteInput
 ): Promise<ExecuteResult> => {
   try {
-    const { schoolId, userId } = await requireSchool(["admin"]);
+    const session = await requireSchool(["admin"]);
+    const { schoolId, userId } = session;
 
     const parsed = rolloverExecuteSchema.safeParse(payload);
     if (!parsed.success) {
@@ -121,6 +123,23 @@ export const executeRollover = async (
     }
 
     const summary = await performRollover(schoolId, userId, parsed.data);
+
+    // W10 — journal d'audit : passage d'année = UNE entrée résumé avec les
+    // comptes (inscriptions/réinscriptions couvertes ici, §2.11.2)
+    await auditWithSession(session, "rollover.execute", `SchoolYear#${parsed.data.targetYearId}`, {
+      after: {
+        oldYearId: parsed.data.oldYearId,
+        targetYearId: parsed.data.targetYearId,
+        classesCreees: summary.classesCreated,
+        passages: summary.promoted,
+        redoublements: summary.repeated,
+        sorties: summary.left,
+        diplomes: summary.graduated,
+        facturesArrieres: summary.arrearsCreated,
+        periodesReconduites: summary.periodsCreated,
+        anneeActivee: summary.activated,
+      },
+    });
 
     revalidatePath("/settings");
     revalidatePath("/settings/rollover");

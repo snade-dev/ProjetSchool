@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { getSessionInfo } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { SPACE_ROLES } from "../membership";
 
 /**
@@ -47,6 +48,14 @@ export async function switchSpace(membershipId: number, _formData?: FormData) {
         data: { schoolId: membership.schoolId, role: membership.role },
       });
       targetRole = membership.role;
+
+      // W10 — journal d'audit : bascule d'espace (changement de contexte
+      // école/rôle, §2.11.2 « changement de rôle ») — école CIBLE.
+      await auditWithSession(info, "membership.switch", `UserSchoolMembership#${membership.id}`, {
+        before: { schoolId: info.schoolId, role: info.role },
+        after: { schoolId: membership.schoolId, role: membership.role },
+        schoolId: membership.schoolId,
+      });
     }
   } catch (error) {
     // NEXT_REDIRECT doit remonter (redirect() lève volontairement)

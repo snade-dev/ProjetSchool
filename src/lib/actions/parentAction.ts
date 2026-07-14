@@ -3,6 +3,7 @@
 import { ParentSchema } from '../formsValidationSchema';
 import prisma from '../prisma';
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession, auditDiff } from "../audit";
 import { createAuthUser, removeAuthUser, setAuthUserPassword } from '../authAdmin';
 import { revalidatePath } from 'next/cache';
 
@@ -22,7 +23,7 @@ type CurrentState2 = {
 export const createParent = async (currentState: CurrentState2 ,data: ParentSchema) => {
 
     try {
-        await requireRole(["admin"]);
+        const session = await requireRole(["admin"]);
 
         // L'e-mail est l'identifiant de connexion et le mot de passe est
         // nécessaire à la création du compte (S19 : plus de défaut littéral).
@@ -88,6 +89,16 @@ export const createParent = async (currentState: CurrentState2 ,data: ParentSche
           throw err;
         }
 
+        // W10 — journal d'audit : création d'un parent (§2.11.2)
+        await auditWithSession(session, "parent.create", `Parent#${userId}`, {
+          after: {
+            username: data.username,
+            name: data.name,
+            surname: data.surname,
+            email: data.email || null,
+          },
+        });
+
         revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
@@ -101,9 +112,12 @@ export const updateParent = async (currentState: CurrentState2 ,data: ParentSche
     try {
       await requireRole(["admin"]);
       // V03 — le parent doit appartenir à l'école de la session
-      const { schoolId: sidP } = await requireSchool(["admin"]);
+      const session = await requireSchool(["admin"]);
+      const { schoolId: sidP } = session;
+      // W10 — champs chargés pour le before/after du journal d'audit
       const ownedP = await prisma.parent.findFirst({
-        where: { id: data.id, schoolId: sidP }, select: { id: true },
+        where: { id: data.id, schoolId: sidP },
+        select: { id: true, username: true, name: true, surname: true, email: true, phone: true, address: true },
       });
       if (!ownedP) return { success: false, error: true, message: "Parent introuvable dans votre établissement." };
       if (!data.id) {
@@ -143,6 +157,27 @@ export const updateParent = async (currentState: CurrentState2 ,data: ParentSche
         },
       });
 
+      // W10 — journal d'audit : champs modifiés seulement (compact)
+      {
+        const diff = auditDiff(ownedP, {
+          username: data.username,
+          name: data.name,
+          surname: data.surname,
+          email: data.email || null,
+          phone: data.phone || null,
+          address: data.address,
+        });
+        if (diff.changed || (data.password && data.password !== "")) {
+          await auditWithSession(session, "parent.update", `Parent#${data.id}`, {
+            before: diff.before,
+            after: {
+              ...diff.after,
+              ...(data.password ? { motDePasseChange: true } : {}),
+            },
+          });
+        }
+      }
+
         revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};
     } catch (error) {
@@ -156,10 +191,12 @@ export const deleteParent = async (currentState: CurrentState ,data: FormData) =
     const id = data.get("id") as string;
     try {
       await requireRole(["admin"]);
-      // V03 — cloisonnement
-      const { schoolId: sidPD } = await requireSchool(["admin"]);
+      // V03 — cloisonnement (W10 : identité conservée pour le journal)
+      const session = await requireSchool(["admin"]);
+      const { schoolId: sidPD } = session;
       const ownedPD = await prisma.parent.findFirst({
-        where: { id, schoolId: sidPD }, select: { id: true },
+        where: { id, schoolId: sidPD },
+        select: { id: true, username: true, name: true, surname: true },
       });
       if (!ownedPD) return { success: false, error: true };
 
@@ -194,6 +231,15 @@ export const deleteParent = async (currentState: CurrentState ,data: FormData) =
       });
 
       await removeAuthUser(id);
+
+      // W10 — journal d'audit : suppression d'un parent (§2.11.2)
+      await auditWithSession(session, "parent.delete", `Parent#${id}`, {
+        before: {
+          username: ownedPD.username,
+          name: ownedPD.name,
+          surname: ownedPD.surname,
+        },
+      });
 
         revalidatePath("/list/parents");
         return {success: true, error: false, message: ""};

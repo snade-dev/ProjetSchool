@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireRole } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { PaymentSchema } from "../formsValidationSchema";
 import { InvoiceStatus } from "@/app/generated/prisma";
 import { deleteErrorMessage } from '../actionErrors';
@@ -51,9 +52,10 @@ export const createPayment = async (
   data: PaymentSchema
 ): Promise<CurrentStateMsg> => {
   try {
-    const { userId } = await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
+    const { userId } = session;
 
-    await prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.findUnique({
         where: { id: data.invoiceId },
         include: { payments: true },
@@ -67,7 +69,7 @@ export const createPayment = async (
 
       if (data.amount > balance) throw new Error("__OVER__");
 
-      await tx.payment.create({
+      const payment = await tx.payment.create({
         data: {
           amount: data.amount,
           method: data.method,
@@ -90,6 +92,19 @@ export const createPayment = async (
         where: { id: invoice.id },
         data: { status },
       });
+
+      return { payment, invoiceReference: invoice.reference, newStatus: status };
+    });
+
+    // W10 — journal d'audit : encaissement d'un paiement (§2.11.2)
+    await auditWithSession(session, "payment.create", `Payment#${created.payment.id}`, {
+      after: {
+        facture: created.invoiceReference,
+        amount: data.amount,
+        method: data.method,
+        reference: data.reference || null,
+        nouveauStatut: created.newStatus,
+      },
     });
 
     revalidatePath("/list/invoices");
@@ -132,11 +147,11 @@ export const deletePayment = async (
   paymentId: string
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
 
     let invoiceId = "";
 
-    await prisma.$transaction(async (tx) => {
+    const deleted = await prisma.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
         include: { invoice: { include: { payments: true } } },
@@ -165,6 +180,23 @@ export const deletePayment = async (
         where: { id: invoice.id },
         data: { status },
       });
+
+      return {
+        amount: payment.amount,
+        method: payment.method,
+        invoiceReference: invoice.reference,
+        newStatus: status,
+      };
+    });
+
+    // W10 — journal d'audit : suppression d'un paiement (§2.11.2)
+    await auditWithSession(session, "payment.delete", `Payment#${paymentId}`, {
+      before: {
+        facture: deleted.invoiceReference,
+        amount: deleted.amount,
+        method: deleted.method,
+      },
+      after: { nouveauStatut: deleted.newStatus },
     });
 
     revalidatePath("/list/invoices");

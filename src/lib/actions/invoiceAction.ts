@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/app/generated/prisma";
 import prisma from "../prisma";
 import { requireRole, requireSchool } from "../authGuard";
+import { auditWithSession } from "../audit";
 import { getActiveSchoolYear } from "../schoolYear";
 import { nextInvoiceReference } from "../invoiceRef";
 import {
@@ -41,7 +42,8 @@ export const createInvoice = async (
   try {
     const { userId } = await requireRole(["admin", "accountant"]);
     // V03 — l'élève facturé doit appartenir à l'école de la session
-    const { schoolId: sidI } = await requireSchool(["admin", "accountant"]);
+    const session = await requireSchool(["admin", "accountant"]);
+    const { schoolId: sidI } = session;
     const studentInSchool = await prisma.student.findFirst({
       where: { id: data.studentId, schoolId: sidI }, select: { id: true },
     });
@@ -53,7 +55,7 @@ export const createInvoice = async (
     const run = () =>
       prisma.$transaction(async (tx) => {
         const reference = await nextInvoiceReference(tx);
-        await tx.invoice.create({
+        return tx.invoice.create({
           data: {
             reference,
             status: "ISSUED",
@@ -75,19 +77,31 @@ export const createInvoice = async (
         });
       });
 
+    let invoice;
     try {
-      await run();
+      invoice = await run();
     } catch (err) {
       // Collision de référence (P2002) → une seule re-tentative suffit en mono-école.
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === "P2002"
       ) {
-        await run();
+        invoice = await run();
       } else {
         throw err;
       }
     }
+
+    // W10 — journal d'audit : émission d'une facture (§2.11.2)
+    await auditWithSession(session, "invoice.create", `Invoice#${invoice.reference}`, {
+      after: {
+        reference: invoice.reference,
+        studentId: data.studentId,
+        total,
+        dueDate: data.dueDate,
+        lignes: data.lines.length,
+      },
+    });
 
     revalidatePath("/list/invoices");
     return { success: true, error: false };
@@ -210,7 +224,7 @@ export const deleteInvoice = async (
 ): Promise<CurrentState> => {
   const id = data.get("id") as string;
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
 
     const paymentCount = await prisma.payment.count({
       where: { invoiceId: id },
@@ -219,7 +233,18 @@ export const deleteInvoice = async (
       return { success: false, error: true, message: "Impossible : des paiements sont rattachés à cette facture (annulez-la plutôt)." };
     }
 
+    // W10 — trace de la facture supprimée pour le journal
+    const before = await prisma.invoice.findUnique({
+      where: { id },
+      select: { reference: true, total: true, status: true, studentId: true },
+    });
+
     await prisma.invoice.delete({ where: { id } });
+
+    // W10 — journal d'audit : suppression définitive d'une facture (§2.11.2)
+    await auditWithSession(session, "invoice.delete", `Invoice#${before?.reference ?? id}`, {
+      before: before ?? undefined,
+    });
 
     revalidatePath("/list/invoices");
     return { success: true, error: false };
@@ -236,7 +261,7 @@ export const cancelInvoice = async (
   id: string
 ): Promise<CurrentState> => {
   try {
-    await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
 
     const paymentCount = await prisma.payment.count({
       where: { invoiceId: id },
@@ -245,9 +270,16 @@ export const cancelInvoice = async (
       return { success: false, error: true };
     }
 
-    await prisma.invoice.update({
+    const updated = await prisma.invoice.update({
       where: { id },
       data: { status: "CANCELLED" },
+      select: { reference: true, total: true, studentId: true },
+    });
+
+    // W10 — journal d'audit : annulation d'une facture (§2.11.2)
+    await auditWithSession(session, "invoice.cancel", `Invoice#${updated.reference}`, {
+      before: { status: "ISSUED" },
+      after: { status: "CANCELLED", total: updated.total, studentId: updated.studentId },
     });
 
     revalidatePath("/list/invoices");
@@ -366,7 +398,8 @@ export const generateMonthlyInvoices = async (
   { month, year }: { month: number; year: number }
 ): Promise<CurrentStateMsg> => {
   try {
-    const { userId } = await requireRole(["admin", "accountant"]);
+    const session = await requireRole(["admin", "accountant"]);
+    const { userId } = session;
 
     if (!Number.isInteger(month) || month < 1 || month > 12) {
       return { success: false, error: true, message: "Mois invalide (1-12)." };
@@ -498,6 +531,18 @@ export const generateMonthlyInvoices = async (
       } else {
         throw err;
       }
+    }
+
+    // W10 — journal d'audit : génération mensuelle = UNE entrée résumé (§2.11.2)
+    if (result.created > 0) {
+      await auditWithSession(session, "invoice.generateMonthly", `SchoolYear#${activeYear.id}`, {
+        after: {
+          month,
+          year,
+          creees: result.created,
+          ignorees: result.ignored,
+        },
+      });
     }
 
     revalidatePath("/list/invoices");

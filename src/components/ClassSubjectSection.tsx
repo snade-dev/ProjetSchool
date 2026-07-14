@@ -34,7 +34,11 @@ export type SubjectOption = { id: number; name: string };
 
 const EMPTY_STATE = { success: false, error: false, message: "" };
 
-/** Dialogue de confirmation (2e temps) : liste des bulletins impactés. */
+/**
+ * Dialogue de confirmation (2e temps) : liste des bulletins impactés.
+ * W10 — le motif est OBLIGATOIRE (§2.11.3) : la correction rétroactive est
+ * journalisée dans le journal d'audit avec cette justification.
+ */
 function ConfirmDialog({
   description,
   periods,
@@ -48,9 +52,10 @@ function ConfirmDialog({
   periods: ImpactedPeriod[];
   total: number;
   pending: boolean;
-  onConfirm: () => void;
+  onConfirm: (reason: string) => void;
   onCancel: () => void;
 }) {
+  const [reason, setReason] = useState("");
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/30" onClick={onCancel} />
@@ -80,6 +85,21 @@ function ConfirmDialog({
             Après confirmation, utilisez le bouton « Régénérer les bulletins »
             pour recalculer les moyennes et les rangs avec le nouveau barème.
           </p>
+          {/* W10 — motif obligatoire : tracé dans le journal d'audit */}
+          <label className="mt-3 block text-xs font-medium text-gray-700">
+            Motif du changement <span className="text-red-500">*</span>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              maxLength={500}
+              placeholder="Ex. : erreur de saisie du barème officiel…"
+              className="mt-1 w-full rounded-md ring-1 ring-gray-300 p-2 text-xs outline-none focus:ring-amber-400"
+            />
+            <span className="font-normal text-gray-400">
+              Obligatoire — conservé dans le journal d&apos;audit.
+            </span>
+          </label>
           <div className="mt-4 flex justify-end gap-2">
             <button
               onClick={onCancel}
@@ -88,8 +108,8 @@ function ConfirmDialog({
               Annuler
             </button>
             <button
-              onClick={onConfirm}
-              disabled={pending}
+              onClick={() => onConfirm(reason.trim())}
+              disabled={pending || reason.trim() === ""}
               className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
             >
               Confirmer le changement
@@ -133,7 +153,8 @@ const ClassSubjectSection = ({
     description: ReactNode;
     periods: ImpactedPeriod[];
     total: number;
-    confirm: () => void;
+    // W10 — le 2e temps reçoit le motif saisi dans le dialogue
+    confirm: (reason: string) => void;
   } | null>(null);
 
   // Matières de l'école pas encore rattachées à la classe
@@ -191,8 +212,8 @@ const ClassSubjectSection = ({
           ),
           periods: res.impactedPeriods ?? [],
           total: res.totalBulletins ?? 0,
-          // 2e temps : confirmation explicite → écriture + marquage stale.
-          confirm: () =>
+          // 2e temps : confirmation explicite + motif (W10) → écriture + stale.
+          confirm: (reason: string) =>
             run(() =>
               updateCoefficient(EMPTY_STATE, {
                 id: row.id,
@@ -200,6 +221,7 @@ const ClassSubjectSection = ({
                 subjectId: row.subject.id,
                 coefficient: to,
                 confirmed: true,
+                reason,
               })
             ),
         });
@@ -233,12 +255,13 @@ const ClassSubjectSection = ({
           ),
           periods: res.impactedPeriods ?? [],
           total: res.totalBulletins ?? 0,
-          confirm: () =>
+          confirm: (reason: string) =>
             run(() =>
               updateHomeworkWeight(EMPTY_STATE, {
                 classId,
                 homeworkWeight: to,
                 confirmed: true,
+                reason,
               })
             ),
         });

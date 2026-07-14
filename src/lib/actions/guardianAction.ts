@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import prisma from "../prisma";
 import { requireSchool } from "../authGuard";
+import { auditWithSession, auditDiff } from "../audit";
 import { guardianSchema, GuardianSchema } from "../formsValidationSchema";
 
 /**
@@ -40,7 +41,8 @@ export const addGuardian = async (
   data: GuardianSchema
 ): Promise<ActionResult> => {
   try {
-    const { schoolId } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     const parsed = guardianSchema.safeParse(data);
     if (!parsed.success) {
       return { success: false, error: true, message: "Données invalides." };
@@ -72,8 +74,21 @@ export const addGuardian = async (
       };
     }
 
-    await prisma.studentGuardian.create({
+    const created = await prisma.studentGuardian.create({
       data: {
+        studentId: parsed.data.studentId,
+        parentId: parsed.data.parentId,
+        relationship: parsed.data.relationship,
+        isLegal: parsed.data.isLegal,
+        canPay: parsed.data.canPay,
+        canViewGrades: parsed.data.canViewGrades,
+        canPickup: parsed.data.canPickup,
+      },
+    });
+
+    // W10 — journal d'audit : ajout d'un tuteur (§2.11.2)
+    await auditWithSession(session, "guardian.create", `StudentGuardian#${created.id}`, {
+      after: {
         studentId: parsed.data.studentId,
         parentId: parsed.data.parentId,
         relationship: parsed.data.relationship,
@@ -98,16 +113,21 @@ export const updateGuardian = async (
   data: GuardianSchema
 ): Promise<ActionResult> => {
   try {
-    const { schoolId } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     const parsed = guardianSchema.safeParse(data);
     if (!parsed.success || !parsed.data.id) {
       return { success: false, error: true, message: "Données invalides." };
     }
 
     // Le lien doit exister ET pointer vers un élève de l'école de la session
+    // W10 — droits chargés pour le before/after du journal d'audit
     const guardian = await prisma.studentGuardian.findFirst({
       where: { id: parsed.data.id, student: { schoolId } },
-      select: { id: true, studentId: true },
+      select: {
+        id: true, studentId: true,
+        relationship: true, isLegal: true, canPay: true, canViewGrades: true, canPickup: true,
+      },
     });
     if (!guardian) {
       return {
@@ -128,6 +148,32 @@ export const updateGuardian = async (
       },
     });
 
+    // W10 — journal d'audit : droits/relation modifiés seulement (compact)
+    {
+      const diff = auditDiff(
+        {
+          relationship: guardian.relationship,
+          isLegal: guardian.isLegal,
+          canPay: guardian.canPay,
+          canViewGrades: guardian.canViewGrades,
+          canPickup: guardian.canPickup,
+        },
+        {
+          relationship: parsed.data.relationship,
+          isLegal: parsed.data.isLegal,
+          canPay: parsed.data.canPay,
+          canViewGrades: parsed.data.canViewGrades,
+          canPickup: parsed.data.canPickup,
+        }
+      );
+      if (diff.changed) {
+        await auditWithSession(session, "guardian.update", `StudentGuardian#${guardian.id}`, {
+          before: diff.before,
+          after: { ...diff.after, studentId: guardian.studentId },
+        });
+      }
+    }
+
     revalidatePath(`/list/students/${guardian.studentId}`);
     return { success: true, error: false, message: "" };
   } catch (error) {
@@ -143,14 +189,15 @@ export const removeGuardian = async (
 ): Promise<ActionResult> => {
   const id = parseInt(data.get("id") as string);
   try {
-    const { schoolId } = await requireSchool(["admin", "director"]);
+    const session = await requireSchool(["admin", "director"]);
+    const { schoolId } = session;
     if (Number.isNaN(id)) {
       return { success: false, error: true, message: "Données invalides." };
     }
 
     const guardian = await prisma.studentGuardian.findFirst({
       where: { id, student: { schoolId } },
-      select: { id: true, studentId: true },
+      select: { id: true, studentId: true, parentId: true, relationship: true },
     });
     if (!guardian) {
       return {
@@ -174,6 +221,15 @@ export const removeGuardian = async (
     }
 
     await prisma.studentGuardian.delete({ where: { id: guardian.id } });
+
+    // W10 — journal d'audit : retrait d'un tuteur (§2.11.2)
+    await auditWithSession(session, "guardian.delete", `StudentGuardian#${guardian.id}`, {
+      before: {
+        studentId: guardian.studentId,
+        parentId: guardian.parentId,
+        relationship: guardian.relationship,
+      },
+    });
 
     revalidatePath(`/list/students/${guardian.studentId}`);
     return { success: true, error: false, message: "" };
