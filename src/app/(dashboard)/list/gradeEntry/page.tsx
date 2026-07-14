@@ -53,7 +53,8 @@ export default async function GradeEntryPage(props: {
   } else {
     const [classes, subjects] = await Promise.all([
       prisma.class.findMany({
-        where: { schoolId }, // V03 — cloisonnement
+        // V03 — cloisonnement ; W02 — année scolaire active uniquement
+        where: { schoolId, schoolYear: { isActive: true } },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
@@ -80,6 +81,7 @@ export default async function GradeEntryPage(props: {
   const semesters = await prisma.semester.findMany({
     where: {
       schoolId, // V03
+      schoolYear: { isActive: true }, // W02 — périodes de l'année active
       ...(selectedClass ? { system: selectedClass.evaluationSystem } : {}),
     },
     select: { id: true, name: true },

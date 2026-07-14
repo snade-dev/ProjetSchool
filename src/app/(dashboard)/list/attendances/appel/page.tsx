@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { sessionSchoolId } from "@/lib/authGuard";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import RollCallClient from "./RollCallClient";
@@ -42,9 +43,17 @@ const RollCallPage = async (props: {
   }
   // Admin : si aucune Lesson (données incomplètes), retomber sur toutes les classes/matières.
   if (role === "admin" && classesMap.size === 0) {
+    // W02 — repli scopé à l'école ET à l'année scolaire active
+    const schoolId = sessionSchoolId(session);
     const [classes, subjects] = await Promise.all([
-      prisma.class.findMany({ select: { id: true, name: true } }),
-      prisma.subject.findMany({ select: { id: true, name: true } }),
+      prisma.class.findMany({
+        where: { schoolId, schoolYear: { isActive: true } },
+        select: { id: true, name: true },
+      }),
+      prisma.subject.findMany({
+        where: { schoolId },
+        select: { id: true, name: true },
+      }),
     ]);
     for (const c of classes) {
       classesMap.set(c.id, c);

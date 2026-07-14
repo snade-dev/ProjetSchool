@@ -188,6 +188,8 @@ const AttendanceListPage = async (props: {
     }),
     prisma.attendance.count({ where: { AND: [{ class: { schoolId } }, query] } }),
     prisma.class.findMany({
+      // W02 — filtre : classes de l'école, année scolaire active uniquement
+      where: { schoolId, schoolYear: { isActive: true } },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

@@ -62,10 +62,14 @@ export default async function ResultsSection({
       })
     : null;
   const [classes, semesters, exams] = await Promise.all([
-    prisma.class.findMany({ where: { schoolId } }), // V03
+    // V03 — cloisonnement ; W02 — sélecteur limité à l'année scolaire active
+    prisma.class.findMany({
+      where: { schoolId, schoolYear: { isActive: true } },
+    }),
     prisma.semester.findMany({
       where: {
         schoolId, // V03
+        schoolYear: { isActive: true }, // W02 — périodes de l'année active
         ...(filterClass ? { system: filterClass.evaluationSystem } : {}),
       },
       orderBy: [{ system: "asc" }, { order: "asc" }],

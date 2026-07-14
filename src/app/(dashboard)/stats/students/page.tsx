@@ -128,7 +128,8 @@ export default async function StudentStatsPage(props: {
       .sort((a, b) => a.name.localeCompare(b.name, "fr"));
   } else {
     classOptions = await prisma.class.findMany({
-      where: { schoolId: info.schoolId ?? -1 }, // V03 — cloisonnement
+      // V03 — cloisonnement ; W02 — année scolaire active uniquement
+      where: { schoolId: info.schoolId ?? -1, schoolYear: { isActive: true } },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
@@ -146,7 +147,11 @@ export default async function StudentStatsPage(props: {
       })
     : null;
   const semesters = await prisma.semester.findMany({
-    where: preClass ? { system: preClass.evaluationSystem } : {},
+    where: {
+      schoolId: info.schoolId ?? -1, // cloisonnement (manquait)
+      schoolYear: { isActive: true }, // W02 — périodes de l'année active
+      ...(preClass ? { system: preClass.evaluationSystem } : {}),
+    },
     select: { id: true, name: true },
     orderBy: [{ system: "asc" }, { order: "asc" }],
   });
