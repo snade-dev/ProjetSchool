@@ -31,7 +31,8 @@ export type FormContainerProps = {
     | "expense"
     | "employee"
     | "level"
-    | "homework";
+    | "homework"
+    | "observation";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
@@ -352,6 +353,47 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           });
           relatedData = { classes: hwAllClasses, subjects: hwAllSubjects };
         }
+        break;
+
+      case "observation":
+        // W15 — teacher : uniquement les élèves de SES classes (une Lesson à
+        // lui sur la classe de l'inscription de l'année active) ; staff
+        // (admin/director/supervisor) : tous les élèves de l'école.
+        // La règle est revérifiée côté serveur (observationAction).
+        const obsEnrollmentWhere =
+          role === "teacher"
+            ? {
+                schoolYear: { isActive: true as const },
+                class: { lessons: { some: { teacherId: currentUserID! } } },
+              }
+            : { schoolYear: { isActive: true as const } };
+        const obsStudentRows = await prisma.student.findMany({
+          where: {
+            schoolId,
+            ...(role === "teacher"
+              ? { enrollments: { some: obsEnrollmentWhere } }
+              : {}),
+          },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            enrollments: {
+              where: obsEnrollmentWhere,
+              select: { class: { select: { name: true } } },
+              take: 1,
+            },
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        });
+        relatedData = {
+          students: obsStudentRows.map((s) => ({
+            id: s.id,
+            name: s.name,
+            surname: s.surname,
+            className: s.enrollments[0]?.class.name ?? null,
+          })),
+        };
         break;
 
       default:

@@ -1,6 +1,7 @@
 import "server-only";
 import prisma from "./prisma";
 import { getMention } from "./setting";
+import { REPORT_CARD_OBSERVATION_LIMIT } from "./observation";
 
 /**
  * S13 — Service de calcul du bulletin scolaire.
@@ -107,6 +108,14 @@ export type ReportCardData = {
   gradedStudentCount: number;
   /** Mention automatique (GRADE_SCALE), null si non noté. */
   mention: string | null;
+  /**
+   * W15 — observations PARTAGÉES de la période (§2.3.7) : le Semester n'ayant
+   * pas de dates propres, la fenêtre est celle de SON année scolaire. Les
+   * REPORT_CARD_OBSERVATION_LIMIT plus récentes ; les confidentielles
+   * (sharedWithParents=false) ne vont JAMAIS au bulletin (§2.7.8).
+   * Dates déjà formatées (strings sérialisables).
+   */
+  observations: { kind: string; content: string; date: string }[];
   /** Date de génération, déjà formatée (string sérialisable). */
   generatedAt: string;
 };
@@ -204,7 +213,15 @@ export async function buildClassReportCards(
       ),
     prisma.semester.findUnique({
       where: { id: semesterId },
-      select: { id: true, name: true, label: true, system: true },
+      select: {
+        id: true,
+        name: true,
+        label: true,
+        system: true,
+        // W15 — fenêtre temporelle des observations du bulletin (le Semester
+        // n'a pas de dates propres : celles de son année scolaire font foi)
+        schoolYear: { select: { startDate: true, endDate: true } },
+      },
     }),
     // V03 — l'école du bulletin = celle de la classe (fiable même hors session)
     prisma.class
@@ -339,6 +356,39 @@ export async function buildClassReportCards(
     );
   }
 
+  // ---- W15 — observations partagées de la période (§2.3.7), pour TOUS les
+  // élèves de la classe en UNE requête (pas de N+1). Seules les partagées
+  // vont au bulletin (§2.7.8) ; par élève, les plus récentes d'abord,
+  // plafonnées à REPORT_CARD_OBSERVATION_LIMIT à l'assemblage.
+  const observationRows = await prisma.observation.findMany({
+    where: {
+      studentId: { in: klass.students.map((s) => s.id) },
+      sharedWithParents: true,
+      createdAt: {
+        gte: semester.schoolYear.startDate,
+        lte: semester.schoolYear.endDate,
+      },
+    },
+    select: { studentId: true, kind: true, content: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const fmtObsDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
+  const observationsByStudent = new Map<
+    string,
+    { kind: string; content: string; date: string }[]
+  >();
+  for (const o of observationRows) {
+    const list = observationsByStudent.get(o.studentId) ?? [];
+    if (list.length < REPORT_CARD_OBSERVATION_LIMIT) {
+      list.push({
+        kind: o.kind,
+        content: o.content,
+        date: fmtObsDate.format(o.createdAt),
+      });
+      observationsByStudent.set(o.studentId, list);
+    }
+  }
+
   // ---- Assemblage des ReportCardData sérialisables (dates → strings).
   const generatedAt = new Intl.DateTimeFormat("fr-FR", {
     dateStyle: "long",
@@ -408,6 +458,7 @@ export async function buildClassReportCards(
       generalRank: generalRanks.get(student.id) ?? null,
       gradedStudentCount,
       mention: generalAverage != null ? getMention(generalAverage) : null,
+      observations: observationsByStudent.get(student.id) ?? [], // W15
       generatedAt,
     });
   }

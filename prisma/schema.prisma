@@ -57,6 +57,9 @@ model Student {
   // W05 — tuteurs multiples (§2.2.3) : remplacent Student.parentId
   guardians StudentGuardian[]
 
+  // W15 — dossier disciplinaire (§2.3.7)
+  observations Observation[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -130,6 +133,9 @@ model Parent {
   createdAt DateTime  @default(now())
   // W05 — les élèves du parent passent par StudentGuardian (N-N + droits)
   guardians StudentGuardian[]
+
+  // W15 — justifications d'absence déposées (§2.3.6)
+  justifications AbsenceJustification[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -349,6 +355,9 @@ model Attendance {
   date    DateTime
   present Boolean
   sessionDay SessionDay  @default(MORNING) // Nouveau champ pour indiquer le créneau (matin ou soir)
+  // W15 — « absent justifié » (§2.3.6) : posé UNIQUEMENT par l'acceptation
+  // d'une AbsenceJustification (decideJustification), jamais à la saisie.
+  justified Boolean @default(false)
 
   studentId String
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -356,6 +365,9 @@ model Attendance {
   class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
   subjectId Int
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  // W15 — justification déposée par un tuteur (une seule par absence)
+  justification AbsenceJustification?
 }
 
 model Event {
@@ -796,6 +808,8 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   subscription      SchoolSubscription? // V05
   memberships       UserSchoolMembership[] // W06
   homeworks         Homework[] // W14
+  observations      Observation[] // W15
+  absenceJustifications AbsenceJustification[] // W15
 
   @@map("SchoolSettings")
 }
@@ -1077,6 +1091,64 @@ model Homework {
 
   @@index([classId, dueDate])
   @@index([teacherId])
+}
+
+// ---------------------------------------------------------------------------
+// W15 — Observations & discipline (§2.3.7). Chaque observation est datée et
+// signée par son auteur (`authorId` = User.id, volontairement SANS FK — même
+// convention que Homework.teacherId : admin/director/supervisor n'ont pas de
+// profil Teacher). `kind` est une String libre dont les valeurs vivent dans
+// src/lib/observation.ts (POSITIVE, NEUTRAL, NEGATIVE).
+// Confidentialité (§2.7.8) : sharedWithParents=false → JAMAIS visible du
+// parent ni de l'élève ; seules les observations partagées vont au bulletin.
+// ---------------------------------------------------------------------------
+
+model Observation {
+  id                Int      @id @default(autoincrement())
+  studentId         String
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  authorId          String // User.id de l'auteur (teacher, supervisor, director, admin)
+  kind              String // cf. src/lib/observation.ts (POSITIVE, NEUTRAL, NEGATIVE)
+  content           String
+  sharedWithParents Boolean  @default(true)
+  createdAt         DateTime @default(now())
+
+  // W01 — cohérence multi-tenant : entité racine rattachée à son école
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, createdAt])
+  @@index([schoolId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// W15 — Justification d'absence (§2.3.6) : le PARENT (tuteur StudentGuardian)
+// justifie une absence de son enfant (motif + document scanné optionnel), la
+// direction (admin/director/supervisor) accepte ou refuse. Accepter pose
+// Attendance.justified=true (« Absent (justifié) »). Statuts utilisés de
+// l'enum RequestStatus existante : PENDING → COMPLETED (acceptée) / REJECTED.
+// ---------------------------------------------------------------------------
+
+model AbsenceJustification {
+  id           Int        @id @default(autoincrement())
+  attendanceId Int        @unique // une justification par absence
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  parentId     String
+  parent       Parent     @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  reason       String
+  fileUrl      String? // document scanné (flux /api/upload existant)
+  status       RequestStatus @default(PENDING)
+  decidedById  String? // User.id du décideur (admin/director/supervisor)
+  decidedAt    DateTime?
+  decisionNote String? // motif de refus optionnel
+  createdAt    DateTime @default(now())
+
+  // W01 — cohérence multi-tenant : entité racine rattachée à son école
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, status])
+  @@index([parentId])
 }
 
 // ---------------------------------------------------------------------------

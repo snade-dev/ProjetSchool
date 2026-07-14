@@ -7,6 +7,7 @@ import {
   Image,
 } from "@react-pdf/renderer";
 import type { ReportCardData } from "@/lib/reportCard";
+import { observationKindLabel } from "@/lib/observation";
 
 /**
  * E20 — Bulletin scolaire PDF (durci, S13).
@@ -109,6 +110,21 @@ const styles = StyleSheet.create({
   summaryItem: { flexDirection: "column", gap: 2, alignItems: "center" },
   summaryLabel: { fontSize: 8, color: "#555" },
   summaryValue: { fontSize: 13, fontWeight: "bold" },
+  // W15 — encadré « Observations » (§2.3.7) : observations partagées de la période
+  observations: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#999",
+    padding: 8,
+  },
+  observationsTitle: {
+    fontSize: 9,
+    fontWeight: "bold",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  observationLine: { fontSize: 8.5, marginBottom: 3, color: "#222" },
+  observationMeta: { fontSize: 7.5, color: "#666" },
   signatures: {
     marginTop: 40,
     flexDirection: "row",
@@ -316,6 +332,22 @@ const BulletinPDF = ({ data }: { data: ReportCardData }) => {
             <Text style={styles.summaryValue}>{data.mention ?? "—"}</Text>
           </View>
         </View>
+
+        {/* W15 — Observations partagées de la période (§2.3.7) — jamais les
+            confidentielles (filtrées en amont dans reportCard.ts, §2.7.8) */}
+        {data.observations.length > 0 && (
+          <View style={styles.observations}>
+            <Text style={styles.observationsTitle}>Observations</Text>
+            {data.observations.map((o, i) => (
+              <Text key={i} style={styles.observationLine}>
+                <Text style={styles.observationMeta}>
+                  {o.date} · {observationKindLabel(o.kind)} —{" "}
+                </Text>
+                {o.content}
+              </Text>
+            ))}
+          </View>
+        )}
 
         {/* Signatures */}
         <View style={styles.signatures}>

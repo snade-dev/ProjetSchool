@@ -14,6 +14,7 @@ import { headers } from "next/headers";
 import BulletinButton from "@/components/BulletinButton";
 import EmailBulletinButton from "@/components/EmailBulletinButton";
 import GuardianSection from "@/components/GuardianSection";
+import ObservationSection from "@/components/ObservationSection";
 import SemesterSelector from "@/components/SemesterSelector";
 import { buildReportCard } from "@/lib/reportCard";
 import { semesterSystemWhere } from "@/lib/evaluation";
@@ -309,6 +310,9 @@ const SingleStudentPage = async (props: {
             canManage={role === "admin" || role === "director"}
           />
         )}
+        {/* W15 — Observations & discipline (§2.3.7) : l'équipe pédagogique
+            voit tout ; parent et élève ne voient QUE les partagées (§2.7.8) */}
+        <ObservationSection studentId={student.id} role={role} userId={userId} />
         {/* BOTTOM — Emploi du temps de la classe */}
         {currentClass && (
           <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
