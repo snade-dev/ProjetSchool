@@ -79,17 +79,23 @@ export default async function AccountPage() {
   });
 
   // W12 — préférences de notification du compte (absence de ligne = activé)
+  // W13 — colonne emailEnabled = canal email (types critiques)
   let notificationPrefs: Partial<Record<NotificationType, boolean>> = {};
+  let emailPrefs: Partial<Record<NotificationType, boolean>> = {};
   try {
     const rows = await prisma.notificationPreference.findMany({
       where: { userId: user.id },
-      select: { type: true, enabled: true },
+      select: { type: true, enabled: true, emailEnabled: true },
     });
     for (const row of rows) {
-      if (isNotificationType(row.type)) notificationPrefs[row.type] = row.enabled;
+      if (isNotificationType(row.type)) {
+        notificationPrefs[row.type] = row.enabled;
+        emailPrefs[row.type] = row.emailEnabled;
+      }
     }
   } catch {
     notificationPrefs = {};
+    emailPrefs = {};
   }
 
   return (
@@ -178,9 +184,13 @@ export default async function AccountPage() {
         </div>
         <p className="mb-2 max-w-xl text-sm text-gray-500">
           Choisissez les types de notifications que vous souhaitez recevoir
-          dans l&apos;application. Tout est activé par défaut.
+          dans l&apos;application et par email (types critiques). Tout est
+          activé par défaut.
         </p>
-        <NotificationPreferences initial={notificationPrefs} />
+        <NotificationPreferences
+          initial={notificationPrefs}
+          initialEmail={emailPrefs}
+        />
       </div>
 
       {/* Sécurité */}

@@ -12,6 +12,7 @@ import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import BigCalandarContainer from "@/components/BigCalandarContainer";
 import { headers } from "next/headers";
 import BulletinButton from "@/components/BulletinButton";
+import EmailBulletinButton from "@/components/EmailBulletinButton";
 import GuardianSection from "@/components/GuardianSection";
 import SemesterSelector from "@/components/SemesterSelector";
 import { buildReportCard } from "@/lib/reportCard";
@@ -345,7 +346,17 @@ const SingleStudentPage = async (props: {
                 </span>
               )}
               {reportCard ? (
-                <BulletinButton data={reportCard} />
+                <>
+                  <BulletinButton data={reportCard} />
+                  {/* W13 — envoi du bulletin PDF aux tuteurs (action explicite) */}
+                  {(role === "admin" || role === "director") &&
+                    selectedSemester && (
+                      <EmailBulletinButton
+                        studentId={student.id}
+                        semesterId={selectedSemester.id}
+                      />
+                    )}
+                </>
               ) : (
                 <p className="text-sm text-gray-400">
                   Bulletin indisponible pour ce semestre.

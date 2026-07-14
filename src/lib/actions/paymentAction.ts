@@ -5,6 +5,8 @@ import prisma from "../prisma";
 import { requireRole } from "../authGuard";
 import { auditWithSession } from "../audit";
 import { notifyGuardians } from "../notify";
+import { renderReceiptPdfBuffer } from "../pdfBuffers";
+import { paymentMethodLabel } from "../finance";
 import { PaymentSchema } from "../formsValidationSchema";
 import { InvoiceStatus } from "@/app/generated/prisma";
 import { deleteErrorMessage } from '../actionErrors';
@@ -62,7 +64,10 @@ export const createPayment = async (
         include: {
           payments: true,
           // W12 — destinataires de la notification (tuteurs canPay de l'élève)
-          student: { select: { id: true, schoolId: true } },
+          // W13 — nom/prénom pour le reçu PDF joint à l'email
+          student: {
+            select: { id: true, schoolId: true, name: true, surname: true },
+          },
         },
       });
 
@@ -104,6 +109,9 @@ export const createPayment = async (
         newStatus: status,
         studentId: invoice.student.id,
         schoolId: invoice.student.schoolId,
+        studentName: invoice.student.name,
+        studentSurname: invoice.student.surname,
+        schoolYearId: invoice.schoolYearId,
       };
     });
 
@@ -118,8 +126,71 @@ export const createPayment = async (
       },
     });
 
+    // W13 — reçu PDF joint à l'email PAYMENT (réutilise PaymentReceiptPdf de
+    // /list/invoices/[id] via renderToBuffer). Best-effort : un échec de rendu
+    // n'empêche ni la notification in-app ni l'encaissement.
+    let emailAttachments;
+    try {
+      const [school, enrollment, cashier] = await Promise.all([
+        prisma.school.findUnique({
+          where: { id: created.schoolId },
+          select: {
+            name: true,
+            address: true,
+            phone: true,
+            email: true,
+            legalFooter: true,
+          },
+        }),
+        prisma.enrollment.findUnique({
+          where: {
+            studentId_schoolYearId: {
+              studentId: created.studentId,
+              schoolYearId: created.schoolYearId,
+            },
+          },
+          select: { class: { select: { name: true } } },
+        }),
+        prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        }),
+      ]);
+      const buffer = await renderReceiptPdfBuffer({
+        receiptNo: created.payment.id.slice(0, 8).toUpperCase(),
+        school: {
+          name: school?.name ?? "Établissement",
+          address: school?.address,
+          phone: school?.phone,
+          email: school?.email,
+          legalFooter: school?.legalFooter,
+        },
+        student: {
+          name: created.studentName,
+          surname: created.studentSurname,
+          className: enrollment?.class.name ?? null,
+        },
+        invoiceRef: created.invoiceReference,
+        amount: data.amount,
+        methodLabel: paymentMethodLabel(data.method),
+        date: data.paidAt,
+        cashier: cashier?.name ?? "Administration",
+      });
+      emailAttachments = [
+        {
+          filename: `recu_${created.invoiceReference}_${created.payment.id.slice(0, 8)}.pdf`,
+          content: buffer,
+          contentType: "application/pdf",
+        },
+      ];
+    } catch (err) {
+      console.error("[email] rendu du reçu PDF impossible (email sans pièce jointe):", err);
+      emailAttachments = undefined;
+    }
+
     // W12 — reçu de paiement → tuteurs canPay de l'élève facturé (§2.6.1) ;
-    // le helper ne fait jamais échouer l'encaissement.
+    // le helper ne fait jamais échouer l'encaissement. W13 : la notification
+    // PAYMENT est doublée par email (avec le reçu PDF joint) via notify.ts.
     await notifyGuardians(
       [created.studentId],
       {
@@ -128,6 +199,7 @@ export const createPayment = async (
         title: "Paiement reçu",
         body: `Paiement de ${data.amount.toLocaleString("fr-FR")} FCFA reçu — facture ${created.invoiceReference}.`,
         link: `/list/invoices/${data.invoiceId}`,
+        emailAttachments,
       },
       "canPay"
     );
