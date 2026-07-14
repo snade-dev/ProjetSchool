@@ -55,9 +55,39 @@ model Student {
 
   invoices Invoice[] // back-relation S03
 
+  // W03 — inscriptions par année scolaire (§2.1.3) : remplacent Student.classId
+  enrollments Enrollment[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// W03 — statut d'une inscription (§2.1.3)
+enum EnrollmentStatus {
+  ACTIVE
+  TRANSFERRED
+  LEFT
+  GRADUATED
+  REPEATED
+}
+
+// W03 — inscription d'un élève dans UNE classe pour UNE année scolaire (§2.1.3).
+// Remplace Student.classId ; l'historique complet du parcours est conservé.
+model Enrollment {
+  id           Int              @id @default(autoincrement())
+  studentId    String
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId      Int
+  class        Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  schoolYearId Int
+  schoolYear   SchoolYear       @relation(fields: [schoolYearId], references: [id])
+  status       EnrollmentStatus @default(ACTIVE)
+  enrolledAt   DateTime         @default(now())
+
+  // Une seule inscription par élève et par année
+  @@unique([studentId, schoolYearId])
+  @@index([classId])
 }
 
 model Teacher {
@@ -140,6 +170,8 @@ model Class {
   supervisor    Teacher?       @relation(fields: [supervisorId], references: [id], onDelete: SetNull)
   lessons       Lesson[]
   students      Student[]
+  // W03 — inscriptions par année (remplacent Student.classId)
+  enrollments   Enrollment[]
   events        Event[]
   announcements Announcement[]
 
@@ -630,6 +662,8 @@ model SchoolYear {
   // W02 — classes et périodes d'évaluation rattachées à l'année
   classes         Class[]
   semesters       Semester[]
+  // W03 — inscriptions des élèves pour cette année
+  enrollments     Enrollment[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
