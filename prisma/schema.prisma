@@ -55,8 +55,8 @@ model Student {
 
   invoices Invoice[] // back-relation S03
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -85,8 +85,8 @@ model Teacher {
 
   employee Employee? // back-relation S03 (utilisée par story 10)
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -101,14 +101,14 @@ model Parent {
   createdAt DateTime  @default(now())
   students  Student[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Class {
   id       Int    @id @default(autoincrement())
-  name     String @unique
+  name     String // W01 — unicité PAR ÉCOLE (@@unique en bas de modèle)
   capacity Int
   // V01 — régime d'évaluation de la classe (trimestres ou compositions mensuelles)
   evaluationSystem EvaluationSystem @default(TRIMESTER)
@@ -126,14 +126,17 @@ model Class {
 
   feeStructures FeeStructure[] // back-relation S03
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // W01 — deux écoles peuvent avoir chacune leur « 6ème A »
+  @@unique([schoolId, name])
 }
 
 model Subject {
   id        Int        @id @default(autoincrement())
-  name      String     @unique
+  name      String // W01 — unicité PAR ÉCOLE (@@unique en bas de modèle)
   teachers  Teacher[]
   lessons   Lesson[]
   results   Result[]
@@ -144,9 +147,12 @@ model Subject {
 
   MakeupExam MakeupExam[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // W01 — unicité par école
+  @@unique([schoolId, name])
 }
 
 model Lesson {
@@ -249,8 +255,8 @@ model Event {
   classId Int?
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -263,14 +269,14 @@ model Announcement {
   classId Int?
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
 model Quiz {
   id        String   @id @default(uuid())
-  title     String   @unique
+  title     String // W01 — unicité PAR ÉCOLE (@@unique en bas de modèle)
   date      DateTime
   duration  Int // Durée de l'examen en minutes
   published Boolean  @default(false) // Contrôle de la publication des résultats
@@ -290,9 +296,12 @@ model Quiz {
 
   Complaint Complaint[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // W01 — unicité par école
+  @@unique([schoolId, title])
 }
 
 model Question {
@@ -422,7 +431,7 @@ enum EvaluationSystem {
 
 model Semester {
   id       Int       @id @default(autoincrement())
-  name     String    @unique
+  name     String // W01 — unicité PAR ÉCOLE (@@unique en bas de modèle)
   // V01 — « période d'évaluation » : régime + ordre chronologique + libellé bulletin
   system   EvaluationSystem @default(TRIMESTER)
   order    Int              @default(1)
@@ -435,9 +444,12 @@ model Semester {
 
   MakeupSession MakeupSession[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // W01 — unicité par école
+  @@unique([schoolId, name])
 }
 
 model MakeupSession {
@@ -579,7 +591,7 @@ model Verification {
 // ---- M7 Administration ----
 model SchoolYear {
   id        Int      @id @default(autoincrement())
-  name      String   @unique          // "2025-2026"
+  name      String                    // "2025-2026" — W01 : unicité PAR ÉCOLE
   startDate DateTime
   endDate   DateTime
   isActive  Boolean  @default(false)  // UNE seule active (invariant applicatif)
@@ -589,9 +601,12 @@ model SchoolYear {
   feeStructures   FeeStructure[]
   salaryPayments  SalaryPayment[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // W01 — unicité par école
+  @@unique([schoolId, name])
 }
 
 model School {                  // établissement (ex-singleton SchoolSettings)
@@ -648,10 +663,11 @@ model FeeStructure {            // grille des frais par classe et année
   schoolYearId Int
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   lines        InvoiceLine[]
+  // W01 — reste scopée par école via classId (une Class appartient à UNE école)
   @@unique([classId, schoolYearId, label])
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
@@ -721,12 +737,15 @@ model Payment {
 
 model ExpenseCategory {
   id       Int       @id @default(autoincrement())
-  name     String    @unique          // "Fournitures", "Électricité", "Loyer"…
+  name     String                     // "Fournitures", "Électricité", "Loyer"… — W01 : unicité PAR ÉCOLE
   expenses Expense[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  // W01 — unicité par école
+  @@unique([schoolId, name])
 }
 
 model Expense {
@@ -763,8 +782,8 @@ model Employee {
   active     Boolean   @default(true)
   salaries   SalaryPayment[]
 
-  // V02 — rattachement multi-établissements (backfill : école #1)
-  schoolId Int    @default(1)
+  // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
+  schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 }
 
