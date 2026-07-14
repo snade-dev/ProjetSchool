@@ -18,6 +18,8 @@ interface ResultTableProps {
   actions?: React.ReactNode;
   /** S13 — ReportCardData précalculés par le RSC parent, clé `${studentId}:${semesterId}`. */
   reportCards?: Record<string, ReportCardData>;
+  /** W08 — lignes dont le bulletin est périmé (coefficient corrigé), clé `${studentId}:${semesterId}`. */
+  staleKeys?: string[];
 }
 
 export default function ResultTable({
@@ -25,6 +27,7 @@ export default function ResultTable({
   role,
   actions,
   reportCards,
+  staleKeys,
 }: ResultTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<{
     id: string;
@@ -84,6 +87,17 @@ export default function ResultTable({
               }`}
             >
               {item.moyenne.toFixed(3)}
+              {/* W08 — bulletin périmé après correction de coefficient (§2.1.6) */}
+              {staleKeys?.includes(
+                `${item.student.id}:${item.semester.id}`
+              ) && (
+                <span
+                  className="ml-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-amber-200"
+                  title="Un coefficient de la classe a changé : régénérez les bulletins depuis l'écran Matières & coefficients."
+                >
+                  À régénérer
+                </span>
+              )}
             </td>
             <td className="hidden md:table-cell">{item.student.class.name}</td>
             <td className="hidden md:table-cell">

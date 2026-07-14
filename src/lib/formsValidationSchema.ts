@@ -126,6 +126,20 @@ export const guardianSchema = z.object({
 
 export type GuardianSchema = z.infer<typeof guardianSchema>;
 
+// W08 — matière d'une classe avec son coefficient (§2.1.6)
+export const classSubjectSchema = z.object({
+  id: z.coerce.number().optional(),
+  classId: z.coerce.number({ message: "La classe est requise !" }),
+  subjectId: z.coerce.number({ message: "La matière est requise !" }),
+  coefficient: z.coerce
+    .number({ message: "Le coefficient est requis !" })
+    .int({ message: "Le coefficient doit être un entier !" })
+    .min(1, { message: "Le coefficient minimum est 1 !" })
+    .max(20, { message: "Le coefficient maximum est 20 !" }),
+});
+
+export type ClassSubjectSchema = z.infer<typeof classSubjectSchema>;
+
 export const examSchema = z.object({
   id: z.coerce.number().optional(),
   title: z.string().min(1, { message: "Le titre est requis !" }),

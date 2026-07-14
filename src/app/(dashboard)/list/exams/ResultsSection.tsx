@@ -234,6 +234,23 @@ export default async function ResultsSection({
     }
   }
 
+  // W08 — bulletins périmés (§2.1.6) : lignes dont le ResultAverage est stale
+  // (coefficient corrigé après calcul) → badge « À régénérer » dans le tableau.
+  const staleRows =
+    processedData.length > 0
+      ? await prisma.resultAverage.findMany({
+          where: {
+            stale: true,
+            OR: processedData.map((r) => ({
+              studentId: r.studentId,
+              semesterId: r.semesterId,
+            })),
+          },
+          select: { studentId: true, semesterId: true },
+        })
+      : [];
+  const staleKeys = staleRows.map((r) => `${r.studentId}:${r.semesterId}`);
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       <div className="flex items-center justify-between">
@@ -265,6 +282,7 @@ export default async function ResultsSection({
         data={processedData}
         role={role}
         reportCards={reportCards}
+        staleKeys={staleKeys}
       />
 
       <Pagination page={page} count={count2} />

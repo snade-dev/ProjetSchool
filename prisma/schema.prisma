@@ -203,12 +203,31 @@ model Class {
 
   feeStructures FeeStructure[] // back-relation S03
 
+  // W08 — matières enseignées dans la classe avec leur coefficient (§2.1.6)
+  classSubjects ClassSubject[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   // W02 — « 6ème A » réutilisable chaque année (remplace @@unique([schoolId, name]) de W01)
   @@unique([schoolId, schoolYearId, name])
+}
+
+// W08 — matière ENSEIGNÉE dans une classe, avec son coefficient (§2.1.6).
+// Le coefficient est fixe pour l'année (la classe appartient à UNE année, W02).
+// Backfillé depuis les Lessons existantes (coefficient 1 = comportement inchangé).
+// Une matière sans ligne ClassSubject compte pour 1 dans les moyennes pondérées.
+model ClassSubject {
+  id          Int     @id @default(autoincrement())
+  classId     Int
+  class       Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId   Int
+  subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  coefficient Int     @default(1)
+
+  @@unique([classId, subjectId])
+  @@index([subjectId])
 }
 
 model Subject {
@@ -223,6 +242,9 @@ model Subject {
   Attendance Attendance[]
 
   MakeupExam MakeupExam[]
+
+  // W08 — classes où la matière est enseignée (coefficient par classe)
+  classSubjects ClassSubject[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -287,6 +309,9 @@ model Result {
 model ResultAverage {
   id         Int      @id @default(autoincrement())
   average    Float
+  // W08 — bulletin périmé (§2.1.6) : passe à true quand un coefficient de la
+  // classe change après calcul ; remis à false par la régénération explicite.
+  stale      Boolean  @default(false)
   semesterId Int
   semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
   studentId  String

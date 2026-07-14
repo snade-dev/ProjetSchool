@@ -9,14 +9,21 @@ import { getMention } from "./setting";
  * (pas de N+1), les calculs se font en mémoire, et les structures retournées sont
  * 100 % sérialisables (aucune Date brute) : le composant PDF ne touche JAMAIS la DB.
  *
- * Formules (H17) :
+ * Formules (H17, pondération W08 §2.1.6) :
  * - moyenne matière élève = (classScore + score) / 2 si les deux existent, sinon la note présente ;
- * - moyenne générale = moyenne simple des moyennes matière (pas de coefficients) ;
+ * - moyenne générale = Σ(moyenne matière × coefficient) ÷ Σ coefficients, où le
+ *   coefficient vient de ClassSubject pour la classe (matière sans ligne → 1).
+ *   Les classes en régime MONTHLY gardent coefficient 1 partout (§2.3.1
+ *   système 1 : compositions sans pondération) = moyenne simple d'origine ;
  * - moyenne de classe (matière) = moyenne des moyennes matière des élèves notés ;
  * - rangs « standard competition » : les ex æquo partagent le rang (1, 2, 2, 4).
  *
  * Effet voulu : upsert de ResultAverage (@@unique(semesterId, studentId)) pour TOUS
  * les élèves notés de la classe (cohérence des moyennes générales persistées).
+ * W08 — le flag ResultAverage.stale n'est PAS touché ici : il est posé par la
+ * correction d'un coefficient et retiré par la régénération EXPLICITE
+ * (regenerateClassBulletins), pour que le badge « À régénérer » persiste tant
+ * que l'école n'a pas officiellement réédité les bulletins.
  */
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -38,6 +45,10 @@ export type ReportCardSubjectLine = {
   gradedCount: number;
   /** Appréciation automatique (GRADE_SCALE), null si non noté. */
   appreciation: string | null;
+  /** W08 — coefficient de la matière dans la classe (ClassSubject, défaut 1 ; forcé à 1 en régime MONTHLY). */
+  coefficient: number;
+  /** W08 — moyenne × coefficient (points pondérés), null si non noté. */
+  weightedAverage: number | null;
 };
 
 export type ReportCardData = {
@@ -62,7 +73,15 @@ export type ReportCardData = {
     legalFooter: string | null;
   } | null;
   subjects: ReportCardSubjectLine[];
-  /** Moyenne générale /20 (moyenne simple des matières), null si aucune note. */
+  /**
+   * W08 — true si la classe est en régime pondéré (TRIMESTER…) : le bulletin
+   * affiche alors les colonnes Coef et Moy. × coef. False en MONTHLY (§2.3.1
+   * système 1 : compositions sans coefficient, rendu inchangé).
+   */
+  weighted: boolean;
+  /** W08 — Σ des coefficients des matières notées de l'élève, null si aucune note. */
+  totalCoefficient: number | null;
+  /** Moyenne générale /20 (Σ moyenne × coef ÷ Σ coef ; coef 1 partout en MONTHLY), null si aucune note. */
   generalAverage: number | null;
   /** Rang général (standard competition) parmi les élèves notés, null si non noté. */
   generalRank: number | null;
@@ -125,6 +144,11 @@ export async function buildClassReportCards(
         where: { id: classId },
         select: {
           name: true,
+          // W08 — régime + coefficients par matière (ClassSubject)
+          evaluationSystem: true,
+          classSubjects: {
+            select: { subjectId: true, coefficient: true },
+          },
           enrollments: {
             select: {
               student: {
@@ -142,6 +166,8 @@ export async function buildClassReportCards(
         (c) =>
           c && {
             name: c.name,
+            evaluationSystem: c.evaluationSystem,
+            classSubjects: c.classSubjects,
             students: c.enrollments.map((e) => e.student),
           }
       ),
@@ -175,6 +201,19 @@ export async function buildClassReportCards(
   ]);
 
   if (!klass || !semester) return new Map();
+
+  // W08 — coefficients de la classe (§2.1.6). Règle critique §2.3.1 système 1 :
+  // les classes MONTHLY (compositions) ne pondèrent PAS → coefficient 1 partout,
+  // ce qui redonne exactement la moyenne simple H17. Matière sans ligne
+  // ClassSubject → coefficient 1 (backfill W08 : comportement inchangé).
+  const weighted = klass.evaluationSystem !== "MONTHLY";
+  const coefficientMap = new Map<number, number>(
+    weighted
+      ? klass.classSubjects.map((cs) => [cs.subjectId, cs.coefficient])
+      : []
+  );
+  const coefficientOf = (subjectId: number) =>
+    coefficientMap.get(subjectId) ?? 1;
 
   // ---- Agrégation par matière : subjectId → { name, par élève { classScore, examScore, average } }
   type Cell = { classScore: number | null; examScore: number | null; average: number };
@@ -219,17 +258,24 @@ export async function buildClassReportCards(
     return { ...s, classAverage, ranks, gradedCount: graded.length };
   });
 
-  // ---- Par élève : moyenne générale (moyenne simple des matières notées).
+  // ---- Par élève : moyenne générale pondérée (W08, §2.1.6) —
+  // Σ(moyenne matière × coefficient) ÷ Σ coefficients des matières notées.
+  // Coefficient 1 partout (MONTHLY ou pas de ClassSubject) = moyenne simple H17.
   const generalAverages = new Map<string, number>();
+  const totalCoefficients = new Map<string, number>();
   for (const student of klass.students) {
-    const avgs = subjectStats
-      .map((s) => s.cells.get(student.id)?.average)
-      .filter((a): a is number => a != null);
-    if (avgs.length > 0) {
-      generalAverages.set(
-        student.id,
-        round2(avgs.reduce((sum, a) => sum + a, 0) / avgs.length)
-      );
+    let weightedSum = 0;
+    let coefSum = 0;
+    for (const s of subjectStats) {
+      const avg = s.cells.get(student.id)?.average;
+      if (avg == null) continue;
+      const coef = coefficientOf(s.subjectId);
+      weightedSum += avg * coef;
+      coefSum += coef;
+    }
+    if (coefSum > 0) {
+      generalAverages.set(student.id, round2(weightedSum / coefSum));
+      totalCoefficients.set(student.id, coefSum);
     }
   }
 
@@ -275,6 +321,7 @@ export async function buildClassReportCards(
     const subjects: ReportCardSubjectLine[] = subjectStats.map((s) => {
       const cell = s.cells.get(student.id);
       const average = cell != null ? round2(cell.average) : null;
+      const coefficient = coefficientOf(s.subjectId); // W08
       return {
         subjectId: s.subjectId,
         subjectName: s.name,
@@ -285,6 +332,9 @@ export async function buildClassReportCards(
         rank: s.ranks.get(student.id) ?? null,
         gradedCount: s.gradedCount,
         appreciation: average != null ? getMention(average) : null,
+        coefficient,
+        weightedAverage:
+          cell != null ? round2(cell.average * coefficient) : null,
       };
     });
 
@@ -312,6 +362,8 @@ export async function buildClassReportCards(
       schoolYearName: activeYear?.name ?? null,
       school: schoolData,
       subjects,
+      weighted, // W08
+      totalCoefficient: totalCoefficients.get(student.id) ?? null, // W08
       generalAverage,
       generalRank: generalRanks.get(student.id) ?? null,
       gradedStudentCount,
