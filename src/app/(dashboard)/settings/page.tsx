@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import SchoolSettingsForm from "@/components/forms/SchoolSettingsForm";
 import SmtpSettingsForm from "@/components/forms/SmtpSettingsForm";
+import MessagingSettingsForm from "@/components/forms/MessagingSettingsForm";
 import ActivateYearButton from "@/components/forms/ActivateYearButton";
 import FormContainer from "@/components/FormContainer";
 
@@ -73,7 +74,15 @@ const SettingsPage = async () => {
         />
       </div>
 
-      {/* CARTE 3 : Années scolaires */}
+      {/* CARTE 3 : Messagerie — W16 : toggle élève ↔ enseignant (§2.6.5) */}
+      <div className="bg-white p-4 rounded-md">
+        <h1 className="text-lg font-semibold mb-4">Messagerie</h1>
+        <MessagingSettingsForm
+          enabled={settings?.studentMessagingEnabled ?? false}
+        />
+      </div>
+
+      {/* CARTE 4 : Années scolaires */}
       <div className="bg-white p-4 rounded-md">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Années scolaires</h1>

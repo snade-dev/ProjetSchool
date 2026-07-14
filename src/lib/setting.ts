@@ -77,6 +77,12 @@ type RouteAccessMap = {
     "/list/audit": ["admin", "director", "superadmin"], // W10 — journal d'audit (§2.11.4)
     // W12 — mes notifications : tous les rôles connectés (la page ne montre que les SIENNES)
     "/list/notifications": ["admin", "director", "teacher", "accountant", "supervisor", "student", "parent", "user", "superadmin"],
+    // W16 — messagerie interne (§2.6.5) : tous les rôles école, PAS superadmin
+    // (intra-école). Supervision (consultation tracée des fils) : direction.
+    // NB : la clé supervision DOIT précéder la clé générale (le proxy s'arrête
+    // au premier préfixe qui matche).
+    "/list/messages/supervision": ["admin", "director"],
+    "/list/messages": ["admin", "director", "teacher", "accountant", "supervisor", "student", "parent"],
     "/settings/rollover": ["admin"], // W04 — assistant de passage d'année (director exclu)
     "/settings": ["admin"], // W07 — paramètres structurants : admin uniquement
     "/stats": ["admin", "director", "teacher", "accountant"], // gardes par page : finance restreint en page

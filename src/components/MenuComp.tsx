@@ -34,6 +34,7 @@ import {
   ChevronDown,
   ArrowRightLeft,
   ScrollText,
+  MessageSquare,
   LucideIcon,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
@@ -136,6 +137,8 @@ const MENU: MenuEntry[] = [
         { icon: FileText, label: "Justifications d'absence", href: "/list/justifications", visible: ["admin", "director", "supervisor"] },
         { icon: Calendar, label: "Événements", href: "/list/events", visible: ALL },
         { icon: Bell, label: "Annonces", href: "/list/announcements", visible: ALL },
+        // W16 — messagerie interne 1-à-1 (§2.6.5, tous les rôles école)
+        { icon: MessageSquare, label: "Messagerie", href: "/list/messages", visible: [...ALL, "supervisor", "accountant"] },
         // W12 — mes notifications in-app (tous les rôles école)
         { icon: BellRing, label: "Notifications", href: "/list/notifications", visible: [...ALL, "supervisor", "accountant"] },
         { icon: FilePlus, label: "Réclamations", href: "/list/reclamation", visible: ["admin", "director", "teacher", "student"] },
