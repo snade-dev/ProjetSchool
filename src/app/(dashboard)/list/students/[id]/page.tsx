@@ -129,6 +129,23 @@ const SingleStudentPage = async (props: {
       ? await buildReportCard(student.id, selectedSemester.id)
       : null;
 
+  // W08 — bulletin périmé (§2.1.6) : un coefficient de la classe a changé
+  // après le dernier calcul officiel → badge « À régénérer » jusqu'à la
+  // régénération explicite (écran Matières & coefficients de la classe).
+  const staleAverage =
+    reportCard && selectedSemester
+      ? await prisma.resultAverage.findUnique({
+          where: {
+            semesterId_studentId: {
+              semesterId: selectedSemester.id,
+              studentId: student.id,
+            },
+          },
+          select: { stale: true },
+        })
+      : null;
+  const isStale = staleAverage?.stale ?? false;
+
   // W05 — parents de l'école proposés à l'ajout de tuteur (admin/direction)
   const schoolParents =
     role === "admin" || role === "director"
@@ -319,6 +336,11 @@ const SingleStudentPage = async (props: {
                 semesters={semesters}
                 selectedId={selectedSemester?.id}
               />
+              {isStale && (
+                <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
+                  À régénérer — un coefficient de la classe a changé
+                </span>
+              )}
               {reportCard ? (
                 <BulletinButton data={reportCard} />
               ) : (

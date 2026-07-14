@@ -82,6 +82,13 @@ const styles = StyleSheet.create({
   colAvg: { width: "12%" },
   colRank: { width: "10%" },
   colAppreciation: { width: "24%", textAlign: "left" },
+  // W08 — variante pondérée : colonnes Coef et Moy. × coef (§2.1.6)
+  colSubjectW: { width: "18%", textAlign: "left" },
+  colNoteW: { width: "9%" },
+  colAvgW: { width: "10%" },
+  colCoefW: { width: "6%" },
+  colRankW: { width: "9%" },
+  colAppreciationW: { width: "19%", textAlign: "left" },
   emptyBox: {
     borderWidth: 1,
     borderColor: "#999",
@@ -146,6 +153,17 @@ const fmtRank = (rank: number | null | undefined): string =>
 const BulletinPDF = ({ data }: { data: ReportCardData }) => {
   const { school, student } = data;
   const hasGrades = data.subjects.length > 0;
+  // W08 — bulletin pondéré (TRIMESTER…) : colonnes Coef et Moy. × coef.
+  // Les classes MONTHLY (compositions sans coefficient, §2.3.1) gardent le
+  // rendu d'origine.
+  const weighted = data.weighted;
+  const colSubject = weighted ? styles.colSubjectW : styles.colSubject;
+  const colNote = weighted ? styles.colNoteW : styles.colNote;
+  const colAvg = weighted ? styles.colAvgW : styles.colAvg;
+  const colRank = weighted ? styles.colRankW : styles.colRank;
+  const colAppreciation = weighted
+    ? styles.colAppreciationW
+    : styles.colAppreciation;
 
   return (
     <Document>
@@ -202,41 +220,51 @@ const BulletinPDF = ({ data }: { data: ReportCardData }) => {
         {hasGrades ? (
           <View style={styles.table}>
             <View style={styles.tableHeaderRow}>
-              <Text style={[styles.th, styles.colSubject]}>Matière</Text>
-              <Text style={[styles.th, styles.colNote]}>Note classe</Text>
-              <Text style={[styles.th, styles.colNote]}>Note examen</Text>
-              <Text style={[styles.th, styles.colAvg]}>Moyenne /20</Text>
-              <Text style={[styles.th, styles.colAvg]}>Moy. classe</Text>
-              <Text style={[styles.th, styles.colRank]}>Rang</Text>
-              <Text style={[styles.th, styles.colAppreciation]}>
-                Appréciation
-              </Text>
+              <Text style={[styles.th, colSubject]}>Matière</Text>
+              <Text style={[styles.th, colNote]}>Note classe</Text>
+              <Text style={[styles.th, colNote]}>Note examen</Text>
+              <Text style={[styles.th, colAvg]}>Moyenne /20</Text>
+              {weighted && (
+                <Text style={[styles.th, styles.colCoefW]}>Coef</Text>
+              )}
+              {weighted && (
+                <Text style={[styles.th, styles.colAvgW]}>Moy. × coef</Text>
+              )}
+              <Text style={[styles.th, colAvg]}>Moy. classe</Text>
+              <Text style={[styles.th, colRank]}>Rang</Text>
+              <Text style={[styles.th, colAppreciation]}>Appréciation</Text>
             </View>
             {data.subjects.map((s) => (
               <View key={s.subjectId} style={styles.tableRow}>
-                <Text style={[styles.td, styles.colSubject]}>
-                  {s.subjectName}
-                </Text>
-                <Text style={[styles.td, styles.colNote]}>
+                <Text style={[styles.td, colSubject]}>{s.subjectName}</Text>
+                <Text style={[styles.td, colNote]}>
                   {fmtNote(s.classScore)}
                 </Text>
-                <Text style={[styles.td, styles.colNote]}>
+                <Text style={[styles.td, colNote]}>
                   {fmtNote(s.examScore)}
                 </Text>
-                <Text
-                  style={[styles.td, styles.colAvg, { fontWeight: "bold" }]}
-                >
+                <Text style={[styles.td, colAvg, { fontWeight: "bold" }]}>
                   {fmtNote(s.average)}
                 </Text>
-                <Text style={[styles.td, styles.colAvg]}>
+                {weighted && (
+                  <Text style={[styles.td, styles.colCoefW]}>
+                    {s.coefficient}
+                  </Text>
+                )}
+                {weighted && (
+                  <Text style={[styles.td, styles.colAvgW]}>
+                    {fmtNote(s.weightedAverage)}
+                  </Text>
+                )}
+                <Text style={[styles.td, colAvg]}>
                   {fmtNote(s.classAverage)}
                 </Text>
-                <Text style={[styles.td, styles.colRank]}>
+                <Text style={[styles.td, colRank]}>
                   {s.rank != null
                     ? `${fmtRank(s.rank)} / ${s.gradedCount}`
                     : "—"}
                 </Text>
-                <Text style={[styles.td, styles.colAppreciation]}>
+                <Text style={[styles.td, colAppreciation]}>
                   {s.appreciation ?? "—"}
                 </Text>
               </View>
@@ -250,8 +278,16 @@ const BulletinPDF = ({ data }: { data: ReportCardData }) => {
           </View>
         )}
 
-        {/* Pied : moyenne générale, rang général, mention */}
+        {/* Pied : moyenne générale (pondérée si W08), rang général, mention */}
         <View style={styles.summary}>
+          {weighted && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>Total coefficients</Text>
+              <Text style={styles.summaryValue}>
+                {data.totalCoefficient ?? "—"}
+              </Text>
+            </View>
+          )}
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>Moyenne générale</Text>
             <Text style={styles.summaryValue}>

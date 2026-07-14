@@ -7,6 +7,8 @@ import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
 import { Class, Level, Prisma, SchoolYear, Teacher } from "@/app/generated/prisma";
 import { headers } from "next/headers";
+import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
 
 import { sessionSchoolId } from "@/lib/authGuard";
 type ClassList = Class & {
@@ -80,6 +82,14 @@ const ClassListPage = async (props: {
         <div className=" flex items-center gap-2">
           {(role === "admin" || role === "director") && (
             <>
+              {/* W08 — écran Matières & coefficients de la classe (§2.1.6) */}
+              <Link
+                href={`/list/classes/${item.id}/subjects`}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaYellow"
+                title="Matières & coefficients"
+              >
+                <SlidersHorizontal size={14} />
+              </Link>
               <FormContainer table="class" type="update" data={item} />
               <FormContainer table="class" type="delete" id={item.id} />
             </>
