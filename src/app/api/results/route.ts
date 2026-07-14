@@ -36,8 +36,9 @@ export async function GET(request: Request) {
     const results = await prisma.result.findMany({
       where: {
         studentId,
+        // W03 — l'appartenance à la classe passe par l'Enrollment
         student: {
-          classId: parseInt(classId),
+          enrollments: { some: { classId: parseInt(classId) } },
         },
         semesterId: parseInt(semesterId),
       },

@@ -17,14 +17,24 @@ const StudentPage = async () => {
     return notFound();
   }
 
+  // W03 — la classe de l'élève = son inscription sur l'année active de son école
   const student = await prisma.student.findUnique({
     where: { id: userId },
-    select: { id: true, classId: true, class: { select: { name: true } } },
+    select: {
+      id: true,
+      enrollments: {
+        where: { schoolYear: { isActive: true } },
+        select: { class: { select: { id: true, name: true } } },
+        take: 1,
+      },
+    },
   });
 
   if (!student) {
     return notFound();
   }
+
+  const currentClass = student.enrollments[0]?.class ?? null;
 
   const shortcuts = [
     {
@@ -59,11 +69,17 @@ const StudentPage = async () => {
       <div className="w-full xl:w-2/3">
         <div className="h-full bg-white p-4 rounded-md">
           <h1 className="text-lg font-semibold mb-2">
-            Emploi du temps — {student.class.name}
+            Emploi du temps{currentClass ? ` — ${currentClass.name}` : ""}
           </h1>
-          <div className="h-[700px]">
-            <BigCalandarContainer type="classId" id={student.classId} />
-          </div>
+          {currentClass ? (
+            <div className="h-[700px]">
+              <BigCalandarContainer type="classId" id={currentClass.id} />
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400">
+              Aucune inscription sur l&apos;année scolaire en cours.
+            </p>
+          )}
         </div>
       </div>
       {/* RIGHT */}

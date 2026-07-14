@@ -168,11 +168,12 @@ export const createAttendance = async (
       }
 
       // Seuls les élèves de la classe sont acceptés (URL/payload forgés).
-      const students = await prisma.student.findMany({
+      // W03 — élèves de la classe = ses inscriptions (Enrollment)
+      const enrolled = await prisma.enrollment.findMany({
         where: { classId },
-        select: { id: true },
+        select: { studentId: true },
       });
-      const allowed = new Set(students.map((s) => s.id));
+      const allowed = new Set(enrolled.map((e) => e.studentId));
       const entries = data.entries.filter((e) => allowed.has(e.studentId));
 
       const nextDay = new Date(day);

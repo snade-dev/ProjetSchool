@@ -35,12 +35,24 @@ const InvoiceDetailPage = async (props: {
     include: {
       lines: { orderBy: { id: "asc" } },
       payments: { orderBy: { paidAt: "asc" } },
-      student: { include: { parent: true, class: true } },
+      student: { include: { parent: true } },
       schoolYear: true,
     },
   });
 
   if (!invoice) notFound();
+
+  // W03 — classe de l'élève = son inscription sur l'année de la facture
+  const invEnrollment = await prisma.enrollment.findUnique({
+    where: {
+      studentId_schoolYearId: {
+        studentId: invoice.studentId,
+        schoolYearId: invoice.schoolYearId,
+      },
+    },
+    select: { class: { select: { name: true } } },
+  });
+  const invClassName = invEnrollment?.class.name ?? null;
 
   // --- Contrôle de propriété (défense en profondeur) ---
   if (role === "student" && invoice.studentId !== currentUserId) {
@@ -93,7 +105,7 @@ const InvoiceDetailPage = async (props: {
   const studentInfo = {
     name: invoice.student.name,
     surname: invoice.student.surname,
-    className: invoice.student.class?.name ?? null,
+    className: invClassName,
     parentName: invoice.student.parent
       ? `${invoice.student.parent.name} ${invoice.student.parent.surname}`
       : null,
@@ -191,7 +203,7 @@ const InvoiceDetailPage = async (props: {
                 {invoice.student.name} {invoice.student.surname}
               </span>
               <span className="text-xs text-gray-500">
-                Classe : {invoice.student.class?.name ?? "-"}
+                Classe : {invClassName ?? "-"}
               </span>
               {invoice.student.parent && (
                 <span className="text-xs text-gray-500">

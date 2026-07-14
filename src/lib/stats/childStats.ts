@@ -102,11 +102,12 @@ export async function getChildOverview(
   }
 
   // Camarades de classe (ids) pour le rang et les repères de classe.
-  const classmates = await prisma.student.findMany({
+  // W03 — via les inscriptions (Enrollment) de la classe
+  const classmates = await prisma.enrollment.findMany({
     where: { classId },
-    select: { id: true },
+    select: { studentId: true },
   });
-  const classmateIds = classmates.map((s) => s.id);
+  const classmateIds = classmates.map((e) => e.studentId);
 
   const [better, graded, childResults, classBySubject] = await Promise.all([
     prisma.resultAverage.count({

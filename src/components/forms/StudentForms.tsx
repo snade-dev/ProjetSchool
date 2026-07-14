@@ -205,11 +205,11 @@ const StudentForm = ({
                 id: number;
                 name: string;
                 capacity: number;
-                _count: { students: number };
+                _count: { enrollments: number };
               }) => (
                 <option value={classItem.id} key={classItem.id}>
                   ({classItem.name} -{" "}
-                  {classItem._count.students + "/" + classItem.capacity}{" "}
+                  {classItem._count.enrollments + "/" + classItem.capacity}{" "}
                   Capacité)
                 </option>
               )

@@ -80,15 +80,20 @@ const RollCallPage = async (props: {
 
   // Annuaire des élèves des classes autorisées (recherche directe d'un élève,
   // bascule automatique vers sa classe).
-  const allStudents = await prisma.student.findMany({
+  // W03 — via les inscriptions (Enrollment) des classes autorisées
+  const allEnrollments = await prisma.enrollment.findMany({
     where: { classId: { in: classes.map((c) => c.id) } },
-    select: { id: true, name: true, surname: true, classId: true },
-    orderBy: [{ name: "asc" }, { surname: "asc" }],
+    select: {
+      classId: true,
+      student: { select: { id: true, name: true, surname: true } },
+    },
+    orderBy: [{ student: { name: "asc" } }, { student: { surname: "asc" } }],
   });
   const classNameById = new Map(classes.map((c) => [c.id, c.name]));
-  const directory = allStudents.map((s) => ({
-    ...s,
-    className: classNameById.get(s.classId) ?? "",
+  const directory = allEnrollments.map((e) => ({
+    ...e.student,
+    classId: e.classId,
+    className: classNameById.get(e.classId) ?? "",
   }));
 
   const today = new Date().toISOString().slice(0, 10);
@@ -116,11 +121,14 @@ const RollCallPage = async (props: {
     const nextDay = new Date(day);
     nextDay.setDate(nextDay.getDate() + 1);
 
-    const [studentRows, attendanceRows, historyRows] = await Promise.all([
-      prisma.student.findMany({
+    const [enrollmentRows, attendanceRows, historyRows] = await Promise.all([
+      // W03 — élèves de la classe = ses inscriptions
+      prisma.enrollment.findMany({
         where: { classId: selectedClass.id },
-        select: { id: true, name: true, surname: true },
-        orderBy: [{ name: "asc" }, { surname: "asc" }],
+        select: {
+          student: { select: { id: true, name: true, surname: true } },
+        },
+        orderBy: [{ student: { name: "asc" } }, { student: { surname: "asc" } }],
       }),
       prisma.attendance.findMany({
         where: {
@@ -138,7 +146,7 @@ const RollCallPage = async (props: {
         take: 600,
       }),
     ]);
-    students = studentRows;
+    students = enrollmentRows.map((e) => e.student);
     existing = Object.fromEntries(
       attendanceRows.map((a) => [a.studentId, a.present])
     );

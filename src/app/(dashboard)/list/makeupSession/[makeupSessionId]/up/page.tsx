@@ -41,10 +41,16 @@ export default async function ResultListPage(props: {
   console.log("SearchParams:", searchParams); // Vérifie les autres filtres
 
   // Récupération des données initiales
-  const [classes, semesters] = await Promise.all([
+  // W03 — année de la période de la session (pour résoudre les classes)
+  const [classes, semesters, makeupSessionInfo] = await Promise.all([
     prisma.class.findMany(),
     prisma.semester.findMany(),
+    prisma.makeupSession.findUnique({
+      where: { id: params.makeupSessionId },
+      select: { semester: { select: { schoolYearId: true } } },
+    }),
   ]);
+  const sessionYearId = makeupSessionInfo?.semester.schoolYearId ?? -1;
 
   // Construction de la query pour MakeupExam
   const query: Prisma.MakeupExamWhereInput = {
@@ -52,9 +58,10 @@ export default async function ResultListPage(props: {
   };
 
   // Filtrer par classe si `classId` est défini
+  // W03 — l'appartenance à une classe passe par l'Enrollment
   if (searchParams.classId) {
     query.student = {
-      classId: parseInt(searchParams.classId),
+      enrollments: { some: { classId: parseInt(searchParams.classId) } },
     };
   }
 
@@ -65,7 +72,7 @@ export default async function ResultListPage(props: {
     };
   } else if (searchParams.classId) {
     query.student = {
-      classId: parseInt(searchParams.classId),
+      enrollments: { some: { classId: parseInt(searchParams.classId) } },
     };
   }
 
@@ -83,7 +90,7 @@ export default async function ResultListPage(props: {
   console.log("Query finale:", JSON.stringify(query, null, 2));
 
   // Récupération des résultats
-  const [data, count] = await prisma.$transaction([
+  const [rawData, count] = await prisma.$transaction([
     prisma.makeupExam.findMany({
       where: query,
       include: {
@@ -91,8 +98,12 @@ export default async function ResultListPage(props: {
           select: {
             id: true,
             name: true,
-            classId: true,
-            class: { select: { name: true } },
+            // W03 — inscription sur l'année de la période de la session
+            enrollments: {
+              where: { schoolYearId: sessionYearId },
+              select: { classId: true, class: { select: { name: true } } },
+              take: 1,
+            },
           },
         },
         session: { select: { semester: true } },
@@ -105,9 +116,20 @@ export default async function ResultListPage(props: {
     prisma.makeupExam.count({ where: query }),
   ]);
 
-  if (!data || !role) {
+  if (!rawData || !role) {
     return notFound();
   }
+
+  // W03 — aplatir la classe de chaque élève pour les composants client
+  const data = rawData.map((r) => ({
+    ...r,
+    student: {
+      id: r.student.id,
+      name: r.student.name,
+      classId: r.student.enrollments[0]?.classId ?? null,
+      class: { name: r.student.enrollments[0]?.class.name ?? "-" },
+    },
+  }));
 
   const aggregateResult = await prisma.result.aggregate({
     _avg: { score: true },

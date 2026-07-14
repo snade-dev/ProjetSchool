@@ -137,19 +137,20 @@ const ExamsSection = async ({
       query.lesson.teacherId = currentUserId!;
       break;
     case "student":
+      // W03 — l'appartenance à la classe passe par l'Enrollment
       query.lesson.class = {
-        students: {
+        enrollments: {
           some: {
-            id: currentUserId!,
+            studentId: currentUserId!,
           },
         },
       };
       break;
     case "parent":
       query.lesson.class = {
-        students: {
+        enrollments: {
           some: {
-            parentId: currentUserId!,
+            student: { parentId: currentUserId! },
           },
         },
       };

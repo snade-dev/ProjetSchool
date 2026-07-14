@@ -162,7 +162,7 @@ const ReclamationListPage = async (props: {
 
   // Role condition
   const roleConditions = {
-    student: { students: { some: { id: currentUserId! } } },
+    student: { enrollments: { some: { studentId: currentUserId! } } }, // W03
   };
 
   if (role === "admin") {

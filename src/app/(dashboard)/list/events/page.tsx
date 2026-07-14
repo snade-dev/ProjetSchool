@@ -119,11 +119,13 @@ const EventListPage = async (props: {
     }
   }
 
-  // Role condition
+  // Role condition — W03 : l'appartenance à la classe passe par l'Enrollment
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: currentUserId! } } },
-    student: { students: { some: { id: currentUserId! } } },
-    parent: { students: { some: { parentId: currentUserId! } } },
+    student: { enrollments: { some: { studentId: currentUserId! } } },
+    parent: {
+      enrollments: { some: { student: { parentId: currentUserId! } } },
+    },
   };
 
   if (role === "admin") {

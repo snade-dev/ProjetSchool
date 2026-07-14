@@ -44,12 +44,28 @@ export const createResult = async (
       };
     }
 
+    // W03 — classe de l'élève = son inscription sur l'année de la période notée
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        studentId: student.id,
+        schoolYear: { semesters: { some: { id: data.semesterId } } },
+      },
+      select: { classId: true },
+    });
+    if (!enrollment) {
+      return {
+        success: false,
+        error: true,
+        message: "L'élève n'est pas inscrit sur l'année de cette période",
+      };
+    }
+
     if (role === "teacher") {
       const teacherLesson = await prisma.lesson.findFirst({
         where: {
           teacherId: userId,
           subjectId: data.subjectId,
-          classId: student.classId,
+          classId: enrollment.classId,
         },
       });
       if (!teacherLesson) {

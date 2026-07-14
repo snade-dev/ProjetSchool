@@ -43,11 +43,12 @@ export async function getClassStats(
   classId: number,
   semesterId: number
 ): Promise<ClassStats> {
-  const students = await prisma.student.findMany({
+  // W03 — les élèves de la classe = ses inscriptions (Enrollment)
+  const enrollments = await prisma.enrollment.findMany({
     where: { classId },
-    select: { id: true },
+    select: { studentId: true },
   });
-  const studentIds = students.map((s) => s.id);
+  const studentIds = enrollments.map((e) => e.studentId);
   const effectif = studentIds.length;
 
   const empty: ClassStats = {
@@ -147,11 +148,12 @@ export async function getSubjectAverages(
   classId: number,
   semesterId: number
 ): Promise<SubjectAverage[]> {
-  const students = await prisma.student.findMany({
+  // W03 — les élèves de la classe = ses inscriptions (Enrollment)
+  const enrollments = await prisma.enrollment.findMany({
     where: { classId },
-    select: { id: true },
+    select: { studentId: true },
   });
-  const studentIds = students.map((s) => s.id);
+  const studentIds = enrollments.map((e) => e.studentId);
   if (studentIds.length === 0) return [];
 
   const grouped = await prisma.result.groupBy({
@@ -200,11 +202,12 @@ export async function getTopFlop(
   classId: number,
   semesterId: number
 ): Promise<{ top: RankedStudent[]; flop: RankedStudent[] }> {
-  const students = await prisma.student.findMany({
+  // W03 — les élèves de la classe = ses inscriptions (Enrollment)
+  const enrollments = await prisma.enrollment.findMany({
     where: { classId },
-    select: { id: true },
+    select: { studentId: true },
   });
-  const studentIds = students.map((s) => s.id);
+  const studentIds = enrollments.map((e) => e.studentId);
   if (studentIds.length === 0) return { top: [], flop: [] };
 
   const select = {
@@ -253,11 +256,12 @@ export type TrendPoint = {
  * de la classe (groupBy ne traverse pas la relation `student`), puis noms de semestres.
  */
 export async function getClassTrend(classId: number): Promise<TrendPoint[]> {
-  const students = await prisma.student.findMany({
+  // W03 — les élèves de la classe = ses inscriptions (Enrollment)
+  const enrollments = await prisma.enrollment.findMany({
     where: { classId },
-    select: { id: true },
+    select: { studentId: true },
   });
-  const studentIds = students.map((s) => s.id);
+  const studentIds = enrollments.map((e) => e.studentId);
   if (studentIds.length === 0) return [];
 
   const grouped = await prisma.resultAverage.groupBy({

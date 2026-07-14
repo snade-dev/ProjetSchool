@@ -9,10 +9,12 @@ const Announcement = async () => {
   const userId = session?.user.id;
   const role = session?.user.role;
 
+  // W03 — l'appartenance à la classe passe par l'Enrollment (filtre commenté
+  // plus bas, mais l'objet reste aligné sur le schéma)
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: userId! } } },
-    student: { students: { some: { id: userId! } } },
-    parent: { students: { some: { parentId: userId! } } },
+    student: { enrollments: { some: { studentId: userId! } } },
+    parent: { enrollments: { some: { student: { parentId: userId! } } } },
   };
 
   // V03 — cloisonnement : annonces de l'école de la session

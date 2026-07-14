@@ -4,7 +4,7 @@ import Link from "next/link";
 import Announcement from "@/components/Annoucement";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { Class, Student } from "@/app/generated/prisma";
+import { EnrollmentStatus } from "@/app/generated/prisma";
 import { auth } from "@/lib/auth";
 import FormContainer from "@/components/FormContainer";
 import { Suspense } from "react";
@@ -14,6 +14,15 @@ import { headers } from "next/headers";
 import BulletinButton from "@/components/BulletinButton";
 import SemesterSelector from "@/components/SemesterSelector";
 import { buildReportCard } from "@/lib/reportCard";
+
+// W03 — libellés français des statuts d'inscription (§2.1.3)
+const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
+  ACTIVE: "Inscrit",
+  TRANSFERRED: "Transféré",
+  LEFT: "Parti",
+  GRADUATED: "Admis",
+  REPEATED: "Redoublé",
+};
 
 const SingleStudentPage = async (props: {
   params: Promise<{ id: string }>;
@@ -40,14 +49,23 @@ const SingleStudentPage = async (props: {
     return notFound();
   }
 
-  const student:
-    | (Student & {
-        class: Class & { _count: { lessons: number } };
-      })
-    | null = await prisma.student.findUnique({
+  // W03 — la classe actuelle vient de l'inscription de l'année ACTIVE ; le
+  // parcours complet (§2.1.3) vient de TOUTES les inscriptions de l'élève.
+  const student = await prisma.student.findUnique({
     where: { id: id },
     include: {
-      class: { include: { _count: { select: { lessons: true } } } },
+      enrollments: {
+        include: {
+          class: {
+            include: {
+              level: true,
+              _count: { select: { lessons: true } },
+            },
+          },
+          schoolYear: { select: { id: true, name: true, isActive: true } },
+        },
+        orderBy: { schoolYear: { startDate: "desc" } },
+      },
     },
   });
 
@@ -59,14 +77,23 @@ const SingleStudentPage = async (props: {
     return notFound();
   }
 
+  const currentEnrollment =
+    student.enrollments.find((e) => e.schoolYear.isActive) ?? null;
+  const currentClass = currentEnrollment?.class ?? null;
+
   // S13 — Bulletin : période sélectionnée (?semesterId=) + ReportCardData précalculé
   // côté serveur (le bouton PDF ne fait AUCUN accès DB).
   // V01 — seules les périodes du régime de la classe de l'élève sont proposées.
-  const semesters = await prisma.semester.findMany({
-    where: { system: student.class.evaluationSystem },
-    select: { id: true, name: true },
-    orderBy: { order: "asc" },
-  });
+  const semesters = currentClass
+    ? await prisma.semester.findMany({
+        where: {
+          system: currentClass.evaluationSystem,
+          schoolYearId: currentEnrollment!.schoolYear.id,
+        },
+        select: { id: true, name: true },
+        orderBy: { order: "asc" },
+      })
+    : [];
   const requestedSemesterId = searchParams.semesterId
     ? parseInt(searchParams.semesterId)
     : undefined;
@@ -98,9 +125,13 @@ const SingleStudentPage = async (props: {
                 <h1 className="text-lg font-semibold">
                   {student.name + " " + student.surname}
                 </h1>
-                {/* La FormModal */}
+                {/* La FormModal — W03 : classId dérivé de l'inscription active */}
                 {role === "admin" && (
-                  <FormContainer table="student" type="update" data={student} />
+                  <FormContainer
+                    table="student"
+                    type="update"
+                    data={{ ...student, classId: currentClass?.id }}
+                  />
                 )}
               </div>
               <p className="text-sm text-gray-500">
@@ -153,47 +184,74 @@ const SingleStudentPage = async (props: {
                 className="w-6 h-6"
               />
               <div className="">
-                <h1 className="text-xl font-semibold">{student.class.name}</h1>
+                <h1 className="text-xl font-semibold">
+                  {currentClass?.name ?? "Non inscrit"}
+                </h1>
                 <span className="text-sm text-gray-400">Classe</span>
               </div>
             </div>
             {/* CARD */}
-            {/* <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image
-                src="/singleLesson.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
-                <h1 className="text-xl font-semibold">{student.class._count.lessons}</h1>
-                <span className="text-sm text-gray-400">Lessons</span>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-md flex gap-4 w-full md:w-[48%] xl:w-[45%] 2xl:w-[48%]">
-              <Image
-                src="/singleClass.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
-                <h1 className="text-xl font-semibold">{student.class.name}</h1>
-                <span className="text-sm text-gray-400">Class</span>
-              </div>
-            </div> */}
           </div>
+        </div>
+        {/* W03 — Parcours : historique des inscriptions (§2.1.3) */}
+        <div className="mt-4 bg-white rounded-md p-4">
+          <h1 className="text-lg font-semibold mb-2">Parcours</h1>
+          {student.enrollments.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              Aucune inscription enregistrée.
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b border-gray-200">
+                  <th className="p-2">Année scolaire</th>
+                  <th className="p-2">Classe</th>
+                  <th className="p-2 hidden md:table-cell">Niveau</th>
+                  <th className="p-2">Statut</th>
+                  <th className="p-2 hidden md:table-cell">Inscrit le</th>
+                </tr>
+              </thead>
+              <tbody>
+                {student.enrollments.map((e) => (
+                  <tr
+                    key={e.id}
+                    className={`border-b border-gray-100 even:bg-slate-50 ${
+                      e.schoolYear.isActive ? "bg-lamaSkyLight" : ""
+                    }`}
+                  >
+                    <td className="p-2 font-medium">
+                      {e.schoolYear.name}
+                      {e.schoolYear.isActive && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          (en cours)
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-2">{e.class.name}</td>
+                    <td className="p-2 hidden md:table-cell">
+                      {e.class.level?.name ?? "-"}
+                    </td>
+                    <td className="p-2">
+                      {ENROLLMENT_STATUS_LABELS[e.status] ?? e.status}
+                    </td>
+                    <td className="p-2 hidden md:table-cell">
+                      {new Intl.DateTimeFormat("fr-FR").format(e.enrolledAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
         {/* BOTTOM — Emploi du temps de la classe */}
-        <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
-          <h1 className="text-lg font-semibold mb-2">Emploi du temps</h1>
-          <div className="h-[730px]">
-            <BigCalandarContainer type="classId" id={student.classId} />
+        {currentClass && (
+          <div className="mt-4 bg-white rounded-md p-4 h-[800px]">
+            <h1 className="text-lg font-semibold mb-2">Emploi du temps</h1>
+            <div className="h-[730px]">
+              <BigCalandarContainer type="classId" id={currentClass.id} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
       {/* RIGHT */}
       <div className="w-full md:w-1/3 flex flex-col gap-4">

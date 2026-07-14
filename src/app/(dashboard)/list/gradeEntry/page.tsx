@@ -121,17 +121,28 @@ export default async function GradeEntryPage(props: {
     [];
 
   if (allChosen && !outOfScope) {
-    [students, existing] = await Promise.all([
-      prisma.student.findMany({
-        where: { classId, schoolId }, // V03
-        select: { id: true, name: true, surname: true, img: true },
-        orderBy: [{ name: "asc" }, { surname: "asc" }],
+    // W03 — élèves de la classe = ses inscriptions (Enrollment)
+    const [enrollmentRows, existingRows] = await Promise.all([
+      prisma.enrollment.findMany({
+        where: { classId, student: { schoolId } }, // V03
+        select: {
+          student: {
+            select: { id: true, name: true, surname: true, img: true },
+          },
+        },
+        orderBy: [{ student: { name: "asc" } }, { student: { surname: "asc" } }],
       }),
       prisma.result.findMany({
-        where: { semesterId, subjectId, student: { classId } },
+        where: {
+          semesterId,
+          subjectId,
+          student: { enrollments: { some: { classId } } },
+        },
         select: { studentId: true, score: true, classScore: true },
       }),
     ]);
+    students = enrollmentRows.map((e) => e.student);
+    existing = existingRows;
   }
 
   return (

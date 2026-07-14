@@ -34,7 +34,14 @@ export async function GET(request: NextRequest) {
   const invoices = await prisma.invoice.findMany({
     where,
     include: {
-      student: { include: { class: true } },
+      // W03 — classe = inscription de l'élève sur l'année de la facture
+      student: {
+        include: {
+          enrollments: {
+            select: { schoolYearId: true, class: { select: { name: true } } },
+          },
+        },
+      },
       payments: { select: { amount: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -58,7 +65,8 @@ export async function GET(request: NextRequest) {
     return [
       inv.reference,
       `${inv.student.name} ${inv.student.surname}`,
-      inv.student.class?.name ?? "",
+      inv.student.enrollments.find((e) => e.schoolYearId === inv.schoolYearId)
+        ?.class.name ?? "",
       inv.month ?? "",
       inv.total,
       paid,

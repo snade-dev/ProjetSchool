@@ -12,24 +12,11 @@ import { notFound } from "next/navigation";
 import { headers } from "next/dist/server/request/headers";
 import { buildClassReportCards, ReportCardData } from "@/lib/reportCard";
 
-// On utilise une intersection type pour ajouter "moyenne" au payload de Result.
-type ResultList = Prisma.ResultGetPayload<{
-  include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        username: true;
-        surname: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}> & { moyenne: number };
+import type { ResultRow } from "../results/components/types";
+
+// W03 — la classe de chaque ligne est résolue via l'Enrollment de l'année de
+// la période, puis aplatie dans le type partagé ResultRow.
+type ResultList = ResultRow & { moyenne: number };
 
 // Onglet « Résultats & bulletins » de la page fusionnée examens/résultats (/list/exams).
 export default async function ResultsSection({
@@ -81,9 +68,10 @@ export default async function ResultsSection({
   const query: Prisma.ResultWhereInput = {};
 
   // Filtres basés sur l'interface utilisateur
+  // W03 — l'appartenance à une classe passe par l'Enrollment
   if (searchParams.classId) {
     query.student = {
-      classId: parseInt(searchParams.classId),
+      enrollments: { some: { classId: parseInt(searchParams.classId) } },
     };
   }
 
@@ -101,7 +89,7 @@ export default async function ResultsSection({
     };
   } else if (searchParams.classId) {
     query.student = {
-      classId: parseInt(searchParams.classId),
+      enrollments: { some: { classId: parseInt(searchParams.classId) } },
     };
   }
 
@@ -150,7 +138,8 @@ export default async function ResultsSection({
       },
       include: {
         exam: { select: { id: true, title: true } },
-        semester: { select: { id: true, name: true } },
+        // W03 — schoolYearId de la période pour retrouver l'inscription
+        semester: { select: { id: true, name: true, schoolYearId: true } },
         subject: { select: { id: true, name: true } },
         student: {
           select: {
@@ -158,8 +147,13 @@ export default async function ResultsSection({
             name: true,
             username: true,
             surname: true,
-            classId: true,
-            class: { select: { name: true } }, // Inclure classScore
+            enrollments: {
+              select: {
+                schoolYearId: true,
+                classId: true,
+                class: { select: { name: true } },
+              },
+            },
           },
         },
       },
@@ -194,8 +188,22 @@ export default async function ResultsSection({
     const score = result.score ?? 0; // Récupérer score
     const moyenne = classScore * 0.4 + score * 0.6; // Calculer la nouvelle moyenne
 
+    // W03 — classe de l'élève = inscription sur l'année de la période du résultat
+    const enrollment = result.student.enrollments.find(
+      (e) => e.schoolYearId === result.semester.schoolYearId
+    );
+
     return {
       ...result,
+      semester: { id: result.semester.id, name: result.semester.name },
+      student: {
+        id: result.student.id,
+        name: result.student.name,
+        username: result.student.username,
+        surname: result.student.surname,
+        classId: enrollment?.classId ?? null,
+        class: { name: enrollment?.class.name ?? "-" },
+      },
       moyenne: moyenne,
     };
   });
@@ -207,6 +215,8 @@ export default async function ResultsSection({
   // chaque calcul chargeant TOUS les Results de la classe en une requête.
   const groups = new Map<string, { classId: number; semesterId: number }>();
   for (const r of processedData) {
+    // W03 — les lignes sans inscription (classId null) n'ont pas de bulletin
+    if (r.student.classId == null) continue;
     groups.set(`${r.student.classId}:${r.semesterId}`, {
       classId: r.student.classId,
       semesterId: r.semesterId,

@@ -16,20 +16,9 @@ import { updateResults } from "@/lib/actions/resultAction";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { updateMakeupExam } from "@/lib/actions/makeupExamAction";
-// On récupère le type des résultats étendus généré par Prisma
-type ResultWithDetails = Prisma.MakeupExamGetPayload<{
-  include: {
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}>;
+import type { MakeupExamRow } from "./types";
+// W03 — type partagé (classe résolue via Enrollment côté serveur)
+type ResultWithDetails = MakeupExamRow;
 
 // Les valeurs du formulaire ne contiennent que les champs à modifier (ici l'id et le score)
 interface FormValues {

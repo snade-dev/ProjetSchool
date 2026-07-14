@@ -87,7 +87,17 @@ export async function getTeacherStats(
         classScore: true,
         subjectId: true,
         studentId: true,
-        student: { select: { classId: true } },
+        // W03 — la classe de l'élève vient de son inscription sur l'année
+        // de la période analysée (Semester.schoolYearId)
+        student: {
+          select: {
+            enrollments: {
+              where: { schoolYear: { semesters: { some: { id: semesterId } } } },
+              select: { classId: true },
+              take: 1,
+            },
+          },
+        },
       },
     }),
   ]);
@@ -98,7 +108,10 @@ export async function getTeacherStats(
   // Agrégation des notes par paire (subjectId, classId).
   const pairAggs = new Map<string, PairAgg>();
   for (const r of results) {
-    const key = `${r.subjectId}:${r.student.classId}`;
+    // W03 — élève sans inscription sur l'année de la période : note ignorée
+    const studentClassId = r.student.enrollments[0]?.classId;
+    if (studentClassId == null) continue;
+    const key = `${r.subjectId}:${studentClassId}`;
     // H17 par note : (score + classScore)/2 si les deux, sinon la note présente.
     const value =
       r.classScore != null ? (r.score + r.classScore) / 2 : r.score;

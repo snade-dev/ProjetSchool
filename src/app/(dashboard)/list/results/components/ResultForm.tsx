@@ -1,6 +1,5 @@
 "use client";
 
-import { Prisma } from "@/app/generated/prisma";
 import { useForm } from "react-hook-form";
 import React, { useEffect, useActionState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,22 +10,10 @@ import {
 import { updateResults } from "@/lib/actions/resultAction";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import type { ResultRow } from "./types";
 
-type ResultWithDetails = Prisma.ResultGetPayload<{
-  include: {
-    exam: { select: { id: true; title: true } };
-    semester: { select: { id: true; name: true } };
-    subject: { select: { id: true; name: true } };
-    student: {
-      select: {
-        id: true;
-        name: true;
-        classId: true;
-        class: { select: { name: true } };
-      };
-    };
-  };
-}>;
+// W03 — type partagé (classe résolue via Enrollment côté serveur)
+type ResultWithDetails = ResultRow;
 
 interface FormValues {
   results: {
