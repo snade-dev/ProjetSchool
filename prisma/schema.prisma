@@ -505,8 +505,9 @@ model Semester {
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  // W01 — unicité par école
-  @@unique([schoolId, name])
+  // W04 — unicité par école ET par année : le passage d'année reconduit les
+  // périodes avec le MÊME nom (« Trimestre 1 ») sur la nouvelle année.
+  @@unique([schoolId, schoolYearId, name])
 }
 
 model MakeupSession {

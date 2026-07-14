@@ -25,9 +25,14 @@ export const createSemester = async (
   try {
     const { schoolId } = await requireSchool(["admin"]); // V03
 
-    // W01 — le contrôle de doublon est scopé à l'école (unicité par école)
+    // W02 — une période appartient à UNE année scolaire : création sur l'année ACTIVE
+    const activeYear = await getActiveSchoolYear(schoolId);
+
+    // W04 — le contrôle de doublon est scopé à l'école ET à l'année
+    // (unicité schoolId + schoolYearId + name : « Trimestre 1 » peut exister
+    // sur chaque année grâce au passage d'année).
     const existingSemester = await prisma.semester.findFirst({
-      where: { name: data.name, schoolId },
+      where: { name: data.name, schoolId, schoolYearId: activeYear.id },
     });
 
     if (existingSemester) {
@@ -38,9 +43,6 @@ export const createSemester = async (
         message: "Le semestre existe déjà",
       };
     }
-
-    // W02 — une période appartient à UNE année scolaire : création sur l'année ACTIVE
-    const activeYear = await getActiveSchoolYear(schoolId);
 
     await prisma.semester.create({
       data: {
