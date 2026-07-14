@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { getSessionInfo } from "@/lib/authGuard";
+import { semesterSystemWhere } from "@/lib/evaluation";
 import {
   getClassStats,
   getSubjectAverages,
@@ -150,7 +151,8 @@ export default async function StudentStatsPage(props: {
     where: {
       schoolId: info.schoolId ?? -1, // cloisonnement (manquait)
       schoolYear: { isActive: true }, // W02 — périodes de l'année active
-      ...(preClass ? { system: preClass.evaluationSystem } : {}),
+      // W09 — classe COMBINED : périodes des DEUX régimes (§2.3.1)
+      ...(preClass ? semesterSystemWhere(preClass.evaluationSystem) : {}),
     },
     select: { id: true, name: true },
     orderBy: [{ system: "asc" }, { order: "asc" }],

@@ -9,11 +9,21 @@ import { getMention } from "./setting";
  * (pas de N+1), les calculs se font en mémoire, et les structures retournées sont
  * 100 % sérialisables (aucune Date brute) : le composant PDF ne touche JAMAIS la DB.
  *
- * Formules (H17, pondération W08 §2.1.6) :
- * - moyenne matière élève = (classScore + score) / 2 si les deux existent, sinon la note présente ;
+ * Formules (H17, pondération W08 §2.1.6, W09 §2.3.1) :
+ * - le régime de CALCUL est décidé par la PÉRIODE (semester.system), jamais
+ *   par la classe seule (W09 — indispensable au régime COMBINED, système 3 :
+ *   une classe combinée produit des bulletins de composition sur ses périodes
+ *   MONTHLY ET des bulletins pondérés sur ses périodes TRIMESTER) ;
+ * - moyenne matière élève (période TRIMESTER) =
+ *   classScore × (homeworkWeight/100) + score × (1 − homeworkWeight/100)
+ *   si les deux notes existent (Class.homeworkWeight, défaut 50 = moyenne
+ *   simple H17), sinon la note présente ;
+ * - moyenne matière élève (période MONTHLY) = moyenne simple H17 inchangée :
+ *   (classScore + score) / 2 si les deux existent, sinon la note présente
+ *   (en pratique la note de composition seule) ;
  * - moyenne générale = Σ(moyenne matière × coefficient) ÷ Σ coefficients, où le
  *   coefficient vient de ClassSubject pour la classe (matière sans ligne → 1).
- *   Les classes en régime MONTHLY gardent coefficient 1 partout (§2.3.1
+ *   Les périodes MONTHLY gardent coefficient 1 partout (§2.3.1
  *   système 1 : compositions sans pondération) = moyenne simple d'origine ;
  * - moyenne de classe (matière) = moyenne des moyennes matière des élèves notés ;
  * - rangs « standard competition » : les ex æquo partagent le rang (1, 2, 2, 4).
@@ -45,7 +55,7 @@ export type ReportCardSubjectLine = {
   gradedCount: number;
   /** Appréciation automatique (GRADE_SCALE), null si non noté. */
   appreciation: string | null;
-  /** W08 — coefficient de la matière dans la classe (ClassSubject, défaut 1 ; forcé à 1 en régime MONTHLY). */
+  /** W08 — coefficient de la matière dans la classe (ClassSubject, défaut 1 ; forcé à 1 sur les périodes MONTHLY). */
   coefficient: number;
   /** W08 — moyenne × coefficient (points pondérés), null si non noté. */
   weightedAverage: number | null;
@@ -74,11 +84,19 @@ export type ReportCardData = {
   } | null;
   subjects: ReportCardSubjectLine[];
   /**
-   * W08 — true si la classe est en régime pondéré (TRIMESTER…) : le bulletin
-   * affiche alors les colonnes Coef et Moy. × coef. False en MONTHLY (§2.3.1
-   * système 1 : compositions sans coefficient, rendu inchangé).
+   * W08/W09 — true si la PÉRIODE est pondérée (semester.system TRIMESTER) :
+   * le bulletin affiche alors les colonnes Coef et Moy. × coef. False sur les
+   * périodes MONTHLY (§2.3.1 système 1 : compositions sans coefficient, rendu
+   * inchangé). W09 : une classe COMBINED produit donc les deux rendus selon
+   * la période — le régime de calcul suit la période, pas la classe.
    */
   weighted: boolean;
+  /**
+   * W09 — pondération devoirs/composition appliquée (%, Class.homeworkWeight) ;
+   * 50 sur les périodes MONTHLY (moyenne simple). Affiché sur le bulletin
+   * pondéré quand il diffère du 50/50 historique.
+   */
+  homeworkWeight: number;
   /** W08 — Σ des coefficients des matières notées de l'élève, null si aucune note. */
   totalCoefficient: number | null;
   /** Moyenne générale /20 (Σ moyenne × coef ÷ Σ coef ; coef 1 partout en MONTHLY), null si aucune note. */
@@ -115,13 +133,23 @@ function competitionRanks(
   return ranks;
 }
 
-/** Moyenne matière d'un élève selon H17. */
+/**
+ * Moyenne matière d'un élève — fonction pure (W09).
+ * `homeworkWeight` (0-100) : poids de la note de devoirs (classScore) face à
+ * la composition (score). 50 = moyenne simple historique H17. La pondération
+ * ne s'applique QUE si les deux notes existent : une seule note présente vaut
+ * la moyenne telle quelle (comportement H17 conservé — sur une période
+ * MONTHLY la note de composition seule compte quand il n'y a qu'une note).
+ */
 function subjectAverage(
   examScore: number | null,
-  classScore: number | null
+  classScore: number | null,
+  homeworkWeight: number = 50
 ): number | null {
-  if (examScore != null && classScore != null)
-    return (examScore + classScore) / 2;
+  if (examScore != null && classScore != null) {
+    const w = homeworkWeight / 100;
+    return classScore * w + examScore * (1 - w);
+  }
   if (examScore != null) return examScore;
   if (classScore != null) return classScore;
   return null;
@@ -146,6 +174,8 @@ export async function buildClassReportCards(
           name: true,
           // W08 — régime + coefficients par matière (ClassSubject)
           evaluationSystem: true,
+          // W09 — pondération devoirs/composition (périodes TRIMESTER)
+          homeworkWeight: true,
           classSubjects: {
             select: { subjectId: true, coefficient: true },
           },
@@ -167,6 +197,7 @@ export async function buildClassReportCards(
           c && {
             name: c.name,
             evaluationSystem: c.evaluationSystem,
+            homeworkWeight: c.homeworkWeight, // W09
             classSubjects: c.classSubjects,
             students: c.enrollments.map((e) => e.student),
           }
@@ -202,11 +233,16 @@ export async function buildClassReportCards(
 
   if (!klass || !semester) return new Map();
 
-  // W08 — coefficients de la classe (§2.1.6). Règle critique §2.3.1 système 1 :
-  // les classes MONTHLY (compositions) ne pondèrent PAS → coefficient 1 partout,
-  // ce qui redonne exactement la moyenne simple H17. Matière sans ligne
+  // W09 — le régime de CALCUL est celui de la PÉRIODE (semester.system), pas
+  // de la classe : une classe COMBINED (§2.3.1 système 3) est notée en moyenne
+  // simple sur ses périodes MONTHLY (bulletin de composition) et en moyennes
+  // pondérées sur ses périodes TRIMESTER (bulletin de trimestre). Pour une
+  // classe TRIMESTER ou MONTHLY, période et classe partagent le même régime :
+  // le comportement W08 est inchangé.
+  // Règle §2.3.1 système 1 : les périodes MONTHLY ne pondèrent PAS →
+  // coefficient 1 partout + moyenne simple H17. Matière sans ligne
   // ClassSubject → coefficient 1 (backfill W08 : comportement inchangé).
-  const weighted = klass.evaluationSystem !== "MONTHLY";
+  const weighted = semester.system === "TRIMESTER";
   const coefficientMap = new Map<number, number>(
     weighted
       ? klass.classSubjects.map((cs) => [cs.subjectId, cs.coefficient])
@@ -214,6 +250,9 @@ export async function buildClassReportCards(
   );
   const coefficientOf = (subjectId: number) =>
     coefficientMap.get(subjectId) ?? 1;
+  // W09 — pondération devoirs/composition : uniquement sur les périodes
+  // TRIMESTER ; 50 (= moyenne simple H17) sur les compositions MONTHLY.
+  const homeworkWeight = weighted ? klass.homeworkWeight : 50;
 
   // ---- Agrégation par matière : subjectId → { name, par élève { classScore, examScore, average } }
   type Cell = { classScore: number | null; examScore: number | null; average: number };
@@ -227,7 +266,7 @@ export async function buildClassReportCards(
     const makeup = r.makeupExam?.score ?? null;
     const examScore = makeup != null && makeup > r.score ? makeup : r.score;
     const classScore = r.classScore ?? null;
-    const avg = subjectAverage(examScore, classScore);
+    const avg = subjectAverage(examScore, classScore, homeworkWeight); // W09
     if (avg == null) continue; // ligne sans aucune note : ignorée (impossible en pratique, score non nul)
 
     let entry = subjectsMap.get(r.subjectId);
@@ -362,7 +401,8 @@ export async function buildClassReportCards(
       schoolYearName: activeYear?.name ?? null,
       school: schoolData,
       subjects,
-      weighted, // W08
+      weighted, // W08/W09 — pondération décidée par la période
+      homeworkWeight, // W09
       totalCoefficient: totalCoefficients.get(student.id) ?? null, // W08
       generalAverage,
       generalRank: generalRanks.get(student.id) ?? null,

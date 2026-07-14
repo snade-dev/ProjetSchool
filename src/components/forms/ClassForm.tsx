@@ -31,10 +31,17 @@ const ClassForm = ({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ClassSchema>({
     resolver: zodResolver(classSchema),
   });
+
+  // W09 — le champ pondération n'a de sens que pour les régimes à trimestres
+  // (TRIMESTER/COMBINED) : les compositions mensuelles ne pondèrent pas.
+  const watchedSystem =
+    watch("evaluationSystem") ?? data?.evaluationSystem ?? "TRIMESTER";
+  const showHomeworkWeight = watchedSystem !== "MONTHLY";
 
   // AFTER REACT 19 IT'LL BE USEACTIONSTATE
 
@@ -143,6 +150,8 @@ const ClassForm = ({
           >
             <option value="TRIMESTER">Trimestres (3 périodes/an)</option>
             <option value="MONTHLY">Compositions mensuelles</option>
+            {/* W09 — §2.3.1 système 3 : compositions ET trimestres en parallèle */}
+            <option value="COMBINED">Combiné (compositions + trimestres)</option>
           </select>
           {errors.evaluationSystem?.message && (
             <p className="text-xs text-red-400 font-bold">
@@ -150,6 +159,19 @@ const ClassForm = ({
             </p>
           )}
         </div>
+        {/* W09 — pondération devoirs/composition (%, TRIMESTER et COMBINED).
+            Masquée en MONTHLY : zod retombe alors sur le défaut 50. */}
+        {showHomeworkWeight && (
+          <InputField
+            label="Poids des devoirs (%) — 50 = moyenne simple"
+            name="homeworkWeight"
+            type="number"
+            defaultValue={data?.homeworkWeight ?? 50}
+            register={register}
+            error={errors?.homeworkWeight}
+            inputProps={{ min: 0, max: 100 }}
+          />
+        )}
         <div className="flex flex-col gap-1.5 w-full md:w-1/4">
           <label className="text-xs font-medium text-gray-500">Superviseur</label>
           <select

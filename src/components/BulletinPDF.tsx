@@ -216,6 +216,15 @@ const BulletinPDF = ({ data }: { data: ReportCardData }) => {
           </View>
         </View>
 
+        {/* W09 — barème devoirs/composition affiché quand il diffère du 50/50
+            historique (bulletins pondérés uniquement, §2.3.1 système 2/3) */}
+        {weighted && data.homeworkWeight !== 50 ? (
+          <Text style={{ fontSize: 7, color: "#888", marginBottom: 4 }}>
+            Moyenne par matière : devoirs {data.homeworkWeight} % · composition{" "}
+            {100 - data.homeworkWeight} %
+          </Text>
+        ) : null}
+
         {/* Tableau des matières */}
         {hasGrades ? (
           <View style={styles.table}>

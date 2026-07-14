@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getSessionInfo } from "@/lib/authGuard";
+import { semesterSystemWhere } from "@/lib/evaluation";
 import { notFound } from "next/navigation";
 import Filters from "./components/Filters";
 import GradeGrid from "./components/GradeGrid";
@@ -72,6 +73,7 @@ export default async function GradeEntryPage(props: {
 
   // V01 — les périodes proposées suivent le régime de la classe choisie
   // (toutes tant qu'aucune classe n'est sélectionnée).
+  // W09 — une classe COMBINED voit les périodes des DEUX régimes (§2.3.1).
   const selectedClass = classId
     ? await prisma.class.findFirst({
         where: { id: classId, schoolId }, // V03 — la classe doit être de l'école
@@ -82,7 +84,9 @@ export default async function GradeEntryPage(props: {
     where: {
       schoolId, // V03
       schoolYear: { isActive: true }, // W02 — périodes de l'année active
-      ...(selectedClass ? { system: selectedClass.evaluationSystem } : {}),
+      ...(selectedClass
+        ? semesterSystemWhere(selectedClass.evaluationSystem)
+        : {}),
     },
     select: { id: true, name: true },
     orderBy: [{ system: "asc" }, { order: "asc" }],

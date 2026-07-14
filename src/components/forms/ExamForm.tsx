@@ -15,6 +15,7 @@ import { createExam, updateExam } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { examSchema, ExamSchema } from "@/lib/formsValidationSchema";
+import { periodSystemsFor } from "@/lib/evaluation";
 import { DrawerHeader, FormFooter, FormSection } from "../form/DrawerUi";
 
 const ExamForm = ({
@@ -71,14 +72,16 @@ const ExamForm = ({
 
   // V01 — la leçon choisie impose le régime : seules les périodes de ce régime
   // sont proposées (toutes tant qu'aucune leçon n'est choisie).
+  // W09 — classe COMBINED : les périodes des DEUX régimes sont proposées (§2.3.1).
   const watchedLessonId = watch("lessonId") ?? data?.lessonId;
   const selectedLesson = lessons.find(
     (l: { id: number | string }) => String(l.id) === String(watchedLessonId)
   );
   const visibleSemesters = selectedLesson?.class?.evaluationSystem
-    ? semesters.filter(
-        (s: { system?: string }) =>
-          s.system === selectedLesson.class.evaluationSystem
+    ? semesters.filter((s: { system?: string }) =>
+        periodSystemsFor(selectedLesson.class.evaluationSystem).includes(
+          s.system as "TRIMESTER" | "MONTHLY"
+        )
       )
     : semesters;
 
