@@ -29,7 +29,8 @@ export type FormContainerProps = {
     | "invoice"
     | "payment"
     | "expense"
-    | "employee";
+    | "employee"
+    | "level";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
@@ -58,7 +59,13 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           where: { schoolId },
           select: { id: true, name: true, surname: true },
         });
-        relatedData = { teachers: classTeachers };
+        // W02 — le formulaire de classe propose le niveau
+        const classLevels = await prisma.level.findMany({
+          where: { schoolId },
+          select: { id: true, name: true, cycle: true },
+          orderBy: { order: "asc" },
+        });
+        relatedData = { teachers: classTeachers, levels: classLevels };
         break;
       case "teacher":
         const teacherSubject = await prisma.subject.findMany({
@@ -68,8 +75,9 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { subjects: teacherSubject };
         break;
       case "student":
+        // W02 — seules les classes de l'année scolaire ACTIVE sont proposées
         const studentClasses = await prisma.class.findMany({
-          where: { schoolId },
+          where: { schoolId, schoolYear: { isActive: true } },
           include: { _count: { select: { students: true } } },
         });
         relatedData = { classes: studentClasses };
@@ -88,7 +96,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           },
         });
         const examSemester = await prisma.semester.findMany({
-          where: { schoolId },
+          // W02 — périodes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true, system: true },
           orderBy: [{ system: "asc" }, { order: "asc" }],
         });
@@ -98,7 +107,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
 
       case "announcement":
         const announceClass = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
 
@@ -106,7 +116,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "quiz":
         const quizClass = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
         const quizSubjects = await prisma.subject.findMany({
@@ -118,7 +129,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "makeupSession":
         const makeupSessionSemesters = await prisma.semester.findMany({
-          where: { schoolId },
+          // W02 — périodes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
         relatedData = {
@@ -128,7 +140,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "event":
         const eventClass = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
 
@@ -141,7 +154,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           select: { id: true, name: true },
         });
         const Lclasses = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true, capacity: true },
         });
         relatedData = { subjects: Lsubjects, classes: Lclasses };
@@ -168,11 +182,13 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           select: { id: true, name: true, semesters: true },
         });
         const ResultClasses = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
         const ResultSemesters = await prisma.semester.findMany({
-          where: { schoolId },
+          // W02 — périodes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
 
@@ -186,7 +202,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
 
       case "semester":
         const ResultSemester = await prisma.semester.findMany({
-          where: { schoolId },
+          // W02 — périodes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
         const ResultSubjects = await prisma.subject.findMany({
@@ -205,7 +222,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           select: { id: true, name: true },
         });
         const AttendanceClass = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
 
@@ -220,7 +238,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         break;
       case "fee":
         const feeClasses = await prisma.class.findMany({
-          where: { schoolId },
+          // W02 — classes de l'année active uniquement
+          where: { schoolId, schoolYear: { isActive: true } },
           select: { id: true, name: true },
         });
         relatedData = { classes: feeClasses };

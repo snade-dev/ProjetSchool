@@ -86,6 +86,7 @@ const MENU: MenuEntry[] = [
         { icon: GraduationCap, label: "Étudiants", href: "/list/students", visible: ["admin", "teacher"] },
         { icon: UsersRound, label: "Parents", href: "/list/parents", visible: ["admin", "teacher"] },
         { icon: BookOpen, label: "Matières", href: "/list/subjects", visible: ["admin"] },
+        { icon: Award, label: "Niveaux", href: "/list/levels", visible: ["admin"] },
         { icon: ClipboardList, label: "Classes", href: "/list/classes", visible: ["admin", "teacher"] },
         { icon: CalendarDays, label: "Périodes d'évaluation", href: "/list/semester", visible: ["admin", "teacher"] },
         { icon: NotebookPen, label: "Leçons", href: "/list/lessons", visible: ["admin", "teacher"] },

@@ -27,9 +27,27 @@ export const classSchema = z.object({
   evaluationSystem: z.enum(["TRIMESTER", "MONTHLY"], {
     message: "Choisissez le régime d'évaluation",
   }),
+  // W02 — niveau obligatoire à la saisie (nullable en base pour les classes historiques)
+  levelId: z.coerce
+    .number({ message: "Choisissez le niveau de la classe" })
+    .int()
+    .positive({ message: "Choisissez le niveau de la classe" }),
 });
 
 export type ClassSchema = z.infer<typeof classSchema>;
+
+// W02 — niveau scolaire (§2.1.4) : « CP », « 6ème », « Terminale »…
+export const levelSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z.string().min(1, { message: "Le nom du niveau est requis !" }),
+  order: z.coerce
+    .number({ message: "L'ordre hiérarchique est requis" })
+    .int()
+    .min(1, { message: "L'ordre doit être ≥ 1" }),
+  cycle: z.string().optional(),
+});
+
+export type LevelSchema = z.infer<typeof levelSchema>;
 
 export const teacherSchema = z.object({
   id: z.string().optional(),

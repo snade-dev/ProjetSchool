@@ -67,6 +67,72 @@ async function seed() {
   console.log(`Année scolaire active : ${active.name}`);
 
   // ==========================================================================
+  // W02 — Niveaux de base (§2.1.4) + classes rattachées au niveau et à l'année
+  // ==========================================================================
+
+  const levelData = [
+    { name: "1ère année", order: 1, cycle: "Primaire" },
+    { name: "2ème année", order: 2, cycle: "Primaire" },
+    { name: "3ème année", order: 3, cycle: "Primaire" },
+  ];
+  const levels = [];
+  for (const level of levelData) {
+    levels.push(
+      await prisma.level.upsert({
+        where: {
+          schoolId_name: { schoolId: SEED_SCHOOL_ID, name: level.name },
+        },
+        update: { order: level.order, cycle: level.cycle },
+        create: { ...level, schoolId: SEED_SCHOOL_ID },
+      })
+    );
+  }
+  console.log(`Level : ${levels.length} niveaux (upsert)`);
+
+  // Classes de démonstration : une par niveau, rattachées à l'année ACTIVE
+  // (unicité W02 : école + année + nom).
+  const classData = levels.map((level) => ({
+    name: `${level.name} A`,
+    capacity: 40,
+    levelId: level.id,
+  }));
+  for (const cls of classData) {
+    await prisma.class.upsert({
+      where: {
+        schoolId_schoolYearId_name: {
+          schoolId: SEED_SCHOOL_ID,
+          schoolYearId: active.id,
+          name: cls.name,
+        },
+      },
+      update: { levelId: cls.levelId },
+      create: {
+        ...cls,
+        schoolId: SEED_SCHOOL_ID,
+        schoolYearId: active.id,
+      },
+    });
+  }
+  console.log(`Class : ${classData.length} classes rattachées niveau + année (upsert)`);
+
+  // Backfill de confort : les classes historiques de l'année active sans niveau
+  // reçoivent un niveau par ordre alphabétique (1er niveau, 2e, 3e…).
+  const orphanClasses = await prisma.class.findMany({
+    where: { schoolId: SEED_SCHOOL_ID, levelId: null },
+    orderBy: { name: "asc" },
+  });
+  for (let i = 0; i < orphanClasses.length; i++) {
+    const level = levels[Math.min(i, levels.length - 1)];
+    await prisma.class.update({
+      where: { id: orphanClasses[i].id },
+      data: { levelId: level.id },
+    });
+  }
+  if (orphanClasses.length > 0) {
+    console.log(`Class : ${orphanClasses.length} classes existantes rattachées à un niveau`);
+  }
+
+  // ==========================================================================
   // STORY 03 — Finance / RH (idempotent : upsert / skipDuplicates)
   // S'appuie sur les Class/Teacher EXISTANTS en base (findMany), pas d'ids codés.
   // ==========================================================================

@@ -49,8 +49,12 @@ const FeesPage = async () => {
   }
 
   // V03 — cloisonnement : classes de l'école de la session uniquement
+  // W02 — et de l'année scolaire active uniquement
   const classes = await prisma.class.findMany({
-    where: { schoolId: sessionSchoolId(session) },
+    where: {
+      schoolId: sessionSchoolId(session),
+      schoolYear: { isActive: true },
+    },
     orderBy: { name: "asc" },
     include: {
       feeStructures: {

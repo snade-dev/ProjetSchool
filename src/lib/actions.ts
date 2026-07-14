@@ -4,6 +4,7 @@ import { ClassSchema, ExamSchema, StudentSchema, SubjectSchema, TeacherSchema } 
 import { createAuthUser, removeAuthUser, setAuthUserPassword } from './authAdmin';
 import prisma from './prisma';
 import { requireRole, requireSchool } from './authGuard';
+import { getActiveSchoolYear } from './schoolYear';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from './actionErrors';
 
@@ -104,20 +105,34 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
         // V03 — création rattachée à l'école de la session
         const { schoolId } = await requireSchool(["admin"]);
 
-        // W01 — le contrôle de doublon est scopé à l'école (unicité par école)
+        // W02 — une classe appartient à UNE année scolaire : la création cible
+        // toujours l'année ACTIVE de l'école.
+        const activeYear = await getActiveSchoolYear(schoolId);
+
+        // W02 — le niveau choisi doit appartenir à l'école de la session
+        const level = await prisma.level.findFirst({
+          where: { id: data.levelId, schoolId }, select: { id: true },
+        });
+        if (!level) {
+          return { success: false, error: true, message: "Niveau introuvable dans votre établissement." };
+        }
+
+        // W02 — le contrôle de doublon est scopé à l'école ET à l'année
+        // (« 6ème A » est réutilisable chaque année)
         const existingClass = await prisma.class.findFirst({
           where: {
             name: data.name,
-            schoolId
+            schoolId,
+            schoolYearId: activeYear.id,
           }
         })
 
         if (existingClass) {
-          return {success: false, error: true, message: "La class existe déjà"};
+          return {success: false, error: true, message: "La classe existe déjà pour cette année scolaire"};
         }
 
         await prisma.class.create({
-          data: { ...data, schoolId }
+          data: { ...data, schoolId, schoolYearId: activeYear.id }
         });
 
         revalidatePath("/list/classes");
@@ -126,7 +141,7 @@ export const createClass = async (currentState: CurrentState2 ,data: ClassSchema
         console.log(error);
         return {success: false, error: true, message: ""};
     }
-    
+
 }
 
 export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema) => {
@@ -137,6 +152,17 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
           where: { id: data.id, schoolId }, select: { id: true },
         });
         if (!owned) return { success: false, error: true, message: "" };
+
+        // W02 — le niveau choisi doit appartenir à l'école de la session
+        const level = await prisma.level.findFirst({
+          where: { id: data.levelId, schoolId }, select: { id: true },
+        });
+        if (!level) {
+          return { success: false, error: true, message: "Niveau introuvable dans votre établissement." };
+        }
+
+        // W02 — l'année de rattachement n'est PAS modifiable ici (assistant de
+        // passage d'année en W04) : on ne touche qu'aux champs du formulaire.
         await prisma.class.update({
           where: {
             id: data.id
@@ -150,7 +176,7 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
         console.log(error);
         return {success: false, error: true, message: ""};
     }
-    
+
 }
 
 export const deleteClass = async (currentState: CurrentState ,data: FormData) => {

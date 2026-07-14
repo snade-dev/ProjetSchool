@@ -65,7 +65,7 @@ const ClassForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  const { teachers } = relatedData;
+  const { teachers, levels } = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -100,6 +100,37 @@ const ClassForm = ({
             hidden
           />
         )}
+        {/* W02 — niveau de la classe (§2.1.4), obligatoire à la saisie */}
+        <div className="flex flex-col gap-1.5 w-full md:w-1/4">
+          <label className="text-xs font-medium text-gray-500">Niveau</label>
+          <select
+            className="w-full rounded-md ring-[1.5px] ring-gray-300 bg-white p-2.5 text-sm text-gray-800 outline-none transition focus:ring-2 focus:ring-lamaSky"
+            {...register("levelId")}
+            defaultValue={data?.levelId ?? ""}
+          >
+            <option value="" disabled>
+              Choisir un niveau…
+            </option>
+            {(levels ?? []).map(
+              (level: { id: number; name: string; cycle: string | null }) => (
+                <option value={level.id} key={level.id}>
+                  {level.name}
+                  {level.cycle ? ` (${level.cycle})` : ""}
+                </option>
+              )
+            )}
+          </select>
+          {(levels ?? []).length === 0 && (
+            <p className="text-xs text-amber-600">
+              Aucun niveau — créez-en d&apos;abord dans École → Niveaux.
+            </p>
+          )}
+          {errors.levelId?.message && (
+            <p className="text-xs text-red-400 font-bold">
+              {errors.levelId.message.toString()}
+            </p>
+          )}
+        </div>
         {/* V01 — régime d'évaluation : détermine les périodes (notes, bulletins) */}
         <div className="flex flex-col gap-1.5 w-full md:w-1/4">
           <label className="text-xs font-medium text-gray-500">

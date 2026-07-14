@@ -36,6 +36,7 @@ import { deleteFee } from "@/lib/actions/feeAction";
 import { deleteInvoice } from "@/lib/actions/invoiceAction";
 import { deleteExpense } from "@/lib/actions/expenseAction";
 import { deleteEmployee } from "@/lib/actions/employeeAction";
+import { deleteLevel } from "@/lib/actions/levelAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -97,6 +98,9 @@ const ExpenseForm = dynamic(() => import("./forms/ExpenseForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const EmployeeForm = dynamic(() => import("./forms/EmployeeForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const LevelForm = dynamic(() => import("./forms/LevelForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -284,6 +288,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  level: (type, data, setOpen, relatedData) => (
+    <LevelForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 // Form est défini au niveau module (et non dans le corps de FormModal) :
@@ -325,7 +337,8 @@ const Form = ({
       fee:deleteFee,
       invoice:deleteInvoice,
       expense:deleteExpense,
-      employee:deleteEmployee
+      employee:deleteEmployee,
+      level:deleteLevel
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)
