@@ -5,28 +5,31 @@ import prisma from "../prisma";
 import { requireSchool } from "../authGuard";
 import { classSubjectSchema, ClassSubjectSchema } from "../formsValidationSchema";
 import { buildClassReportCards } from "../reportCard";
+import {
+  impactedTrimesterAverages,
+  markStale,
+  type ImpactedPeriod,
+} from "../staleBulletins";
 
 /**
  * W08 — Gestion des matières & coefficients d'une classe (ClassSubject, §2.1.6).
+ * W09 — + pondération devoirs/composition de la classe (homeworkWeight).
  * Toutes les actions sont scopées école (requireSchool(["admin","director"])) :
  * la classe ET la matière doivent appartenir à l'école de la session.
  *
- * Règle critique (§2.1.6) — correction d'un coefficient en cours d'année :
- * si des ResultAverage existent pour la classe (n'importe quelle période de
- * l'année de la classe), l'action retourne d'abord la liste des bulletins
- * impactés (requiresConfirmation) ; à la confirmation explicite, le coefficient
- * est mis à jour et les ResultAverage impactés passent stale=true. Le bouton
+ * Règle critique (§2.1.6) — correction d'un coefficient (ou de la pondération
+ * homeworkWeight, W09) en cours d'année : si des ResultAverage existent pour
+ * la classe sur des périodes TRIMESTER de son année (les bulletins de
+ * composition MONTHLY ne dépendent d'aucune pondération — cf. staleBulletins),
+ * l'action retourne d'abord la liste des bulletins impactés
+ * (requiresConfirmation) ; à la confirmation explicite, la valeur est mise à
+ * jour et les ResultAverage impactés passent stale=true. Le bouton
  * « Régénérer » (regenerateClassBulletins) relance le calcul et remet stale=false.
  */
 
 type ActionResult = { success: boolean; error: boolean; message: string };
 
-/** Une période impactée par un changement de coefficient. */
-export type ImpactedPeriod = {
-  semesterId: number;
-  semesterName: string;
-  bulletins: number; // nb de ResultAverage (= bulletins persistés) de la classe
-};
+export type { ImpactedPeriod };
 
 export type CoefficientUpdateResult = ActionResult & {
   /** true : rien n'a été écrit, l'UI doit demander une confirmation explicite. */
@@ -44,51 +47,9 @@ const ownedClass = async (schoolId: number, classId: number) =>
       name: true,
       schoolYearId: true,
       evaluationSystem: true,
+      homeworkWeight: true, // W09
     },
   });
-
-/**
- * ResultAverage impactés par un changement de coefficient dans la classe :
- * ceux des élèves inscrits dans la classe, sur TOUTES les périodes de l'année
- * de la classe (la classe appartient à UNE année, W02). Groupés par période.
- */
-const impactedAverages = async (classId: number, schoolYearId: number) => {
-  const rows = await prisma.resultAverage.findMany({
-    where: {
-      semester: { schoolYearId },
-      student: { enrollments: { some: { classId } } },
-    },
-    select: {
-      id: true,
-      semesterId: true,
-      semester: { select: { name: true, label: true } },
-    },
-  });
-  const byPeriod = new Map<number, ImpactedPeriod>();
-  for (const r of rows) {
-    const entry = byPeriod.get(r.semesterId);
-    if (entry) entry.bulletins += 1;
-    else
-      byPeriod.set(r.semesterId, {
-        semesterId: r.semesterId,
-        semesterName: r.semester.label ?? r.semester.name,
-        bulletins: 1,
-      });
-  }
-  return {
-    ids: rows.map((r) => r.id),
-    periods: [...byPeriod.values()].sort((a, b) => a.semesterId - b.semesterId),
-  };
-};
-
-/** Marque stale=true les ResultAverage impactés (ids déjà scopés classe/année). */
-const markStale = (ids: number[]) =>
-  ids.length > 0
-    ? prisma.resultAverage.updateMany({
-        where: { id: { in: ids } },
-        data: { stale: true },
-      })
-    : Promise.resolve({ count: 0 });
 
 /** Ajoute une matière à la classe (avec son coefficient). */
 export const addClassSubject = async (
@@ -142,7 +103,7 @@ export const addClassSubject = async (
     // Un ajout à coefficient ≠ 1 change la pondération de matières déjà notées
     // (une matière SANS ligne comptait pour 1) → bulletins existants périmés.
     if (parsed.data.coefficient !== 1 && klass.evaluationSystem !== "MONTHLY") {
-      const { ids } = await impactedAverages(klass.id, klass.schoolYearId);
+      const { ids } = await impactedTrimesterAverages(klass.id, klass.schoolYearId);
       const { count } = await markStale(ids);
       if (count > 0) {
         // TODO W10 — journal d'audit : coefficient.create (before/after, userId)
@@ -210,7 +171,7 @@ export const updateCoefficient = async (
     // pas, §2.3.1 système 1 — le coefficient n'affecte aucun bulletin).
     const weighted = line.class.evaluationSystem !== "MONTHLY";
     const impact = weighted
-      ? await impactedAverages(line.class.id, line.class.schoolYearId)
+      ? await impactedTrimesterAverages(line.class.id, line.class.schoolYearId)
       : { ids: [], periods: [] };
 
     // 1er temps : bulletins existants + pas encore confirmé → preview seulement.
@@ -251,6 +212,100 @@ export const updateCoefficient = async (
       message:
         impact.ids.length > 0
           ? `Coefficient mis à jour — ${impact.ids.length} bulletin(s) à régénérer.`
+          : "",
+    };
+  } catch (error) {
+    console.log(error);
+    return { success: false, error: true, message: `${error}` };
+  }
+};
+
+/**
+ * W09 — Modifie la pondération devoirs/composition de la classe
+ * (Class.homeworkWeight, %). Même règle critique que les coefficients
+ * (§2.1.6/§2.3.1) : la pondération ne joue que sur les bulletins des périodes
+ * TRIMESTER — 1er temps sans écriture si des bulletins existent
+ * (requiresConfirmation), 2e temps confirmé → écriture + stale=true.
+ * Les bulletins de composition (MONTHLY) ne sont jamais impactés.
+ */
+export const updateHomeworkWeight = async (
+  currentState: ActionResult,
+  data: { classId: number; homeworkWeight: number; confirmed?: boolean }
+): Promise<CoefficientUpdateResult> => {
+  try {
+    const { schoolId, userId, role } = await requireSchool(["admin", "director"]);
+    const weight = Number(data.homeworkWeight);
+    if (
+      !Number.isInteger(data.classId) ||
+      !Number.isInteger(weight) ||
+      weight < 0 ||
+      weight > 100
+    ) {
+      return {
+        success: false,
+        error: true,
+        message: "La pondération doit être un entier entre 0 et 100.",
+      };
+    }
+
+    const klass = await ownedClass(schoolId, data.classId);
+    if (!klass) {
+      return {
+        success: false,
+        error: true,
+        message: "Classe introuvable dans votre établissement.",
+      };
+    }
+
+    if (klass.homeworkWeight === weight) {
+      return { success: true, error: false, message: "" };
+    }
+
+    // Bulletins impactés : uniquement en régime pondéré (TRIMESTER/COMBINED —
+    // une classe MONTHLY n'a pas de période TRIMESTER, donc aucun impact).
+    const weighted = klass.evaluationSystem !== "MONTHLY";
+    const impact = weighted
+      ? await impactedTrimesterAverages(klass.id, klass.schoolYearId)
+      : { ids: [], periods: [] };
+
+    // 1er temps : bulletins existants + pas encore confirmé → preview seulement.
+    if (impact.ids.length > 0 && !data.confirmed) {
+      return {
+        success: false,
+        error: false,
+        message: "",
+        requiresConfirmation: true,
+        impactedPeriods: impact.periods,
+        totalBulletins: impact.ids.length,
+      };
+    }
+
+    // 2e temps (ou aucun bulletin existant) : écriture + marquage stale.
+    await prisma.$transaction(async (tx) => {
+      await tx.class.update({
+        where: { id: klass.id },
+        data: { homeworkWeight: weight },
+      });
+      if (impact.ids.length > 0) {
+        await tx.resultAverage.updateMany({
+          where: { id: { in: impact.ids } },
+          data: { stale: true },
+        });
+      }
+    });
+
+    // TODO W10 — journal d'audit : homeworkWeight.update (before/after, reason)
+    console.log(
+      `[W09] homeworkWeight.update ${klass.name} : ${klass.homeworkWeight} → ${weight} par ${userId} (${role}) — ${impact.ids.length} bulletin(s) marqués à régénérer`
+    );
+
+    revalidatePath(`/list/classes/${klass.id}/subjects`);
+    return {
+      success: true,
+      error: false,
+      message:
+        impact.ids.length > 0
+          ? `Pondération mise à jour — ${impact.ids.length} bulletin(s) à régénérer.`
           : "",
     };
   } catch (error) {
@@ -300,7 +355,7 @@ export const removeClassSubject = async (
     // Retirer une ligne à coefficient ≠ 1 ramène la matière à 1 (fallback) →
     // les bulletins existants d'un régime pondéré sont périmés.
     if (line.coefficient !== 1 && line.class.evaluationSystem !== "MONTHLY") {
-      const { ids } = await impactedAverages(
+      const { ids } = await impactedTrimesterAverages(
         line.class.id,
         line.class.schoolYearId
       );

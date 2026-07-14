@@ -15,6 +15,7 @@ import BulletinButton from "@/components/BulletinButton";
 import GuardianSection from "@/components/GuardianSection";
 import SemesterSelector from "@/components/SemesterSelector";
 import { buildReportCard } from "@/lib/reportCard";
+import { semesterSystemWhere } from "@/lib/evaluation";
 
 // W03 — libellés français des statuts d'inscription (§2.1.3)
 const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
@@ -108,14 +109,16 @@ const SingleStudentPage = async (props: {
   // S13 — Bulletin : période sélectionnée (?semesterId=) + ReportCardData précalculé
   // côté serveur (le bouton PDF ne fait AUCUN accès DB).
   // V01 — seules les périodes du régime de la classe de l'élève sont proposées.
+  // W09 — classe COMBINED : périodes des DEUX régimes (bulletins de composition
+  // ET de trimestre, §2.3.1 système 3).
   const semesters = currentClass
     ? await prisma.semester.findMany({
         where: {
-          system: currentClass.evaluationSystem,
+          ...semesterSystemWhere(currentClass.evaluationSystem),
           schoolYearId: currentEnrollment!.schoolYear.id,
         },
         select: { id: true, name: true },
-        orderBy: { order: "asc" },
+        orderBy: [{ system: "asc" }, { order: "asc" }],
       })
     : [];
   const requestedSemesterId = searchParams.semesterId

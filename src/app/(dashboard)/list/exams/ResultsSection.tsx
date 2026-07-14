@@ -8,6 +8,7 @@ import ClientFilters from "../results/components/ClientFilters";
 import ResultTable from "../results/components/ResultTable";
 import prisma from "@/lib/prisma";
 import { sessionSchoolId } from "@/lib/authGuard";
+import { semesterSystemWhere } from "@/lib/evaluation";
 import { notFound } from "next/navigation";
 import { headers } from "next/dist/server/request/headers";
 import { buildClassReportCards, ReportCardData } from "@/lib/reportCard";
@@ -57,7 +58,10 @@ export default async function ResultsSection({
       where: {
         schoolId, // V03
         schoolYear: { isActive: true }, // W02 — périodes de l'année active
-        ...(filterClass ? { system: filterClass.evaluationSystem } : {}),
+        // W09 — classe COMBINED : périodes des DEUX régimes (§2.3.1)
+        ...(filterClass
+          ? semesterSystemWhere(filterClass.evaluationSystem)
+          : {}),
       },
       orderBy: [{ system: "asc" }, { order: "asc" }],
     }),

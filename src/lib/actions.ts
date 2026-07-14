@@ -6,6 +6,7 @@ import prisma from './prisma';
 import { requireRole, requireSchool } from './authGuard';
 import { getActiveSchoolYear } from './schoolYear';
 import { upsertEnrollment } from './enrollment';
+import { impactedTrimesterAverages, markStale } from './staleBulletins';
 import { revalidatePath } from 'next/cache';
 import { deleteErrorMessage } from './actionErrors';
 
@@ -149,8 +150,10 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
     try {
         const { schoolId } = await requireSchool(["admin", "director"]);
         // V03 — la classe doit appartenir à l'école de la session
+        // W09 — homeworkWeight/année chargés pour détecter un changement de pondération
         const owned = await prisma.class.findFirst({
-          where: { id: data.id, schoolId }, select: { id: true },
+          where: { id: data.id, schoolId },
+          select: { id: true, homeworkWeight: true, schoolYearId: true },
         });
         if (!owned) return { success: false, error: true, message: "" };
 
@@ -171,8 +174,25 @@ export const updateClass = async (currentState: CurrentState2 ,data: ClassSchema
           data
         });
 
+        // W09 — même règle que les coefficients (§2.1.6) : changer la
+        // pondération devoirs/composition alors que des bulletins TRIMESTER
+        // existent les périme (stale=true → badge « À régénérer » + bouton de
+        // régénération sur l'écran Matières & coefficients). Les bulletins de
+        // composition (MONTHLY) ne dépendent pas de cette pondération.
+        let staleMessage = "";
+        if (data.homeworkWeight !== owned.homeworkWeight) {
+          const { ids } = await impactedTrimesterAverages(owned.id, owned.schoolYearId);
+          const { count } = await markStale(ids);
+          if (count > 0) {
+            staleMessage = `Pondération modifiée : ${count} bulletin(s) marqués « À régénérer » (écran Matières & coefficients).`;
+            console.log(
+              `[W09] homeworkWeight.update (ClassForm) classe ${owned.id} : ${owned.homeworkWeight} → ${data.homeworkWeight} — ${count} bulletin(s) périmés`
+            );
+          }
+        }
+
         revalidatePath("/list/classes");
-        return {success: true, error: false, message: ""};
+        return {success: true, error: false, message: staleMessage};
     } catch (error) {
         console.log(error);
         return {success: false, error: true, message: ""};

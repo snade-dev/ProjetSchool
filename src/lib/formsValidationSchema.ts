@@ -23,10 +23,23 @@ export const classSchema = z.object({
       "La capacité de la classe est requise et doit être d'au moins 3 caractères",
   }),
   supervisorId: z.coerce.string().optional(),
-  // V01 — régime d'évaluation de la classe
-  evaluationSystem: z.enum(["TRIMESTER", "MONTHLY"], {
+  // V01 — régime d'évaluation de la classe ; W09 — + COMBINED (§2.3.1 système 3 :
+  // compositions mensuelles ET trimestres en parallèle)
+  evaluationSystem: z.enum(["TRIMESTER", "MONTHLY", "COMBINED"], {
     message: "Choisissez le régime d'évaluation",
   }),
+  // W09 — pondération devoirs vs composition (%, régimes TRIMESTER/COMBINED).
+  // 50 = moyenne simple historique. Ignorée en régime MONTHLY.
+  // Champ vide ou absent (régime MONTHLY : input masqué) → défaut 50.
+  homeworkWeight: z.preprocess(
+    (v) => (v === "" || v == null ? undefined : v),
+    z.coerce
+      .number({ message: "La pondération doit être un nombre" })
+      .int({ message: "La pondération doit être un entier" })
+      .min(0, { message: "La pondération doit être entre 0 et 100" })
+      .max(100, { message: "La pondération doit être entre 0 et 100" })
+      .default(50)
+  ),
   // W02 — niveau obligatoire à la saisie (nullable en base pour les classes historiques)
   levelId: z.coerce
     .number({ message: "Choisissez le niveau de la classe" })

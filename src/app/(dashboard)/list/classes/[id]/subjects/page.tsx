@@ -32,6 +32,7 @@ const ClassSubjectsPage = async (props: {
       id: true,
       name: true,
       evaluationSystem: true,
+      homeworkWeight: true, // W09
       schoolYearId: true,
       level: { select: { name: true } },
       schoolYear: { select: { name: true } },
@@ -63,7 +64,17 @@ const ClassSubjectsPage = async (props: {
     },
   });
 
+  // W08/W09 — les coefficients et la pondération devoirs/composition ne
+  // jouent que sur les bulletins des périodes TRIMESTER : une classe COMBINED
+  // est donc « pondérée » (ses trimestres), ses compositions mensuelles restant
+  // des moyennes simples.
   const weighted = klass.evaluationSystem !== "MONTHLY";
+  const regimeLabel =
+    klass.evaluationSystem === "COMBINED"
+      ? "Régime combiné : trimestres pondérés par coefficient, compositions mensuelles non pondérées (§2.3.1 système 3)"
+      : weighted
+      ? "Régime trimestriel : moyennes pondérées par coefficient (§2.1.6)"
+      : "Régime compositions mensuelles : les coefficients ne pondèrent pas les moyennes (§2.3.1)";
 
   return (
     <div className="bg-white p-4 rounded-md m-4 mt-0 flex-1">
@@ -74,10 +85,7 @@ const ClassSubjectsPage = async (props: {
           </h1>
           <p className="text-xs text-gray-400">
             {klass.level?.name ? `${klass.level.name} · ` : ""}
-            {klass.schoolYear.name} ·{" "}
-            {weighted
-              ? "Régime trimestriel : moyennes pondérées par coefficient (§2.1.6)"
-              : "Régime compositions mensuelles : les coefficients ne pondèrent pas les moyennes (§2.3.1)"}
+            {klass.schoolYear.name} · {regimeLabel}
           </p>
         </div>
         <Link
@@ -91,6 +99,7 @@ const ClassSubjectsPage = async (props: {
       <ClassSubjectSection
         classId={klass.id}
         weighted={weighted}
+        homeworkWeight={klass.homeworkWeight}
         classSubjects={klass.classSubjects}
         subjects={subjects}
         staleCount={staleCount}

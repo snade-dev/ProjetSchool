@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { AlertTriangle, Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   regenerateClassBulletins,
   removeClassSubject,
   updateCoefficient,
+  updateHomeworkWeight,
   type ImpactedPeriod,
 } from "@/lib/actions/classSubjectAction";
 
@@ -18,6 +19,9 @@ import {
  * dialogue de confirmation listant les bulletins impactés quand un coefficient
  * change en cours d'année (règle critique §2.1.6), bannière « À régénérer »
  * + bouton de régénération des bulletins périmés.
+ * W09 — + pondération devoirs/composition de la classe (homeworkWeight, %),
+ * même flux de confirmation/stale : seuls les bulletins des périodes
+ * TRIMESTER sont impactés (les compositions mensuelles ne pondèrent pas).
  */
 
 export type ClassSubjectRow = {
@@ -32,18 +36,15 @@ const EMPTY_STATE = { success: false, error: false, message: "" };
 
 /** Dialogue de confirmation (2e temps) : liste des bulletins impactés. */
 function ConfirmDialog({
-  subjectName,
-  from,
-  to,
+  description,
   periods,
   total,
   pending,
   onConfirm,
   onCancel,
 }: {
-  subjectName: string;
-  from: number;
-  to: number;
+  /** Phrase décrivant le changement (coefficient W08 ou pondération W09). */
+  description: ReactNode;
   periods: ImpactedPeriod[];
   total: number;
   pending: boolean;
@@ -62,9 +63,8 @@ function ConfirmDialog({
                 Des bulletins existent déjà
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                Changer le coefficient de <b>{subjectName}</b> ({from} → {to})
-                modifie les moyennes déjà calculées. <b>{total} bulletin(s)</b>{" "}
-                seront marqués « À régénérer » :
+                {description} <b>{total} bulletin(s)</b> seront marqués « À
+                régénérer » :
               </p>
             </div>
           </div>
@@ -78,8 +78,7 @@ function ConfirmDialog({
           </ul>
           <p className="mt-2 text-xs text-gray-500">
             Après confirmation, utilisez le bouton « Régénérer les bulletins »
-            pour recalculer les moyennes et les rangs avec le nouveau
-            coefficient.
+            pour recalculer les moyennes et les rangs avec le nouveau barème.
           </p>
           <div className="mt-4 flex justify-end gap-2">
             <button
@@ -105,12 +104,15 @@ function ConfirmDialog({
 const ClassSubjectSection = ({
   classId,
   weighted,
+  homeworkWeight,
   classSubjects,
   subjects,
   staleCount,
 }: {
   classId: number;
   weighted: boolean;
+  /** W09 — pondération devoirs/composition actuelle de la classe (%). */
+  homeworkWeight: number;
   classSubjects: ClassSubjectRow[];
   subjects: SubjectOption[];
   staleCount: number;
@@ -122,11 +124,16 @@ const ClassSubjectSection = ({
   const [editCoefficient, setEditCoefficient] = useState(1);
   const [newSubjectId, setNewSubjectId] = useState("");
   const [newCoefficient, setNewCoefficient] = useState(1);
+  // W09 — édition de la pondération devoirs/composition
+  const [editingWeight, setEditingWeight] = useState(false);
+  const [weightValue, setWeightValue] = useState(homeworkWeight);
+  // Confirmation générique (coefficient W08 ou pondération W09) : description
+  // du changement + périodes impactées + action du 2e temps (confirmed=true).
   const [confirmData, setConfirmData] = useState<{
-    row: ClassSubjectRow;
-    to: number;
+    description: ReactNode;
     periods: ImpactedPeriod[];
     total: number;
+    confirm: () => void;
   } | null>(null);
 
   // Matières de l'école pas encore rattachées à la classe
@@ -141,6 +148,7 @@ const ClassSubjectSection = ({
         toast(res.message || "Matières de la classe mises à jour !");
         setAdding(false);
         setEditingId(null);
+        setEditingWeight(false);
         setConfirmData(null);
         router.refresh();
       } else {
@@ -166,18 +174,34 @@ const ClassSubjectSection = ({
   // bulletins impactés s'il y en a (règle critique §2.1.6).
   const submitEdit = (row: ClassSubjectRow) =>
     startTransition(async () => {
+      const to = editCoefficient;
       const res = await updateCoefficient(EMPTY_STATE, {
         id: row.id,
         classId,
         subjectId: row.subject.id,
-        coefficient: editCoefficient,
+        coefficient: to,
       });
       if (res.requiresConfirmation) {
         setConfirmData({
-          row,
-          to: editCoefficient,
+          description: (
+            <>
+              Changer le coefficient de <b>{row.subject.name}</b> (
+              {row.coefficient} → {to}) modifie les moyennes déjà calculées.
+            </>
+          ),
           periods: res.impactedPeriods ?? [],
           total: res.totalBulletins ?? 0,
+          // 2e temps : confirmation explicite → écriture + marquage stale.
+          confirm: () =>
+            run(() =>
+              updateCoefficient(EMPTY_STATE, {
+                id: row.id,
+                classId,
+                subjectId: row.subject.id,
+                coefficient: to,
+                confirmed: true,
+              })
+            ),
         });
       } else if (res.success) {
         toast(res.message || "Coefficient mis à jour !");
@@ -188,19 +212,44 @@ const ClassSubjectSection = ({
       }
     });
 
-  // 2e temps : confirmation explicite → écriture + marquage stale.
-  const submitConfirmed = () => {
-    if (!confirmData) return;
-    run(() =>
-      updateCoefficient(EMPTY_STATE, {
-        id: confirmData.row.id,
+  // W09 — pondération devoirs/composition : même flux en deux temps que les
+  // coefficients (les bulletins TRIMESTER existants passent stale à la
+  // confirmation ; les compositions MONTHLY ne sont jamais impactées).
+  const submitWeight = () =>
+    startTransition(async () => {
+      const to = weightValue;
+      const res = await updateHomeworkWeight(EMPTY_STATE, {
         classId,
-        subjectId: confirmData.row.subject.id,
-        coefficient: confirmData.to,
-        confirmed: true,
-      })
-    );
-  };
+        homeworkWeight: to,
+      });
+      if (res.requiresConfirmation) {
+        setConfirmData({
+          description: (
+            <>
+              Changer la pondération devoirs/composition ({homeworkWeight} % →{" "}
+              {to} % pour les devoirs) modifie les moyennes déjà calculées des
+              trimestres.
+            </>
+          ),
+          periods: res.impactedPeriods ?? [],
+          total: res.totalBulletins ?? 0,
+          confirm: () =>
+            run(() =>
+              updateHomeworkWeight(EMPTY_STATE, {
+                classId,
+                homeworkWeight: to,
+                confirmed: true,
+              })
+            ),
+        });
+      } else if (res.success) {
+        toast(res.message || "Pondération mise à jour !");
+        setEditingWeight(false);
+        router.refresh();
+      } else {
+        toast.error(res.message || "Une erreur s'est produite");
+      }
+    });
 
   const submitRemove = (row: ClassSubjectRow) => {
     const warning =
@@ -228,7 +277,7 @@ const ClassSubjectSection = ({
             <AlertTriangle size={16} />
             <span>
               <b>{staleCount} bulletin(s)</b> à régénérer suite à une
-              correction de coefficient.
+              correction de coefficient ou de pondération.
             </span>
           </div>
           <button
@@ -239,6 +288,77 @@ const ClassSubjectSection = ({
             <RefreshCw size={14} className={pending ? "animate-spin" : ""} />
             Régénérer les bulletins
           </button>
+        </div>
+      )}
+
+      {/* W09 — pondération devoirs/composition (%) : ne joue que sur les
+          moyennes des périodes TRIMESTER (classes TRIMESTER et COMBINED). */}
+      {weighted && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-lamaSkyLight/40 ring-1 ring-lamaSky/30 p-3">
+          <div className="text-sm">
+            <p className="font-medium">
+              Pondération devoirs / composition (trimestres)
+            </p>
+            {editingWeight ? (
+              <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                Poids des devoirs (%)
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={weightValue}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value);
+                    setWeightValue(
+                      Number.isNaN(v) ? 0 : Math.min(100, Math.max(0, v))
+                    );
+                  }}
+                  className="w-20 rounded-md ring-1 ring-gray-300 bg-white p-1.5 text-sm outline-none"
+                />
+                <span className="text-gray-400">
+                  → devoirs {weightValue} % · composition {100 - weightValue} %
+                </span>
+              </label>
+            ) : (
+              <p className="text-xs text-gray-500">
+                Moyenne matière = devoirs × {homeworkWeight} % + composition ×{" "}
+                {100 - homeworkWeight} %
+                {homeworkWeight === 50 ? " (moyenne simple)" : ""} — les
+                compositions mensuelles ne sont pas concernées.
+              </p>
+            )}
+          </div>
+          {editingWeight ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={submitWeight}
+                disabled={pending}
+                className="rounded-md bg-lamaSky px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                Enregistrer
+              </button>
+              <button
+                onClick={() => {
+                  setEditingWeight(false);
+                  setWeightValue(homeworkWeight);
+                }}
+                className="rounded-md bg-gray-100 p-1.5 hover:bg-gray-200"
+                title="Annuler"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setEditingWeight(true);
+                setWeightValue(homeworkWeight);
+              }}
+              className="flex items-center gap-1.5 rounded-md bg-lamaSky px-3 py-1.5 text-xs font-medium hover:opacity-90"
+            >
+              <Pencil size={13} /> Modifier
+            </button>
+          )}
         </div>
       )}
 
@@ -401,13 +521,11 @@ const ClassSubjectSection = ({
 
       {confirmData && (
         <ConfirmDialog
-          subjectName={confirmData.row.subject.name}
-          from={confirmData.row.coefficient}
-          to={confirmData.to}
+          description={confirmData.description}
           periods={confirmData.periods}
           total={confirmData.total}
           pending={pending}
-          onConfirm={submitConfirmed}
+          onConfirm={confirmData.confirm}
           onCancel={() => setConfirmData(null)}
         />
       )}

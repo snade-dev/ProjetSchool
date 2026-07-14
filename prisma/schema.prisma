@@ -178,7 +178,14 @@ model Class {
   name     String // W02 — unicité PAR ÉCOLE ET PAR ANNÉE (@@unique en bas de modèle)
   capacity Int
   // V01 — régime d'évaluation de la classe (trimestres ou compositions mensuelles)
+  // W09 — + COMBINED (§2.3.1 système 3) : la classe voit les périodes des DEUX régimes
   evaluationSystem EvaluationSystem @default(TRIMESTER)
+
+  // W09 — pondération devoirs vs composition (en %, §2.3.1 système 2/3) :
+  // moyenne matière = classScore × (homeworkWeight/100) + examScore × (1 − homeworkWeight/100)
+  // sur les périodes TRIMESTER uniquement (les compositions MONTHLY ne pondèrent pas).
+  // 50 = comportement historique H17 (moyenne simple des deux notes).
+  homeworkWeight Int @default(50)
 
   // W02 — niveau de la classe (§2.1.4). Nullable en base (classes historiques),
   // mais l'UI l'exige pour toute création/édition (validation Zod).
@@ -526,9 +533,14 @@ enum ComplaintStatus {
 }
 
 // V01 — régime d'évaluation : trimestres (3/an) ou compositions mensuelles.
+// W09 — COMBINED (§2.3.1 système 3) : la CLASSE suit les deux calendriers en
+// parallèle (compositions mensuelles hors mois de trimestre + trimestres).
+// Une PÉRIODE (Semester.system) reste TRIMESTER ou MONTHLY : le régime de
+// CALCUL d'un bulletin est décidé par la période, pas par la classe.
 enum EvaluationSystem {
   TRIMESTER
   MONTHLY
+  COMBINED
 }
 
 model Semester {

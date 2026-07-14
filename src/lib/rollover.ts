@@ -159,6 +159,7 @@ export async function performRollover(
               name: c.name,
               capacity: c.capacity,
               evaluationSystem: c.evaluationSystem,
+              homeworkWeight: c.homeworkWeight, // W09 — barème reconduit
               levelId: c.levelId,
               supervisorId: c.supervisorId,
               schoolYearId: targetYear.id,
