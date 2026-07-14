@@ -45,8 +45,6 @@ model Student {
 
   Attestation Attestation[]
 
-  TuitionPayment TuitionPayment[]
-
   ResultAverage ResultAverage[]
 
   MakeupExam MakeupExam[]
@@ -504,19 +502,9 @@ model Attestation {
   @@index([studentId])
 }
 
-model TuitionPayment {
-  id          String   @id @default(uuid())
-  studentId   String
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  month       Int // Représente le mois (1 = janvier, 12 = décembre)
-  year        Int // Année du paiement
-  amount      Float // Montant payé pour la scolarité
-  paymentDate DateTime // Date à laquelle le paiement a été effectué
-  createdAt   DateTime @default(now())
-
-  // Pour éviter que le même étudiant ne paie deux fois pour le même mois/année
-  @@unique([studentId, month, year])
-}
+// W11 — TuitionPayment supprimé : la scolarité vit sur Invoice/Payment.
+// La migration 20260715..._w11_finance_debt convertit les lignes restantes
+// (Invoice PAID + Payment, generationKey `legacy-{id}`) avant le DROP TABLE.
 
 enum RequestStatus {
   PENDING @map("En attente")
@@ -811,12 +799,29 @@ model FeeStructure {            // grille des frais par classe et année
   schoolYearId Int
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   lines        InvoiceLine[]
+  // W11 — échéancier détaillé (§2.4.2) : mois payables + montants par mois.
+  // Vide = comportement uniforme (une facture chaque mois au montant `amount`).
+  installments FeeInstallment[]
   // W01 — reste scopée par école via classId (une Class appartient à UNE école)
   @@unique([classId, schoolYearId, label])
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+// W11 — échéancier d'une FeeStructure MONTHLY (§2.4.2) : l'école choisit les
+// mois payables (7, 8, 9, 10 mensualités…) et le montant de CHAQUE mois (les
+// mensualités ne sont pas forcément égales). Le batch generateMonthlyInvoices
+// ne facture le mois M que s'il figure ici (sinon : montant uniforme).
+model FeeInstallment {
+  id             Int          @id @default(autoincrement())
+  feeStructureId Int
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  month          Int // 1-12 (mois payable choisi par l'école)
+  amount         Int // FCFA — montant de CE mois
+
+  @@unique([feeStructureId, month])
 }
 
 enum InvoiceStatus {

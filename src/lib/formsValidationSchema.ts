@@ -255,6 +255,35 @@ export const feeStructureSchema = z.object({
 
 export type FeeStructureSchema = z.infer<typeof feeStructureSchema>;
 
+// ---- W11 : Échéancier d'un frais MONTHLY (§2.4.2) ----
+// L'école choisit les mois payables et le montant de CHAQUE mois.
+export const feeInstallmentsSchema = z.object({
+  feeStructureId: z.coerce
+    .number()
+    .min(1, { message: "Le frais est requis !" }),
+  installments: z
+    .array(
+      z.object({
+        month: z.coerce
+          .number({ message: "Le mois est requis !" })
+          .int({ message: "Le mois doit être un entier !" })
+          .min(1, { message: "Le mois doit être entre 1 et 12 !" })
+          .max(12, { message: "Le mois doit être entre 1 et 12 !" }),
+        amount: z.coerce
+          .number({ message: "Le montant est requis !" })
+          .int({ message: "Le montant doit être un nombre entier !" })
+          .positive({ message: "Le montant doit être supérieur à 0 !" }),
+      })
+    )
+    .min(1, { message: "Sélectionnez au moins un mois payable !" })
+    .refine(
+      (arr) => new Set(arr.map((i) => i.month)).size === arr.length,
+      { message: "Chaque mois ne peut apparaître qu'une seule fois !" }
+    ),
+});
+
+export type FeeInstallmentsSchema = z.infer<typeof feeInstallmentsSchema>;
+
 // ---- S05 : Factures ----
 export const invoiceLineSchema = z.object({
   label: z

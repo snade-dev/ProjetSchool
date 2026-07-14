@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getActiveSchoolYear } from "@/lib/schoolYear";
 import FormContainer from "@/components/FormContainer";
 import DuplicateFeesButton from "./components/DuplicateFeesButton";
+import InstallmentsButton from "./components/InstallmentsButton";
 import { Wallet } from "lucide-react";
 
 // Formatage FCFA : "1 250 000 FCFA"
@@ -63,6 +64,8 @@ const FeesPage = async () => {
       feeStructures: {
         where: { schoolYearId: activeYear.id },
         orderBy: { label: "asc" },
+        // W11 — échéancier (mois payables + montants) pour l'éditeur
+        include: { installments: { orderBy: { month: "asc" } } },
       },
     },
   });
@@ -158,26 +161,47 @@ const FeesPage = async () => {
                             {formatFCFA(fee.amount)}
                           </td>
                           <td className="p-2">
-                            {canManage && (
-                              <div className="flex items-center justify-end gap-2">
-                                <FormContainer
-                                  table="fee"
-                                  type="update"
-                                  data={{
-                                    id: fee.id,
-                                    label: fee.label,
-                                    amount: fee.amount,
-                                    period: fee.period,
-                                    classId: fee.classId,
-                                  }}
-                                />
-                                <FormContainer
-                                  table="fee"
-                                  type="delete"
-                                  id={fee.id}
-                                />
-                              </div>
-                            )}
+                            <div className="flex items-center justify-end gap-2">
+                              {/* W11 — échéancier configurable (§2.4.2) : frais MENSUELS */}
+                              {fee.period === "MONTHLY" &&
+                                (canManage ? (
+                                  <InstallmentsButton
+                                    feeId={fee.id}
+                                    feeLabel={fee.label}
+                                    feeAmount={fee.amount}
+                                    installments={fee.installments.map((i) => ({
+                                      month: i.month,
+                                      amount: i.amount,
+                                    }))}
+                                  />
+                                ) : (
+                                  fee.installments.length > 0 && (
+                                    <span className="text-xs px-2 py-1 rounded-full bg-lamaSky text-sky-800">
+                                      Échéancier ({fee.installments.length} mois)
+                                    </span>
+                                  )
+                                ))}
+                              {canManage && (
+                                <>
+                                  <FormContainer
+                                    table="fee"
+                                    type="update"
+                                    data={{
+                                      id: fee.id,
+                                      label: fee.label,
+                                      amount: fee.amount,
+                                      period: fee.period,
+                                      classId: fee.classId,
+                                    }}
+                                  />
+                                  <FormContainer
+                                    table="fee"
+                                    type="delete"
+                                    id={fee.id}
+                                  />
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

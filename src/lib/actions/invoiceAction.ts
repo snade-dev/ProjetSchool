@@ -7,6 +7,7 @@ import { requireRole, requireSchool } from "../authGuard";
 import { auditWithSession } from "../audit";
 import { getActiveSchoolYear } from "../schoolYear";
 import { nextInvoiceReference } from "../invoiceRef";
+import { runMonthlyGeneration, monthlyFeeFilter } from "../invoiceGeneration";
 import {
   InvoiceSchema,
   InvoiceLineSchema,
@@ -341,15 +342,9 @@ export const markReminded = async (
 
 // ---------------------------------------------------------------------------
 // Génération automatique des factures mensuelles (story-06)
+// W11 — cœur extrait dans lib/invoiceGeneration.ts (testable hors session) :
+// l'action garde l'authentification, la validation, l'audit et le revalidate.
 // ---------------------------------------------------------------------------
-
-// Clé d'idempotence d'une facture auto : re-lancer la génération ne duplique rien.
-const genKey = (studentId: string, schoolYearId: number, month: number) =>
-  `auto-${studentId}-${schoolYearId}-${month}`;
-
-// Taille des paquets d'écriture : les références séquentielles interdisent un
-// createMany naïf, on écrit donc par lots dans un $transaction avec timeout élargi.
-const GEN_CHUNK = 25;
 
 /**
  * Aperçu (indicatif) de la génération d'un mois donné, appelé par la PAGE quand
@@ -364,13 +359,14 @@ export async function getGenerationPreview(
   const activeYear = await getActiveSchoolYear();
 
   const [facturables, dejaGeneres] = await Promise.all([
-    // W03 — facturables = inscriptions de l'année active dont la classe a des frais mensuels
+    // W03 — facturables = inscriptions de l'année active dont la classe a des
+    // frais mensuels applicables AU MOIS DEMANDÉ (W11 : échéanciers respectés)
     prisma.enrollment.count({
       where: {
         schoolYearId: activeYear.id,
         class: {
           feeStructures: {
-            some: { period: "MONTHLY", schoolYearId: activeYear.id },
+            some: monthlyFeeFilter(activeYear.id, month),
           },
         },
       },
@@ -410,128 +406,14 @@ export const generateMonthlyInvoices = async (
 
     const activeYear = await getActiveSchoolYear();
 
-    // Une passe complète : lecture des facturables + des déjà-générés, réservation
-    // du bloc de références, puis écriture par paquets. Rendue idempotente pour
-    // pouvoir être relancée telle quelle après un P2002 (collision de référence).
-    const runGeneration = async (): Promise<{
-      created: number;
-      ignored: number;
-    }> => {
-      // (1) Élèves facturables — UNE requête, frais MONTHLY inclus (pas de N+1).
-      // W03 — via les inscriptions de l'année active (Enrollment)
-      const billableEnrollments = await prisma.enrollment.findMany({
-        where: {
-          schoolYearId: activeYear.id,
-          class: {
-            feeStructures: {
-              some: { period: "MONTHLY", schoolYearId: activeYear.id },
-            },
-          },
-        },
-        include: {
-          class: {
-            include: {
-              feeStructures: {
-                where: { period: "MONTHLY", schoolYearId: activeYear.id },
-              },
-            },
-          },
-        },
-      });
-      const students = billableEnrollments.map((e) => ({
-        id: e.studentId,
-        class: e.class,
-      }));
-
-      if (students.length === 0) {
-        return { created: 0, ignored: 0 };
-      }
-
-      // (2) generationKey déjà présents pour ce mois → set des élèves déjà facturés.
-      const keys = students.map((s) => genKey(s.id, activeYear.id, month));
-      const existing = await prisma.invoice.findMany({
-        where: { generationKey: { in: keys } },
-        select: { generationKey: true },
-      });
-      const already = new Set(existing.map((e) => e.generationKey));
-
-      const toCreate = students.filter(
-        (s) => !already.has(genKey(s.id, activeYear.id, month))
-      );
-      const ignored = students.length - toCreate.length;
-
-      if (toCreate.length === 0) {
-        return { created: 0, ignored };
-      }
-
-      // (3) Construction EN MÉMOIRE. Échéance = 5 du mois (attention 0-index JS).
-      const dueDate = new Date(year, month - 1, 5);
-      // Réservation du bloc de références d'un coup : un seul count initial + index.
-      const prefix = `FAC-${new Date().getFullYear()}-`;
-      const base = await prisma.invoice.count({
-        where: { reference: { startsWith: prefix } },
-      });
-
-      const payloads = toCreate.map((s, i) => {
-        const fees = s.class.feeStructures;
-        const lines = fees.map((f) => ({
-          label: f.label,
-          quantity: 1,
-          unitAmount: f.amount,
-          feeStructureId: f.id,
-        }));
-        const total = lines.reduce(
-          (sum, l) => sum + l.quantity * l.unitAmount,
-          0
-        );
-        return {
-          reference: `${prefix}${String(base + i + 1).padStart(5, "0")}`,
-          status: "ISSUED" as const,
-          dueDate,
-          month,
-          generationKey: genKey(s.id, activeYear.id, month),
-          total,
-          studentId: s.id,
-          schoolYearId: activeYear.id,
-          createdById: userId,
-          lines: { create: lines },
-        };
-      });
-
-      // (4) Écriture par paquets de ~25 dans un $transaction (timeout 30 s).
-      //     Forme interactive (callback) : seule à accepter l'option `timeout`
-      //     avec l'extension Accelerate.
-      for (let i = 0; i < payloads.length; i += GEN_CHUNK) {
-        const chunk = payloads.slice(i, i + GEN_CHUNK);
-        await prisma.$transaction(
-          async (tx) => {
-            for (const data of chunk) {
-              await tx.invoice.create({ data });
-            }
-          },
-          { timeout: 30000 }
-        );
-      }
-
-      return { created: toCreate.length, ignored };
-    };
-
-    let result: { created: number; ignored: number };
-    try {
-      result = await runGeneration();
-    } catch (err) {
-      // Collision de référence pendant le batch → relance simple : l'idempotence
-      // par generationKey saute les factures déjà écrites et le count de base
-      // reflète les références consommées entre-temps.
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2002"
-      ) {
-        result = await runGeneration();
-      } else {
-        throw err;
-      }
-    }
+    // W11 — le cœur (facturables, idempotence, échéanciers, écriture par
+    // paquets, retry P2002) vit dans lib/invoiceGeneration.ts.
+    const result = await runMonthlyGeneration({
+      schoolYearId: activeYear.id,
+      month,
+      year,
+      createdById: userId,
+    });
 
     // W10 — journal d'audit : génération mensuelle = UNE entrée résumé (§2.11.2)
     if (result.created > 0) {
