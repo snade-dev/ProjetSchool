@@ -17,10 +17,18 @@ import Link from "next/link";
 import { ClipboardCheck, Pencil } from "lucide-react";
 import { headers } from "next/headers";
 import AttendanceFilters from "@/components/AttendanceFilters";
+import JustifyAbsenceButton from "@/components/JustifyAbsenceButton";
+import {
+  JUSTIFICATION_STATUS_BADGES,
+  JUSTIFICATION_STATUS_LABELS,
+} from "@/lib/observation";
 
 import { sessionSchoolId } from "@/lib/authGuard";
 type AttendanceList = Attendance & { class: Class } & { student: Student } & {
   subject: Subject;
+} & {
+  // W15 — justification déposée par un tuteur (statut affiché au parent)
+  justification: { id: number; status: string } | null;
 };
 
 const AttendanceListPage = async (props: {
@@ -59,6 +67,10 @@ const AttendanceListPage = async (props: {
       accessor: "subject.name",
       className: "hidden md:table-cell",
     },
+    // W15 — le parent voit le statut de ses justifications et peut justifier
+    ...(role === "parent"
+      ? [{ header: "Justification", accessor: "justification" }]
+      : []),
     ...(["admin", "director", "teacher", "supervisor"].includes(role ?? "")
       ? [{ header: "Actions", accessor: "action" }]
       : []),
@@ -76,10 +88,17 @@ const AttendanceListPage = async (props: {
       <td
         className={clsx("flex items-center gap-4 p-4", {
           "text-green-500 font-bold": item.present,
-          "font-bold text-red-600": !item.present,
+          // W15 — « Absent (justifié) » (§2.3.6) : posé par l'acceptation
+          // d'une justification, affiché en ambre plutôt qu'en rouge
+          "font-bold text-amber-600": !item.present && item.justified,
+          "font-bold text-red-600": !item.present && !item.justified,
         })}
       >
-        {item.present ? "Présent" : "Absent"}
+        {item.present
+          ? "Présent"
+          : item.justified
+          ? "Absent (justifié)"
+          : "Absent"}
       </td>
       <td className="hidden md:table-cell">
         {item.sessionDay === "MORNING"
@@ -91,6 +110,35 @@ const AttendanceListPage = async (props: {
       <td className="hidden md:table-cell">{item.student?.name || "N/A"}</td>
       <td className="hidden md:table-cell">{item.class?.name || "N/A"}</td>
       <td className="hidden md:table-cell">{item.subject?.name || "N/A"}</td>
+      {/* W15 — colonne parent : statut de la justification ou bouton « Justifier »
+          sur une absence non justifiée de SES enfants (§2.3.6) */}
+      {role === "parent" && (
+        <td>
+          {item.present ? (
+            <span className="text-xs text-gray-300">—</span>
+          ) : item.justification ? (
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                JUSTIFICATION_STATUS_BADGES[item.justification.status] ??
+                "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {JUSTIFICATION_STATUS_LABELS[item.justification.status] ??
+                item.justification.status}
+            </span>
+          ) : (
+            <JustifyAbsenceButton
+              attendanceId={item.id}
+              studentName={`${item.student?.name ?? ""} ${
+                item.student?.surname ?? ""
+              }`.trim()}
+              date={new Intl.DateTimeFormat("fr-FR").format(
+                new Date(item.date)
+              )}
+            />
+          )}
+        </td>
+      )}
       {["admin", "director", "teacher", "supervisor"].includes(role ?? "") && (
         <td>
           <div className="flex items-center gap-2">
@@ -182,6 +230,8 @@ const AttendanceListPage = async (props: {
         student: true, // Inclure les détails de l'étudiant
         subject: true, // Inclure les détails de la leçon
         class: true,
+        // W15 — statut de la justification éventuelle (colonne parent)
+        justification: { select: { id: true, status: true } },
       },
       orderBy: { date: "desc" },
       take: ITEM_PER_PAGE,

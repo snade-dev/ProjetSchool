@@ -16,6 +16,7 @@ export const NOTIFICATION_TYPES = [
   "PAYMENT",
   "ANNOUNCEMENT",
   "HOMEWORK",
+  "OBSERVATION",
   "MESSAGE",
 ] as const;
 
@@ -29,6 +30,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   PAYMENT: "Paiements & factures",
   ANNOUNCEMENT: "Annonces & événements",
   HOMEWORK: "Devoirs",
+  OBSERVATION: "Observations",
   MESSAGE: "Messages",
 };
 
@@ -40,6 +42,7 @@ export const NOTIFICATION_TYPE_HINTS: Record<NotificationType, string> = {
   PAYMENT: "Nouvelles factures et paiements reçus.",
   ANNOUNCEMENT: "Annonces et événements de l'école ou de la classe.",
   HOMEWORK: "Nouveaux devoirs à faire.",
+  OBSERVATION: "Observations disciplinaires partagées avec les parents.",
   MESSAGE: "Nouveaux messages internes.",
 };
 

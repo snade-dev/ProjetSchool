@@ -724,3 +724,29 @@ export const homeworkSchema = z.object({
 });
 
 export type HomeworkSchema = z.infer<typeof homeworkSchema>;
+
+// ---- W15 : Observations & discipline (§2.3.7) ----
+export const observationSchema = z.object({
+  id: z.coerce.number().optional(),
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  kind: z.enum(["POSITIVE", "NEUTRAL", "NEGATIVE"], {
+    message: "Le type d'observation est requis !",
+  }),
+  content: z.string().min(1, { message: "Le contenu est requis !" }),
+  // Checkbox : partagée avec les parents (décochée = confidentielle, §2.7.8)
+  sharedWithParents: z.boolean(),
+});
+
+export type ObservationSchema = z.infer<typeof observationSchema>;
+
+// ---- W15 : Justification d'absence (§2.3.6, côté parent) ----
+export const justificationSchema = z.object({
+  attendanceId: z.coerce
+    .number()
+    .min(1, { message: "L'absence concernée est requise !" }),
+  reason: z.string().min(1, { message: "Le motif est requis !" }),
+  // document scanné optionnel (URL /uploads/… du flux d'upload existant)
+  fileUrl: z.string().optional().or(z.literal("")),
+});
+
+export type JustificationSchema = z.infer<typeof justificationSchema>;

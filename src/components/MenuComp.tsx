@@ -131,6 +131,9 @@ const MENU: MenuEntry[] = [
         { icon: NotebookPen, label: "Devoirs à faire", href: "/list/homeworks", visible: [...ALL, "supervisor"] },
         { icon: ClipboardCheck, label: "Faire l'appel", href: "/list/attendances/appel", visible: ["admin", "director", "teacher", "supervisor"] },
         { icon: CheckSquare, label: "Présences", href: "/list/attendances", visible: [...ALL, "supervisor"] },
+        // W15 — observations & discipline (§2.3.7) + justifications d'absence (§2.3.6)
+        { icon: ScrollText, label: "Observations", href: "/list/observations", visible: ["admin", "director", "supervisor"] },
+        { icon: FileText, label: "Justifications d'absence", href: "/list/justifications", visible: ["admin", "director", "supervisor"] },
         { icon: Calendar, label: "Événements", href: "/list/events", visible: ALL },
         { icon: Bell, label: "Annonces", href: "/list/announcements", visible: ALL },
         // W12 — mes notifications in-app (tous les rôles école)

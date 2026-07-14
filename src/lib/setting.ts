@@ -61,6 +61,11 @@ type RouteAccessMap = {
     // W14 — devoirs à faire (§2.3.8) : publication teacher/admin/director,
     // consultation student/parent/supervisor (gardes fines dans la page/action)
     "/list/homeworks": ["admin", "director", "teacher", "supervisor", "student", "parent"],
+    // W15 — observations & discipline (§2.3.7) : vue école (les enseignants
+    // saisissent depuis la fiche élève) ; justifications d'absence (§2.3.6) :
+    // décision par la direction/le surveillant
+    "/list/observations": ["admin", "director", "supervisor"],
+    "/list/justifications": ["admin", "director", "supervisor"],
     "/list/announcements": ["admin", "director", "teacher", "student", "parent"],
     "/list/semester": ["admin", "director", "teacher", "student", "parent"],
     "/list/makeupSession": ["admin", "director", "teacher", "student"],
