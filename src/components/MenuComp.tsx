@@ -31,6 +31,7 @@ import {
   File,
   Video,
   ChevronDown,
+  ArrowRightLeft,
   LucideIcon,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
@@ -89,6 +90,7 @@ const MENU: MenuEntry[] = [
         { icon: Award, label: "Niveaux", href: "/list/levels", visible: ["admin"] },
         { icon: ClipboardList, label: "Classes", href: "/list/classes", visible: ["admin", "teacher"] },
         { icon: CalendarDays, label: "Périodes d'évaluation", href: "/list/semester", visible: ["admin", "teacher"] },
+        { icon: ArrowRightLeft, label: "Passage d'année", href: "/settings/rollover", visible: ["admin"] },
         { icon: NotebookPen, label: "Leçons", href: "/list/lessons", visible: ["admin", "teacher"] },
       ],
     },

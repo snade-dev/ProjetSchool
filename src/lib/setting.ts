@@ -58,6 +58,7 @@ type RouteAccessMap = {
     "/list/expenses": ["admin"],
     "/list/employees": ["admin"],
     "/list/payroll": ["admin"],
+    "/settings/rollover": ["admin"], // W04 — assistant de passage d'année
     "/settings": ["admin"],
     "/stats": ["admin", "teacher"],
   };

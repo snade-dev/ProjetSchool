@@ -1,3 +1,4 @@
+import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { getSessionInfo } from "@/lib/authGuard";
 import { auth } from "@/lib/auth";
@@ -43,7 +44,16 @@ const SettingsPage = async () => {
       <div className="bg-white p-4 rounded-md">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Années scolaires</h1>
-          <FormContainer table="schoolYear" type="create" />
+          <div className="flex items-center gap-3">
+            {/* W04 — assistant de passage d'année (clôture + réinscriptions) */}
+            <Link
+              href="/settings/rollover"
+              className="text-xs bg-lamaPurpleLight text-gray-700 py-2 px-3 rounded-md hover:bg-lamaPurple"
+            >
+              Passage d&apos;année →
+            </Link>
+            <FormContainer table="schoolYear" type="create" />
+          </div>
         </div>
 
         {years.length === 0 ? (
