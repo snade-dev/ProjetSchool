@@ -24,7 +24,7 @@ export const LinKed = ({href, label, icon:Icon}  :{href: string, label: string, 
     >
 
 
-     <Icon size={20} /> 
+     <Icon size={20} className="shrink-0" />
       <span className="hidden lg:block">{label}</span>
     </Link>
   );

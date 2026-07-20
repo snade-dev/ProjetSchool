@@ -204,7 +204,7 @@ const ExternalLink = ({ link }: { link: MenuLink }) => (
     rel="noopener noreferrer"
     className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 rounded-md hover:bg-lamaSkyLight md:px-2 transition-colors"
   >
-    <link.icon size={20} />
+    <link.icon size={20} className="shrink-0" />
     <span className="hidden lg:block">{link.label}</span>
   </a>
 );
@@ -230,11 +230,11 @@ const Group = ({ group, role }: { group: MenuGroup; role: string }) => {
         }`}
         aria-expanded={open}
       >
-        <group.icon size={20} />
+        <group.icon size={20} className="shrink-0" />
         <span className="flex-1">{group.label}</span>
         <ChevronDown
           size={16}
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
