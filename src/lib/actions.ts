@@ -587,6 +587,8 @@ export const createStudent = async (currentState: CurrentState2 ,data: StudentSc
               bloodType: data.bloodType,
               sex: data.sex,
               birthday: data.birthday,
+              // X08 — lieu de naissance (certificat de transfert)
+              birthPlace: data.birthPlace || null,
             },
           });
           await upsertEnrollment(userId, classItem.id, classItem.schoolYearId, tx);
@@ -701,6 +703,8 @@ export const updateStudent = async (currentState: CurrentState2 ,data: StudentSc
             bloodType: data.bloodType,
             sex: data.sex,
             birthday: data.birthday,
+            // X08 — lieu de naissance (certificat de transfert)
+            birthPlace: data.birthPlace || null,
           },
         });
         await upsertEnrollment(data.id!, targetClass.id, targetClass.schoolYearId, tx);

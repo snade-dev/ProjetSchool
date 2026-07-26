@@ -122,6 +122,77 @@ const SchoolSettingsForm = ({ data }: { data?: any }) => {
         </div>
       </div>
 
+      {/* X08 — En-tête des documents officiels : ces champs alimentent le
+          certificat de transfert et le bulletin annuel (tutelle à gauche,
+          devise de la République à droite, signataire en bas). */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold text-gray-700">
+          Documents officiels
+        </h2>
+        <p className="text-[11.5px] text-gray-400">
+          Ces mentions apparaissent en en-tête et en signature du certificat de
+          transfert et du bulletin annuel. Laissez vide ce qui ne s&apos;applique
+          pas à votre établissement.
+        </p>
+        <div className="flex justify-between flex-wrap gap-4">
+          <InputField
+            label="Ministère de tutelle"
+            name="ministry"
+            defaultValue={data?.ministry ?? ""}
+            register={register}
+            error={errors?.ministry}
+            inputProps={{ placeholder: "MINISTERE DE L'EDUCATION NATIONALE" }}
+          />
+          <InputField
+            label="Académie / CAP"
+            name="academy"
+            defaultValue={data?.academy ?? ""}
+            register={register}
+            error={errors?.academy}
+            inputProps={{ placeholder: "CAP DE BAGUINEDA" }}
+          />
+          <InputField
+            label="République (1re ligne)"
+            name="countryLine1"
+            defaultValue={data?.countryLine1 ?? ""}
+            register={register}
+            error={errors?.countryLine1}
+            inputProps={{ placeholder: "REPUBLIQUE DU MALI" }}
+          />
+          <InputField
+            label="Devise (2e ligne)"
+            name="countryLine2"
+            defaultValue={data?.countryLine2 ?? ""}
+            register={register}
+            error={errors?.countryLine2}
+            inputProps={{ placeholder: "Un Peuple – Un But – Une Foi" }}
+          />
+          <InputField
+            label="Ville (« Fait à … »)"
+            name="city"
+            defaultValue={data?.city ?? ""}
+            register={register}
+            error={errors?.city}
+          />
+          <InputField
+            label="Nom du signataire"
+            name="directorName"
+            defaultValue={data?.directorName ?? ""}
+            register={register}
+            error={errors?.directorName}
+            inputProps={{ placeholder: "MARIKO Aminata" }}
+          />
+          <InputField
+            label="Qualité du signataire"
+            name="directorTitle"
+            defaultValue={data?.directorTitle ?? ""}
+            register={register}
+            error={errors?.directorTitle}
+            inputProps={{ placeholder: "La Directrice" }}
+          />
+        </div>
+      </div>
+
       {/* Thème de l'application : couleurs adaptées à l'établissement */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

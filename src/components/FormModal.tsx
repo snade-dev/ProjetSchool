@@ -39,6 +39,15 @@ import { deleteEmployee } from "@/lib/actions/employeeAction";
 import { deleteLevel } from "@/lib/actions/levelAction";
 import { deleteHomework } from "@/lib/actions/homeworkAction";
 import { deleteObservation } from "@/lib/actions/observationAction";
+import {
+  deleteMealPlan,
+  deleteCanteenSubscription,
+} from "@/lib/actions/canteenAction";
+import {
+  deleteEventContribution,
+  deleteContributionPayment,
+} from "@/lib/actions/contributionAction";
+import { deleteTransferCertificate } from "@/lib/actions/transferAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -111,6 +120,32 @@ const HomeworkForm = dynamic(() => import("./forms/HomeworkForm"), {
 const ObservationForm = dynamic(() => import("./forms/ObservationForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+// X01 — cantine (§2.5)
+const MealPlanForm = dynamic(() => import("./forms/MealPlanForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const CanteenSubscriptionForm = dynamic(
+  () => import("./forms/CanteenSubscriptionForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+// X05 — cotisations d'événements (§2.4)
+const EventContributionForm = dynamic(
+  () => import("./forms/EventContributionForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+const ContributionPaymentForm = dynamic(
+  () => import("./forms/ContributionPaymentForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+// X07/X08 — documents officiels
+const AnnualAssessmentForm = dynamic(
+  () => import("./forms/AnnualAssessmentForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+const TransferCertificateForm = dynamic(
+  () => import("./forms/TransferCertificateForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
 
 const forms: {
   [key: string]: (
@@ -320,6 +355,54 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  mealPlan: (type, data, setOpen, relatedData) => (
+    <MealPlanForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  canteenSubscription: (type, data, setOpen, relatedData) => (
+    <CanteenSubscriptionForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  eventContribution: (type, data, setOpen, relatedData) => (
+    <EventContributionForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  contributionPayment: (type, data, setOpen, relatedData) => (
+    <ContributionPaymentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  annualAssessment: (type, data, setOpen, relatedData) => (
+    <AnnualAssessmentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  transferCertificate: (type, data, setOpen, relatedData) => (
+    <TransferCertificateForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 // Form est défini au niveau module (et non dans le corps de FormModal) :
@@ -364,7 +447,15 @@ const Form = ({
       employee:deleteEmployee,
       level:deleteLevel,
       homework:deleteHomework,
-      observation:deleteObservation
+      observation:deleteObservation,
+      // X01 — cantine (§2.5)
+      mealPlan:deleteMealPlan,
+      canteenSubscription:deleteCanteenSubscription,
+      // X05 — cotisations d'événements (§2.4)
+      eventContribution:deleteEventContribution,
+      contributionPayment:deleteContributionPayment,
+      // X08 — certificat de transfert (§2.1.3)
+      transferCertificate:deleteTransferCertificate
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)

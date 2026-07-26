@@ -18,6 +18,11 @@ import ObservationSection from "@/components/ObservationSection";
 import SemesterSelector from "@/components/SemesterSelector";
 import { buildReportCard } from "@/lib/reportCard";
 import { semesterSystemWhere } from "@/lib/evaluation";
+// X07/X08 — documents officiels : bulletin annuel + certificat de transfert
+import { buildAnnualReport } from "@/lib/annualReport";
+import { getTransferCertificateData } from "@/lib/transferCertificate";
+import AnnualBulletinButton from "@/components/pdf/AnnualBulletinButton";
+import TransferCertificateButton from "@/components/pdf/TransferCertificateButton";
 
 // W03 — libellés français des statuts d'inscription (§2.1.3)
 const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
@@ -150,6 +155,32 @@ const SingleStudentPage = async (props: {
         })
       : null;
   const isStale = staleAverage?.stale ?? false;
+
+  // ---- X07/X08 — documents officiels de fin d'année ----
+  // Bulletin ANNUEL : consolidation des périodes de l'année en cours (le calcul
+  // suppose des bulletins de période déjà générés, cf. annualReport.ts).
+  const annualReport =
+    canViewGrades && currentEnrollment
+      ? await buildAnnualReport(student.id, currentEnrollment.schoolYear.id)
+      : null;
+
+  // Certificats de transfert déjà délivrés (document officiel figé, X08) :
+  // réservés à la direction, qui les émet et les réédite.
+  const canIssueCertificate = role === "admin" || role === "director";
+  const certificateRows = canIssueCertificate
+    ? await prisma.transferCertificate.findMany({
+        where: { studentId: student.id, schoolId: student.schoolId },
+        select: { id: true },
+        orderBy: { issuedAt: "desc" },
+      })
+    : [];
+  const certificates = (
+    await Promise.all(
+      certificateRows.map((c) =>
+        getTransferCertificateData(c.id, student.schoolId)
+      )
+    )
+  ).filter((c): c is NonNullable<typeof c> => c != null);
 
   // W05 — parents de l'école proposés à l'ajout de tuteur (admin/direction)
   const schoolParents =
@@ -369,6 +400,83 @@ const SingleStudentPage = async (props: {
             </div>
           )}
         </div>
+        {/* X07/X08 — Documents officiels : bulletin annuel + certificat de
+            transfert. Le certificat FIGE moyenne, rang et dates à l'émission. */}
+        {(canViewGrades || canIssueCertificate) && (
+          <div className="bg-white p-4 rounded-md">
+            <h1 className="text-xl font-semibold">Documents officiels</h1>
+
+            <div className="mt-4 flex flex-col gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                  Bulletin annuel
+                </p>
+                {annualReport ? (
+                  <div className="mt-2">
+                    <AnnualBulletinButton data={annualReport} />
+                    {annualReport.gradedPeriods === 0 && (
+                      <p className="mt-1 text-[11.5px] text-gray-400">
+                        Aucune période notée : générez les bulletins de période
+                        pour que les moyennes apparaissent.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-gray-400">
+                    Indisponible — l&apos;élève n&apos;est pas inscrit sur
+                    l&apos;année en cours.
+                  </p>
+                )}
+              </div>
+
+              {canIssueCertificate && (
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                      Certificat de transfert
+                    </p>
+                    {currentEnrollment && (
+                      <FormContainer
+                        table="transferCertificate"
+                        type="create"
+                        data={{
+                          studentId: student.id,
+                          studentName: `${student.name} ${student.surname}`,
+                          username: student.username,
+                          className: currentClass?.name,
+                          conduct: currentEnrollment.conduct,
+                          workAppreciation:
+                            currentEnrollment.workAppreciation,
+                          annualDecision: currentEnrollment.annualDecision,
+                          annualAverage: annualReport?.annualAverage ?? null,
+                        }}
+                      />
+                    )}
+                  </div>
+                  {certificates.length === 0 ? (
+                    <p className="mt-1 text-sm text-gray-400">
+                      Aucun certificat délivré.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 flex flex-col gap-2">
+                      {certificates.map((c) => (
+                        <li
+                          key={c.reference}
+                          className="flex items-center justify-between gap-2 text-xs"
+                        >
+                          <span className="text-gray-500">
+                            {c.reference} · {c.issuedAt}
+                          </span>
+                          <TransferCertificateButton data={c} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div className="bg-white p-4 rounded-md">
           <h1 className="text-xl font-semibold">Racourcie</h1>
           <div className="mt-4 flex gap-4 flex-wrap text-xs text-gray-500">

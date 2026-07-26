@@ -35,6 +35,8 @@ model Student {
   attendances Attendance[]
   results     Result[]
   birthday    DateTime
+  // X08 — « Né(e) le … à … » du certificat de transfert (documents officiels)
+  birthPlace  String?
 
   ExamAverage ExamAverage[]
 
@@ -59,6 +61,16 @@ model Student {
 
   // W15 — dossier disciplinaire (§2.3.7)
   observations Observation[]
+
+  // X01 — cantine (§2.5)
+  canteenSubscriptions CanteenSubscription[]
+  meals                MealAttendance[]
+
+  // X05 — versements aux cotisations d'événements (§2.4)
+  contributionPayments EventContributionPayment[]
+
+  // X08 — certificats de transfert délivrés (§2.1.3)
+  transferCertificates TransferCertificate[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -86,6 +98,24 @@ model Enrollment {
   schoolYear   SchoolYear       @relation(fields: [schoolYearId], references: [id])
   status       EnrollmentStatus @default(ACTIVE)
   enrolledAt   DateTime         @default(now())
+
+  // ---- X07 — bilan de fin d'année (bulletin annuel + certificat de transfert)
+  // Saisi une seule fois par le maître / la direction, il alimente les DEUX
+  // documents officiels et pré-remplit l'assistant de passage d'année (W04).
+  /** « Très bonne », « Bonne », « Assez bonne », « À améliorer », « Avertissement » */
+  conduct           String?
+  /** Appréciation du travail : « Excellent », « Bien »… (certificat de transfert) */
+  workAppreciation  String?
+  /** Décision du conseil des maîtres : « Passe en CP2 », « Redouble »… */
+  annualDecision    String?
+  /** Observations portées au bulletin annuel */
+  annualObservation String?
+  /**
+   * Nombre de retards de l'année. SAISI À LA MAIN : le modèle Attendance ne
+   * porte que présent/absent (pas de notion de retard) — les ABSENCES, elles,
+   * sont comptées depuis Attendance et ne sont donc pas stockées ici.
+   */
+  lateCount         Int?
 
   // Une seule inscription par élève et par année
   @@unique([studentId, schoolYearId])
@@ -379,6 +409,9 @@ model Event {
 
   classId Int?
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  // X05 — barème de cotisation (au plus un par événement, §2.4)
+  contribution EventContribution?
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -752,6 +785,13 @@ model SchoolYear {
   semesters       Semester[]
   // W03 — inscriptions des élèves pour cette année
   enrollments     Enrollment[]
+  // X01 — cantine (§2.5)
+  mealPlans            MealPlan[]
+  canteenSubscriptions CanteenSubscription[]
+  // X06 — registres de cotisation ouverts au titre de l'année
+  eventContributions   EventContribution[]
+  // X08 — certificats de transfert délivrés au titre de l'année
+  transferCertificates TransferCertificate[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -794,6 +834,24 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   // l'école ») : false = les élèves ne peuvent pas écrire à leurs enseignants.
   studentMessagingEnabled Boolean @default(false)
 
+  // ---- X08 — en-tête officiel des documents (certificat de transfert,
+  // bulletin annuel). Reprend la maquette fournie par l'école : tutelle à
+  // gauche, devise de la République à droite, signataire en bas.
+  /** « MINISTERE DE L'EDUCATION NATIONALE » */
+  ministry      String?
+  /** « CAP DE BAGUINEDA » (académie / centre d'animation pédagogique) */
+  academy       String?
+  /** « REPUBLIQUE DU MALI » */
+  countryLine1  String?
+  /** « Un Peuple – Un But – Une Foi » */
+  countryLine2  String?
+  /** Ville de la mention « Fait à …, le … » */
+  city          String?
+  /** « MARIKO Aminata » — signataire des documents officiels */
+  directorName  String?
+  /** « La Directrice » / « Le Directeur » */
+  directorTitle String?
+
   users             User[]
   classes           Class[]
   levels            Level[] // W02
@@ -815,6 +873,14 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   observations      Observation[] // W15
   absenceJustifications AbsenceJustification[] // W15
   messages          Message[] // W16
+  // X01 — cantine (§2.5)
+  mealPlans            MealPlan[]
+  canteenSubscriptions CanteenSubscription[]
+  meals                MealAttendance[]
+  // X05 — cotisations d'événements (§2.4)
+  eventContributions   EventContribution[]
+  // X08 — certificats de transfert (§2.1.3)
+  transferCertificates TransferCertificate[]
 
   @@map("SchoolSettings")
 }
@@ -1232,4 +1298,211 @@ model Message {
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, readAt])
   @@index([schoolId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// X01 — Cantine (§2.5 vie scolaire). Modèle « forfait + pointage » retenu avec
+// le user (25 juil. 2026) : l'élève est abonné à une FORMULE facturée via les
+// factures existantes (X03), et le réfectoire POINTE les repas chaque jour.
+// Un non-abonné (ou un abonné en extra) peut prendre un repas à l'unité, facturé
+// au prix unitaire de la formule.
+// ---------------------------------------------------------------------------
+
+// Formule de restauration proposée par l'école pour UNE année scolaire.
+model MealPlan {
+  id          Int       @id @default(autoincrement())
+  name        String // « Demi-pension », « Repas + goûter » — unicité par école ET année
+  description String?
+  // Rythme du forfait — réutilise l'enum finance (MONTHLY / YEARLY / ONE_TIME)
+  period      FeePeriod @default(MONTHLY)
+  amount      Int // FCFA — montant du forfait
+  // FCFA — prix d'UN repas hors forfait (repas à l'unité). null = pas d'extra vendu.
+  unitPrice   Int?
+  active      Boolean   @default(true)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  subscriptions CanteenSubscription[]
+  meals         MealAttendance[]
+
+  // W01 — schoolId explicite, jamais de défaut
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, schoolYearId, name])
+}
+
+enum CanteenSubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
+// Abonnement cantine d'un élève. UNE inscription par élève et par année, sur le
+// modèle d'Enrollment (W03) : changer de formule = mettre à jour la ligne.
+model CanteenSubscription {
+  id         Int      @id @default(autoincrement())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  mealPlanId Int
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  startDate DateTime // début de la prise en charge (borne la facturation X03)
+  endDate   DateTime? // résiliation (null = en cours)
+  status    CanteenSubscriptionStatus @default(ACTIVE)
+  note      String?
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, schoolYearId])
+  @@index([mealPlanId])
+  @@index([schoolId, status])
+}
+
+// Nature d'un pointage de repas.
+enum MealAttendanceKind {
+  SUBSCRIBED // abonné servi : inclus dans le forfait (amount = 0)
+  EXTRA // repas à l'unité : facturé `amount` (X03)
+  ABSENT // abonné non servi ce jour : suivi seul, aucune incidence financière
+}
+
+// Pointage du réfectoire : au plus UNE ligne par élève et par jour (X02).
+model MealAttendance {
+  id   Int      @id @default(autoincrement())
+  date DateTime // jour normalisé à 00:00 (comparaisons et unicité fiables)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  kind       MealAttendanceKind
+  mealPlanId Int? // formule servie (null pour un extra hors formule)
+  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+
+  amount Int     @default(0) // FCFA facturés — EXTRA uniquement, 0 sinon
+  note   String?
+
+  recordedById String
+  createdAt    DateTime @default(now())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date])
+  @@index([schoolId, date])
+  @@index([mealPlanId])
+}
+
+// ---------------------------------------------------------------------------
+// X05 — Cotisations d'événements (§2.4). Modèle retenu avec le user
+// (25 juil. 2026) : REGISTRE PROPRE À L'ÉVÉNEMENT, pas de facture. Un événement
+// porte au plus UN barème (montant attendu par élève) ; les versements vivent
+// dans ce registre avec leur reçu PDF, et remontent en recettes dans les stats.
+// Le PÉRIMÈTRE de la cotisation est celui de l'événement lui-même
+// (Event.classId : une classe, ou null = toute l'école) — rien à re-cibler.
+// ---------------------------------------------------------------------------
+
+model EventContribution {
+  id      Int   @id @default(autoincrement())
+  eventId Int   @unique
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  amount  Int // FCFA attendus PAR ÉLÈVE
+  dueDate DateTime?
+  note    String?
+  // Registre clôturé : plus aucun versement accepté (le récapitulatif reste lisible)
+  closedAt DateTime?
+
+  // X06 — année scolaire d'OUVERTURE du registre. L'événement n'est rattaché à
+  // aucune année ; sans cette colonne, les stats devraient rattacher les
+  // versements par leur DATE, et un versement encaissé hors de la fenêtre de
+  // l'année (vacances, régularisation tardive) disparaîtrait du résultat.
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  payments EventContributionPayment[]
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+// Versement d'un élève au registre d'un événement. Les versements PARTIELS sont
+// autorisés : le statut d'un élève se déduit de la somme de SES versements
+// comparée au barème (soldé / partiel / non payé).
+model EventContributionPayment {
+  id             String            @id @default(uuid())
+  contributionId Int
+  contribution   EventContribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  amount    Int
+  method    PaymentMethod @default(CASH) // réutilise l'enum finance
+  paidAt    DateTime      @default(now())
+  reference String        @unique // « COT-2026-00042 » (compteur annuel)
+  note      String?
+
+  receivedById String // User.id (caissier)
+  createdAt    DateTime @default(now())
+
+  @@index([contributionId, studentId])
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// X08 — Certificat de transfert (§2.1.3). Document OFFICIEL remis à la famille
+// quand l'élève quitte l'établissement : les valeurs y sont FIGÉES au moment de
+// l'émission (moyenne, rang, classe, dates de fréquentation). Recalculer plus
+// tard une moyenne qui a bougé rendrait le certificat déjà remis incohérent.
+// L'émission marque l'inscription de l'année en TRANSFERRED (W03) et journalise
+// `document.transfer_certificate` (W10).
+// ---------------------------------------------------------------------------
+
+model TransferCertificate {
+  id        String @id @default(uuid())
+  reference String @unique // « CT-2026-00003 »
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+
+  className     String // figé (la classe peut être renommée ou supprimée ensuite)
+  attendedFrom  DateTime // « A fréquenté mon établissement du … »
+  attendedTo    DateTime // « … au … »
+  yearsAttended Int // nombre d'années de scolarité (inscriptions cumulées)
+
+  annualAverage    Float? // moyenne annuelle figée (/20)
+  annualRank       Int? // rang général figé
+  classSize        Int? // effectif noté (dénominateur du rang)
+  conduct          String?
+  workAppreciation String?
+  decision         String? // décision du conseil des maîtres
+  reason           String // motif de transfert (obligatoire)
+
+  // Demande d'origine quand le certificat répond au module « Demandes »
+  attestationId String?
+
+  issuedById String
+  issuedAt   DateTime @default(now())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([schoolId, issuedAt])
 }

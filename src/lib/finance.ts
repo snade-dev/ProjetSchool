@@ -33,3 +33,25 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
 
 export const paymentMethodLabel = (method: string): string =>
   PAYMENT_METHOD_LABELS[method] ?? method;
+
+/**
+ * Statut dérivé d'une facture — jamais fourni par le client :
+ *   Σ payé >= total      → PAID
+ *   sinon échéance passée → OVERDUE
+ *   sinon Σ > 0          → PARTIALLY_PAID
+ *   sinon                → ISSUED
+ * (story-08 : une OVERDUE réglée intégralement passe PAID ; partiellement,
+ * reste OVERDUE.) X03 — extrait de paymentAction pour être partagé avec la
+ * facturation des repas de cantine, qui modifie le TOTAL d'une facture et doit
+ * en redériver le statut avec exactement la même règle.
+ */
+export const deriveInvoiceStatus = (
+  paidSum: number,
+  total: number,
+  dueDate: Date
+): "PAID" | "OVERDUE" | "PARTIALLY_PAID" | "ISSUED" => {
+  if (paidSum >= total) return "PAID";
+  if (dueDate < new Date()) return "OVERDUE";
+  if (paidSum > 0) return "PARTIALLY_PAID";
+  return "ISSUED";
+};

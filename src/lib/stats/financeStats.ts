@@ -51,7 +51,9 @@ export type MonthPoint = {
   facture: number;
   depenses: number;
   salaires: number;
-  /** encaisse − depenses − salaires (peut être négatif). */
+  /** X06 — cotisations d'événements encaissées (recette hors facturation). */
+  cotisations: number;
+  /** encaisse + cotisations − depenses − salaires (peut être négatif). */
   resultat: number;
 };
 
@@ -82,7 +84,13 @@ export type FinanceStats = {
   tauxRecouvrement: number;
   totalDepenses: number;
   totalSalaires: number;
-  /** encaissé − dépenses − salaires (PAID). */
+  /**
+   * X06 — total des cotisations d'événements encaissées sur l'année (§2.4).
+   * Recette HORS facturation : elle n'entre donc PAS dans `totalEncaisse` (qui
+   * sert au taux de recouvrement encaissé/facturé) mais bien dans le résultat.
+   */
+  totalCotisations: number;
+  /** encaissé + cotisations − dépenses − salaires (PAID). */
   resultat: number;
   expensesByCategory: CategoryExpense[];
   outstandingByClass: ClassOutstanding[];
@@ -148,7 +156,7 @@ export async function getFinanceStats(
 ): Promise<FinanceStats | null> {
   const schoolYear = await prisma.schoolYear.findUnique({
     where: { id: schoolYearId },
-    select: { id: true, startDate: true, endDate: true },
+    select: { id: true, startDate: true, endDate: true, schoolId: true },
   });
   if (!schoolYear) return null;
 
@@ -162,6 +170,7 @@ export async function getFinanceStats(
     expenseCatGroups,
     categories,
     outstandingInvoices,
+    contributionPayments,
   ] = await Promise.all([
     // Encaissé : paiements des factures de l'année (scope schoolYearId, cf. H38).
     prisma.payment.findMany({
@@ -209,13 +218,34 @@ export async function getFinanceStats(
         },
       },
     }),
+    // X06 — cotisations d'événements encaissées, scopées par l'ANNÉE
+    // D'OUVERTURE du registre (EventContribution.schoolYearId) et non par la
+    // date de versement : même raison que pour les factures (H38), un versement
+    // encaissé hors de la fenêtre de l'année (vacances, régularisation tardive)
+    // doit rester dans le résultat de SON année.
+    prisma.eventContributionPayment.findMany({
+      where: { contribution: { schoolYearId } },
+      select: { amount: true, paidAt: true },
+    }),
   ]);
 
   // Buckets mensuels initialisés à 0 sur tout l'axe (aucun trou).
-  type Bucket = { encaisse: number; facture: number; depenses: number; salaires: number };
+  type Bucket = {
+    encaisse: number;
+    facture: number;
+    depenses: number;
+    salaires: number;
+    cotisations: number;
+  };
   const buckets = new Map<string, Bucket>();
   for (const a of axis) {
-    buckets.set(a.key, { encaisse: 0, facture: 0, depenses: 0, salaires: 0 });
+    buckets.set(a.key, {
+      encaisse: 0,
+      facture: 0,
+      depenses: 0,
+      salaires: 0,
+      cotisations: 0,
+    });
   }
 
   let totalEncaisse = 0;
@@ -248,6 +278,14 @@ export async function getFinanceStats(
     if (b) b.salaires += amount;
   }
 
+  // X06 — cotisations encaissées, bucketées sur la date de versement.
+  let totalCotisations = 0;
+  for (const c of contributionPayments) {
+    totalCotisations += c.amount;
+    const b = buckets.get(monthKey(c.paidAt));
+    if (b) b.cotisations += c.amount;
+  }
+
   const months: MonthPoint[] = axis.map((a) => {
     const b = buckets.get(a.key)!;
     return {
@@ -257,7 +295,8 @@ export async function getFinanceStats(
       facture: b.facture,
       depenses: b.depenses,
       salaires: b.salaires,
-      resultat: b.encaisse - b.depenses - b.salaires,
+      cotisations: b.cotisations,
+      resultat: b.encaisse + b.cotisations - b.depenses - b.salaires,
     };
   });
 
@@ -315,7 +354,9 @@ export async function getFinanceStats(
     tauxRecouvrement: totalFacture > 0 ? totalEncaisse / totalFacture : 0,
     totalDepenses,
     totalSalaires,
-    resultat: totalEncaisse - totalDepenses - totalSalaires,
+    totalCotisations,
+    resultat:
+      totalEncaisse + totalCotisations - totalDepenses - totalSalaires,
     expensesByCategory,
     outstandingByClass,
     totalOutstanding,
