@@ -8,7 +8,11 @@ import { auditWithSession } from "../audit";
 import { createNotifications, notifyGuardians } from "../notify";
 import { getActiveSchoolYear } from "../schoolYear";
 import { nextInvoiceReference } from "../invoiceRef";
-import { runMonthlyGeneration, monthlyFeeFilter } from "../invoiceGeneration";
+import {
+  runMonthlyGeneration,
+  monthlyFeeFilter,
+  billCanteenExtras,
+} from "../invoiceGeneration";
 import {
   InvoiceSchema,
   InvoiceLineSchema,
@@ -503,6 +507,75 @@ export const generateMonthlyInvoices = async (
       success: false,
       error: true,
       message: "Erreur lors de la génération des factures.",
+    };
+  }
+};
+
+/**
+ * X03 — Facturation des REPAS À L'UNITÉ de la cantine sur un mois (§2.5).
+ * À lancer typiquement en fin de mois, une fois le pointage complet ; relancer
+ * met simplement la ligne « repas à l'unité » à jour (idempotent, cf.
+ * billCanteenExtras). Rôles : admin et comptable, comme la génération mensuelle.
+ */
+export const generateCanteenExtrasInvoices = async (
+  _state: CurrentStateMsg,
+  { month, year }: { month: number; year: number }
+): Promise<CurrentStateMsg> => {
+  try {
+    const session = await requireSchool(["admin", "accountant"]);
+    const { userId, schoolId } = session;
+
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      return { success: false, error: true, message: "Mois invalide (1-12)." };
+    }
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      return { success: false, error: true, message: "Année invalide." };
+    }
+
+    const activeYear = await getActiveSchoolYear(schoolId);
+
+    const result = await billCanteenExtras({
+      schoolId,
+      schoolYearId: activeYear.id,
+      month,
+      year,
+      createdById: userId,
+    });
+
+    if (result.meals > 0) {
+      await auditWithSession(
+        session,
+        "canteen.bill_extras",
+        `SchoolYear#${activeYear.id}`,
+        {
+          after: {
+            month,
+            year,
+            eleves: result.students,
+            repas: result.meals,
+            montant: result.amount,
+            facturesCreees: result.invoicesCreated,
+          },
+        }
+      );
+    }
+
+    revalidatePath("/list/invoices");
+    revalidatePath("/list/canteen/recap");
+    return {
+      success: true,
+      error: false,
+      message:
+        result.meals === 0
+          ? "Aucun repas à l'unité à facturer sur ce mois."
+          : `${result.meals} repas facturés à ${result.students} élève(s) — ${result.amount.toLocaleString("fr-FR")} FCFA (${result.invoicesCreated} facture(s) créée(s)).`,
+    };
+  } catch (err) {
+    console.log(err);
+    return {
+      success: false,
+      error: true,
+      message: "Erreur lors de la facturation des repas à l'unité.",
     };
   }
 };

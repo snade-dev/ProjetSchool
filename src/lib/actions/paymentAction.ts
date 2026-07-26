@@ -6,29 +6,12 @@ import { requireRole } from "../authGuard";
 import { auditWithSession } from "../audit";
 import { notifyGuardians } from "../notify";
 import { renderReceiptPdfBuffer } from "../pdfBuffers";
-import { paymentMethodLabel } from "../finance";
+// X03 — deriveInvoiceStatus vit désormais dans finance.ts : la facturation des
+// repas de cantine modifie le TOTAL d'une facture et doit redériver son statut
+// avec exactement la même règle (une seule définition, pas de divergence).
+import { paymentMethodLabel, deriveInvoiceStatus } from "../finance";
 import { PaymentSchema } from "../formsValidationSchema";
-import { InvoiceStatus } from "@/app/generated/prisma";
 import { deleteErrorMessage } from '../actionErrors';
-
-/**
- * Statut dérivé d'une facture après (dé)paiement — jamais fourni par le client :
- *   Σ == total          → PAID
- *   sinon dueDate passée → OVERDUE
- *   sinon Σ > 0          → PARTIALLY_PAID
- *   sinon                → ISSUED
- * (story-08 : une OVERDUE réglée intégralement passe PAID ; partiellement, reste OVERDUE.)
- */
-const deriveInvoiceStatus = (
-  paidSum: number,
-  total: number,
-  dueDate: Date
-): InvoiceStatus => {
-  if (paidSum >= total) return "PAID";
-  if (dueDate < new Date()) return "OVERDUE";
-  if (paidSum > 0) return "PARTIALLY_PAID";
-  return "ISSUED";
-};
 
 type CurrentState = {
   success: boolean;

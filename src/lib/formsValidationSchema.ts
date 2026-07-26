@@ -764,3 +764,53 @@ export const messageSchema = z.object({
 });
 
 export type MessageSchema = z.infer<typeof messageSchema>;
+
+// ---- X01 : Cantine — formule de restauration (§2.5) ----
+export const mealPlanSchema = z.object({
+  id: z.coerce.number().optional(),
+  name: z
+    .string()
+    .min(2, { message: "Le nom de la formule est requis (min. 2 caractères) !" }),
+  description: z.string().optional().or(z.literal("")),
+  period: z.enum(["MONTHLY", "YEARLY", "ONE_TIME"], {
+    message: "La périodicité du forfait est requise !",
+  }),
+  amount: z.coerce
+    .number({ message: "Le montant du forfait est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  // Prix d'un repas à l'unité — facultatif : vide = l'école ne vend pas d'extra.
+  unitPrice: z
+    .union([z.literal(""), z.coerce.number().int().positive()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  // ATTENTION : z.coerce.boolean() rendrait la chaîne "false" du <select> TRUE
+  // (Boolean("false") === true) — on compare donc explicitement à "false".
+  active: z
+    .union([z.boolean(), z.enum(["true", "false"])])
+    .optional()
+    .transform((v) => v !== false && v !== "false"),
+});
+
+export type MealPlanSchema = z.infer<typeof mealPlanSchema>;
+
+// ---- X01 : Cantine — abonnement d'un élève (§2.5) ----
+export const canteenSubscriptionSchema = z.object({
+  id: z.coerce.number().optional(),
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  mealPlanId: z.coerce
+    .number()
+    .min(1, { message: "La formule est requise !" }),
+  startDate: z.coerce.date({ message: "La date de début est requise !" }),
+  // Résiliation : vide = abonnement en cours.
+  endDate: z
+    .union([z.literal(""), z.coerce.date()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  status: z.enum(["ACTIVE", "SUSPENDED", "ENDED"]).optional().default("ACTIVE"),
+  note: z.string().optional().or(z.literal("")),
+});
+
+export type CanteenSubscriptionSchema = z.infer<
+  typeof canteenSubscriptionSchema
+>;

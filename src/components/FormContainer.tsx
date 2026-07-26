@@ -32,7 +32,10 @@ export type FormContainerProps = {
     | "employee"
     | "level"
     | "homework"
-    | "observation";
+    | "observation"
+    // X01 — cantine (§2.5)
+    | "mealPlan"
+    | "canteenSubscription";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
@@ -393,6 +396,43 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             surname: s.surname,
             className: s.enrollments[0]?.class.name ?? null,
           })),
+        };
+        break;
+
+      case "canteenSubscription":
+        // X01 — élèves inscrits de l'année active (avec leur classe) + formules
+        // encore proposées. Un élève déjà abonné reste dans la liste : l'unicité
+        // (élève, année) est vérifiée côté action, qui renvoie l'erreur au toast.
+        const canteenStudentRows = await prisma.student.findMany({
+          where: {
+            schoolId,
+            enrollments: { some: { schoolYear: { isActive: true } } },
+          },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            enrollments: {
+              where: { schoolYear: { isActive: true } },
+              select: { class: { select: { name: true } } },
+              take: 1,
+            },
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        });
+        const canteenPlans = await prisma.mealPlan.findMany({
+          where: { schoolId, active: true, schoolYear: { isActive: true } },
+          select: { id: true, name: true, amount: true },
+          orderBy: { name: "asc" },
+        });
+        relatedData = {
+          students: canteenStudentRows.map((s) => ({
+            id: s.id,
+            name: s.name,
+            surname: s.surname,
+            className: s.enrollments[0]?.class.name ?? null,
+          })),
+          mealPlans: canteenPlans,
         };
         break;
 

@@ -39,6 +39,10 @@ import { deleteEmployee } from "@/lib/actions/employeeAction";
 import { deleteLevel } from "@/lib/actions/levelAction";
 import { deleteHomework } from "@/lib/actions/homeworkAction";
 import { deleteObservation } from "@/lib/actions/observationAction";
+import {
+  deleteMealPlan,
+  deleteCanteenSubscription,
+} from "@/lib/actions/canteenAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -111,6 +115,14 @@ const HomeworkForm = dynamic(() => import("./forms/HomeworkForm"), {
 const ObservationForm = dynamic(() => import("./forms/ObservationForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+// X01 — cantine (§2.5)
+const MealPlanForm = dynamic(() => import("./forms/MealPlanForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const CanteenSubscriptionForm = dynamic(
+  () => import("./forms/CanteenSubscriptionForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
 
 const forms: {
   [key: string]: (
@@ -320,6 +332,22 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  mealPlan: (type, data, setOpen, relatedData) => (
+    <MealPlanForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  canteenSubscription: (type, data, setOpen, relatedData) => (
+    <CanteenSubscriptionForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 // Form est défini au niveau module (et non dans le corps de FormModal) :
@@ -364,7 +392,10 @@ const Form = ({
       employee:deleteEmployee,
       level:deleteLevel,
       homework:deleteHomework,
-      observation:deleteObservation
+      observation:deleteObservation,
+      // X01 — cantine (§2.5)
+      mealPlan:deleteMealPlan,
+      canteenSubscription:deleteCanteenSubscription
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)

@@ -60,6 +60,10 @@ model Student {
   // W15 — dossier disciplinaire (§2.3.7)
   observations Observation[]
 
+  // X01 — cantine (§2.5)
+  canteenSubscriptions CanteenSubscription[]
+  meals                MealAttendance[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -752,6 +756,9 @@ model SchoolYear {
   semesters       Semester[]
   // W03 — inscriptions des élèves pour cette année
   enrollments     Enrollment[]
+  // X01 — cantine (§2.5)
+  mealPlans            MealPlan[]
+  canteenSubscriptions CanteenSubscription[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -815,6 +822,10 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   observations      Observation[] // W15
   absenceJustifications AbsenceJustification[] // W15
   messages          Message[] // W16
+  // X01 — cantine (§2.5)
+  mealPlans            MealPlan[]
+  canteenSubscriptions CanteenSubscription[]
+  meals                MealAttendance[]
 
   @@map("SchoolSettings")
 }
@@ -1232,4 +1243,104 @@ model Message {
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, readAt])
   @@index([schoolId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// X01 — Cantine (§2.5 vie scolaire). Modèle « forfait + pointage » retenu avec
+// le user (25 juil. 2026) : l'élève est abonné à une FORMULE facturée via les
+// factures existantes (X03), et le réfectoire POINTE les repas chaque jour.
+// Un non-abonné (ou un abonné en extra) peut prendre un repas à l'unité, facturé
+// au prix unitaire de la formule.
+// ---------------------------------------------------------------------------
+
+// Formule de restauration proposée par l'école pour UNE année scolaire.
+model MealPlan {
+  id          Int       @id @default(autoincrement())
+  name        String // « Demi-pension », « Repas + goûter » — unicité par école ET année
+  description String?
+  // Rythme du forfait — réutilise l'enum finance (MONTHLY / YEARLY / ONE_TIME)
+  period      FeePeriod @default(MONTHLY)
+  amount      Int // FCFA — montant du forfait
+  // FCFA — prix d'UN repas hors forfait (repas à l'unité). null = pas d'extra vendu.
+  unitPrice   Int?
+  active      Boolean   @default(true)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  subscriptions CanteenSubscription[]
+  meals         MealAttendance[]
+
+  // W01 — schoolId explicite, jamais de défaut
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, schoolYearId, name])
+}
+
+enum CanteenSubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
+// Abonnement cantine d'un élève. UNE inscription par élève et par année, sur le
+// modèle d'Enrollment (W03) : changer de formule = mettre à jour la ligne.
+model CanteenSubscription {
+  id         Int      @id @default(autoincrement())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  mealPlanId Int
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  startDate DateTime // début de la prise en charge (borne la facturation X03)
+  endDate   DateTime? // résiliation (null = en cours)
+  status    CanteenSubscriptionStatus @default(ACTIVE)
+  note      String?
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, schoolYearId])
+  @@index([mealPlanId])
+  @@index([schoolId, status])
+}
+
+// Nature d'un pointage de repas.
+enum MealAttendanceKind {
+  SUBSCRIBED // abonné servi : inclus dans le forfait (amount = 0)
+  EXTRA // repas à l'unité : facturé `amount` (X03)
+  ABSENT // abonné non servi ce jour : suivi seul, aucune incidence financière
+}
+
+// Pointage du réfectoire : au plus UNE ligne par élève et par jour (X02).
+model MealAttendance {
+  id   Int      @id @default(autoincrement())
+  date DateTime // jour normalisé à 00:00 (comparaisons et unicité fiables)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  kind       MealAttendanceKind
+  mealPlanId Int? // formule servie (null pour un extra hors formule)
+  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+
+  amount Int     @default(0) // FCFA facturés — EXTRA uniquement, 0 sinon
+  note   String?
+
+  recordedById String
+  createdAt    DateTime @default(now())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date])
+  @@index([schoolId, date])
+  @@index([mealPlanId])
 }

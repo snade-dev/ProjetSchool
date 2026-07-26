@@ -35,6 +35,7 @@ import {
   ArrowRightLeft,
   ScrollText,
   MessageSquare,
+  UtensilsCrossed,
   LucideIcon,
 } from "lucide-react";
 import { LinKed } from "./LinKed";
@@ -135,6 +136,8 @@ const MENU: MenuEntry[] = [
         // W15 — observations & discipline (§2.3.7) + justifications d'absence (§2.3.6)
         { icon: ScrollText, label: "Observations", href: "/list/observations", visible: ["admin", "director", "supervisor"] },
         { icon: FileText, label: "Justifications d'absence", href: "/list/justifications", visible: ["admin", "director", "supervisor"] },
+        // X01 — cantine (§2.5) : formules, abonnés, pointage, récapitulatif
+        { icon: UtensilsCrossed, label: "Cantine", href: "/list/canteen", visible: ["admin", "director", "accountant", "supervisor"] },
         { icon: Calendar, label: "Événements", href: "/list/events", visible: ALL },
         { icon: Bell, label: "Annonces", href: "/list/announcements", visible: ALL },
         // W16 — messagerie interne 1-à-1 (§2.6.5, tous les rôles école)

@@ -66,6 +66,9 @@ type RouteAccessMap = {
     // décision par la direction/le surveillant
     "/list/observations": ["admin", "director", "supervisor"],
     "/list/justifications": ["admin", "director", "supervisor"],
+    // X01/X02 — cantine (§2.5) : la direction gère formules et abonnements,
+    // le surveillant et le comptable pointent les repas au réfectoire
+    "/list/canteen": ["admin", "director", "accountant", "supervisor"],
     "/list/announcements": ["admin", "director", "teacher", "student", "parent"],
     "/list/semester": ["admin", "director", "teacher", "student", "parent"],
     "/list/makeupSession": ["admin", "director", "teacher", "student"],
