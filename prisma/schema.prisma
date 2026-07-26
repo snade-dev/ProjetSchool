@@ -64,6 +64,9 @@ model Student {
   canteenSubscriptions CanteenSubscription[]
   meals                MealAttendance[]
 
+  // X05 — versements aux cotisations d'événements (§2.4)
+  contributionPayments EventContributionPayment[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -383,6 +386,9 @@ model Event {
 
   classId Int?
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  // X05 — barème de cotisation (au plus un par événement, §2.4)
+  contribution EventContribution?
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -826,6 +832,8 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   mealPlans            MealPlan[]
   canteenSubscriptions CanteenSubscription[]
   meals                MealAttendance[]
+  // X05 — cotisations d'événements (§2.4)
+  eventContributions   EventContribution[]
 
   @@map("SchoolSettings")
 }
@@ -1343,4 +1351,59 @@ model MealAttendance {
   @@unique([studentId, date])
   @@index([schoolId, date])
   @@index([mealPlanId])
+}
+
+// ---------------------------------------------------------------------------
+// X05 — Cotisations d'événements (§2.4). Modèle retenu avec le user
+// (25 juil. 2026) : REGISTRE PROPRE À L'ÉVÉNEMENT, pas de facture. Un événement
+// porte au plus UN barème (montant attendu par élève) ; les versements vivent
+// dans ce registre avec leur reçu PDF, et remontent en recettes dans les stats.
+// Le PÉRIMÈTRE de la cotisation est celui de l'événement lui-même
+// (Event.classId : une classe, ou null = toute l'école) — rien à re-cibler.
+// ---------------------------------------------------------------------------
+
+model EventContribution {
+  id      Int   @id @default(autoincrement())
+  eventId Int   @unique
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  amount  Int // FCFA attendus PAR ÉLÈVE
+  dueDate DateTime?
+  note    String?
+  // Registre clôturé : plus aucun versement accepté (le récapitulatif reste lisible)
+  closedAt DateTime?
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  payments EventContributionPayment[]
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+// Versement d'un élève au registre d'un événement. Les versements PARTIELS sont
+// autorisés : le statut d'un élève se déduit de la somme de SES versements
+// comparée au barème (soldé / partiel / non payé).
+model EventContributionPayment {
+  id             String            @id @default(uuid())
+  contributionId Int
+  contribution   EventContribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  amount    Int
+  method    PaymentMethod @default(CASH) // réutilise l'enum finance
+  paidAt    DateTime      @default(now())
+  reference String        @unique // « COT-2026-00042 » (compteur annuel)
+  note      String?
+
+  receivedById String // User.id (caissier)
+  createdAt    DateTime @default(now())
+
+  @@index([contributionId, studentId])
+  @@index([studentId])
 }

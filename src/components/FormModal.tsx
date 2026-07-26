@@ -43,6 +43,10 @@ import {
   deleteMealPlan,
   deleteCanteenSubscription,
 } from "@/lib/actions/canteenAction";
+import {
+  deleteEventContribution,
+  deleteContributionPayment,
+} from "@/lib/actions/contributionAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -121,6 +125,15 @@ const MealPlanForm = dynamic(() => import("./forms/MealPlanForm"), {
 });
 const CanteenSubscriptionForm = dynamic(
   () => import("./forms/CanteenSubscriptionForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+// X05 — cotisations d'événements (§2.4)
+const EventContributionForm = dynamic(
+  () => import("./forms/EventContributionForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+const ContributionPaymentForm = dynamic(
+  () => import("./forms/ContributionPaymentForm"),
   { loading: () => <h1>Loading...</h1> }
 );
 
@@ -348,6 +361,22 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  eventContribution: (type, data, setOpen, relatedData) => (
+    <EventContributionForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  contributionPayment: (type, data, setOpen, relatedData) => (
+    <ContributionPaymentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 // Form est défini au niveau module (et non dans le corps de FormModal) :
@@ -395,7 +424,10 @@ const Form = ({
       observation:deleteObservation,
       // X01 — cantine (§2.5)
       mealPlan:deleteMealPlan,
-      canteenSubscription:deleteCanteenSubscription
+      canteenSubscription:deleteCanteenSubscription,
+      // X05 — cotisations d'événements (§2.4)
+      eventContribution:deleteEventContribution,
+      contributionPayment:deleteContributionPayment
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)

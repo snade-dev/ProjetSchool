@@ -145,6 +145,13 @@ export default async function FinanceStatsPage(props: {
           value={`${Math.round(stats.tauxRecouvrement * 100)} %`}
           sub="encaissé / facturé"
         />
+        {/* X06 — recette hors facturation : les cotisations d'événements */}
+        <StatTile
+          accent="sky"
+          label="Cotisations encaissées"
+          value={formatFCFA(stats.totalCotisations)}
+          sub="événements (hors facturation)"
+        />
         <StatTile
           accent="yellow"
           label="Dépenses"
@@ -159,7 +166,7 @@ export default async function FinanceStatsPage(props: {
           accent={resultatPositif ? "green" : "red"}
           label="Résultat"
           value={formatFCFA(stats.resultat)}
-          sub="encaissé − dépenses − salaires"
+          sub="encaissé + cotisations − dépenses − salaires"
         />
       </div>
 
@@ -171,9 +178,12 @@ export default async function FinanceStatsPage(props: {
         taux de recouvrement rapporte l&apos;encaissé au total facturé de
         l&apos;année (hors factures annulées). La masse salariale ne compte que
         les salaires <strong>effectivement payés</strong> (les bulletins en
-        attente sont exclus du résultat). Résultat = encaissé − dépenses −
-        salaires payés. L&apos;axe du graphique suit l&apos;année scolaire
-        (septembre → juin).
+        attente sont exclus du résultat). Les <strong>cotisations</strong>{" "}
+        d&apos;événements sont une recette <strong>hors facturation</strong> :
+        elles n&apos;entrent pas dans le taux de recouvrement mais bien dans le
+        résultat, et sont rattachées à l&apos;année par leur date de versement.
+        Résultat = encaissé + cotisations − dépenses − salaires payés.
+        L&apos;axe du graphique suit l&apos;année scolaire (septembre → juin).
       </div>
 
       {/* Chart mensuel principal */}

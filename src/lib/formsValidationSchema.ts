@@ -814,3 +814,46 @@ export const canteenSubscriptionSchema = z.object({
 export type CanteenSubscriptionSchema = z.infer<
   typeof canteenSubscriptionSchema
 >;
+
+// ---- X05 : Barème de cotisation d'un événement (§2.4) ----
+export const eventContributionSchema = z.object({
+  eventId: z.coerce
+    .number()
+    .min(1, { message: "L'événement est requis !" }),
+  amount: z.coerce
+    .number({ message: "Le montant attendu est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  dueDate: z
+    .union([z.literal(""), z.coerce.date()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  note: z.string().optional().or(z.literal("")),
+});
+
+export type EventContributionSchema = z.infer<typeof eventContributionSchema>;
+
+// ---- X05 : Versement d'un élève au registre d'un événement (§2.4) ----
+export const contributionPaymentSchema = z.object({
+  contributionId: z.coerce
+    .number()
+    .min(1, { message: "La cotisation est requise !" }),
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  amount: z.coerce
+    .number({ message: "Le montant est requis !" })
+    .int({ message: "Le montant doit être un nombre entier !" })
+    .positive({ message: "Le montant doit être supérieur à 0 !" }),
+  method: z
+    .enum(["CASH", "MOBILE_MONEY", "BANK_TRANSFER", "CHEQUE"])
+    .optional()
+    .default("CASH"),
+  paidAt: z
+    .union([z.literal(""), z.coerce.date()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  note: z.string().optional().or(z.literal("")),
+});
+
+export type ContributionPaymentSchema = z.infer<
+  typeof contributionPaymentSchema
+>;

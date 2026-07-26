@@ -8,9 +8,16 @@ import { ITEM_PER_PAGE } from "@/lib/setting";
 import { auth } from "@/lib/auth";
 import { Class, Event, Prisma } from "@/app/generated/prisma";
 import { headers } from "next/headers";
+import Link from "next/link";
 
 import { sessionSchoolId } from "@/lib/authGuard";
-type EventList = Event & { class: Class };
+// X06 — la liste porte l'état du registre de cotisation (montant + encaissé)
+type EventList = Event & {
+  class: Class;
+  contribution:
+    | { id: number; amount: number; closedAt: Date | null; collected: number }
+    | null;
+};
 
 const EventListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -24,6 +31,12 @@ const EventListPage = async (props: {
   const role = session?.user.role;
   const currentUserId = session?.user.id;
 
+  // X06 — le registre de cotisation est une donnée financière : direction et
+  // comptable seulement (la fiche /list/events/[id] applique la même règle).
+  const canSeeContribution = ["admin", "director", "accountant"].includes(
+    role ?? ""
+  );
+
   const columns = [
     {
       header: "Nom",
@@ -33,6 +46,15 @@ const EventListPage = async (props: {
       header: "Classe",
       accessor: "class",
     },
+    ...(canSeeContribution
+      ? [
+          {
+            header: "Cotisation",
+            accessor: "contribution",
+            className: "hidden md:table-cell",
+          },
+        ]
+      : []),
     {
       header: "Date de l'evenement",
       accessor: "date",
@@ -63,8 +85,41 @@ const EventListPage = async (props: {
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
     >
-      <td className="flex items-center gap-4 p-4">{item.title}</td>
+      <td className="flex items-center gap-4 p-4">
+        {canSeeContribution ? (
+          <Link
+            href={`/list/events/${item.id}`}
+            className="font-medium hover:underline"
+          >
+            {item.title}
+          </Link>
+        ) : (
+          item.title
+        )}
+      </td>
       <td>{item.class?.name || "-"}</td>
+      {canSeeContribution && (
+        <td className="hidden md:table-cell">
+          {item.contribution ? (
+            <Link
+              href={`/list/events/${item.id}`}
+              className="flex items-center gap-1.5 text-xs"
+            >
+              <span className="rounded-full bg-lamaSky px-2 py-1 text-sky-900 whitespace-nowrap">
+                {item.contribution.amount.toLocaleString("fr-FR")} FCFA
+              </span>
+              <span className="text-gray-400 whitespace-nowrap">
+                {item.contribution.collected.toLocaleString("fr-FR")} encaissés
+              </span>
+              {item.contribution.closedAt && (
+                <span className="text-gray-300">· clôturé</span>
+              )}
+            </Link>
+          ) : (
+            <span className="text-xs text-gray-300">—</span>
+          )}
+        </td>
+      )}
       <td className="hidden md:table-cell">
         {new Intl.DateTimeFormat("en-US").format(item.startTime)}
       </td>
@@ -144,17 +199,54 @@ const EventListPage = async (props: {
   }
 
   // Requete vers la base de donnéés
-  const [data, count] = await prisma.$transaction([
+  // X06 — le barème et ses versements sont chargés avec l'événement (une seule
+  // requête, pas de N+1) ; le cumul encaissé est calculé en mémoire.
+  const [rows, count] = await prisma.$transaction([
     prisma.event.findMany({
       where: { AND: [{ schoolId }, query] },
       include: {
         class: true,
+        contribution: canSeeContribution
+          ? {
+              select: {
+                id: true,
+                amount: true,
+                closedAt: true,
+                payments: { select: { amount: true } },
+              },
+            }
+          : false,
       },
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.event.count({ where: { AND: [{ schoolId }, query] } }),
   ]);
+
+  const data: EventList[] = rows.map((e) => {
+    const contribution = (e as typeof e & {
+      contribution?: {
+        id: number;
+        amount: number;
+        closedAt: Date | null;
+        payments: { amount: number }[];
+      } | null;
+    }).contribution;
+    return {
+      ...e,
+      contribution: contribution
+        ? {
+            id: contribution.id,
+            amount: contribution.amount,
+            closedAt: contribution.closedAt,
+            collected: contribution.payments.reduce(
+              (sum, p) => sum + p.amount,
+              0
+            ),
+          }
+        : null,
+    } as EventList;
+  });
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">

@@ -35,7 +35,10 @@ export type FormContainerProps = {
     | "observation"
     // X01 — cantine (§2.5)
     | "mealPlan"
-    | "canteenSubscription";
+    | "canteenSubscription"
+    // X05 — cotisations d'événements (§2.4)
+    | "eventContribution"
+    | "contributionPayment";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;
