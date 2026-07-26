@@ -218,14 +218,13 @@ export async function getFinanceStats(
         },
       },
     }),
-    // X06 — cotisations d'événements encaissées. Elles ne sont RATTACHÉES À
-    // AUCUNE année scolaire (le registre vit sur l'événement) : la fenêtre de
-    // dates de l'année fait donc foi ici, contrairement aux factures (H38).
+    // X06 — cotisations d'événements encaissées, scopées par l'ANNÉE
+    // D'OUVERTURE du registre (EventContribution.schoolYearId) et non par la
+    // date de versement : même raison que pour les factures (H38), un versement
+    // encaissé hors de la fenêtre de l'année (vacances, régularisation tardive)
+    // doit rester dans le résultat de SON année.
     prisma.eventContributionPayment.findMany({
-      where: {
-        contribution: { schoolId: schoolYear.schoolId },
-        paidAt: { gte: schoolYear.startDate, lte: schoolYear.endDate },
-      },
+      where: { contribution: { schoolYearId } },
       select: { amount: true, paidAt: true },
     }),
   ]);

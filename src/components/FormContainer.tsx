@@ -38,7 +38,10 @@ export type FormContainerProps = {
     | "canteenSubscription"
     // X05 — cotisations d'événements (§2.4)
     | "eventContribution"
-    | "contributionPayment";
+    | "contributionPayment"
+    // X07/X08 — documents officiels
+    | "annualAssessment"
+    | "transferCertificate";
   type: "create" | "update" | "delete";
   data?: any;
   id?: number | string;

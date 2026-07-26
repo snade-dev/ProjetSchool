@@ -245,6 +245,48 @@ X01→X04 (cantine), X05→X06 (événements) et X07→X08 (documents) sont troi
 INDÉPENDANTES : elles ne se bloquent pas mutuellement. X07 réutilise `reportCard.ts`
 sans le modifier ; X08 réutilise l'agrégat annuel de X07 (moyenne + rang).
 
+## Réalisé (26 juil. 2026)
+
+Les 8 stories sont livrées sur la branche `v5/cantine-evenements-documents`
+(build `npm run build` vert, `tsc --noEmit` vert).
+
+Migrations appliquées en dev :
+`20260726125415_x01_canteen`, `20260726130926_x05_event_contributions`,
+`20260726131931_x07_annual_report_and_transfer`,
+`20260726134351_x06_contribution_school_year`.
+
+Écarts assumés par rapport au plan initial :
+- **Retards du bulletin annuel saisis à la main** (`Enrollment.lateCount`) :
+  `Attendance` ne porte que présent/absent, il n'existe aucune source de retards.
+  Les ABSENCES, elles, sont bien comptées depuis `Attendance` (dont justifiées).
+- **`EventContribution.schoolYearId` ajouté après coup** (migration X06) : scoper
+  les recettes de cotisation par la DATE de versement faisait disparaître des
+  stats tout versement encaissé hors de la fenêtre de l'année (vacances,
+  régularisation tardive) — défaut trouvé au test E2E. Le registre est donc
+  rattaché à l'année de son OUVERTURE, comme les factures (H38).
+- **`deriveInvoiceStatus` extrait de `paymentAction` vers `finance.ts`** : la
+  facturation des repas à l'unité modifie le TOTAL d'une facture et doit
+  redériver son statut avec exactement la même règle.
+- **Facturation des extras séparée du batch mensuel** (`billCanteenExtras`) : les
+  repas à l'unité ne sont connus qu'au fil du mois. Relancer met la ligne à jour
+  au lieu d'en créer une seconde (idempotence par libellé marqueur).
+- **Bulletin annuel = consolidation, pas recalcul** : il agrège les
+  `ResultAverage` des périodes. Il faut donc avoir généré les bulletins de
+  période avant ; l'écran affiche « périodes notées » pour le rendre visible.
+
+Vérifié en E2E sur la base de dev (script temporaire, données nettoyées) :
+unicité d'un pointage par élève et par jour, ligne de forfait sur la facture du
+mois, idempotence de la génération mensuelle ET de la facturation des extras,
+cumul des versements partiels d'une cotisation, périmètre et totaux du registre,
+remontée des cotisations dans les stats finance, rangs et repères de classe du
+bulletin annuel.
+
+Reste à faire avant mise en production : rejouer les 4 migrations sur Neon
+(backup `pg_dump` préalable, endpoint DIRECT sans `-pooler`), puis renseigner
+dans `/settings` l'en-tête des documents officiels (ministère, CAP, devise,
+ville, signataire) — sans quoi le certificat de transfert sort avec des mentions
+vides.
+
 ## Hors périmètre v5
 
 Infirmerie, transport, bibliothèque (§2.5 restant), SMS (§2.6.2), site vitrine,

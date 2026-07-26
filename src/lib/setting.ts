@@ -69,6 +69,9 @@ type RouteAccessMap = {
     // X01/X02 — cantine (§2.5) : la direction gère formules et abonnements,
     // le surveillant et le comptable pointent les repas au réfectoire
     "/list/canteen": ["admin", "director", "accountant", "supervisor"],
+    // X07 — fin d'année : bilans + bulletins annuels (l'enseignant n'y voit
+    // que les classes dont il est TITULAIRE, filtre appliqué dans la page)
+    "/list/annual": ["admin", "director", "teacher", "supervisor"],
     "/list/announcements": ["admin", "director", "teacher", "student", "parent"],
     "/list/semester": ["admin", "director", "teacher", "student", "parent"],
     "/list/makeupSession": ["admin", "director", "teacher", "student"],

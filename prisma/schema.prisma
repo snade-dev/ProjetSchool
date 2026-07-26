@@ -35,6 +35,8 @@ model Student {
   attendances Attendance[]
   results     Result[]
   birthday    DateTime
+  // X08 — « Né(e) le … à … » du certificat de transfert (documents officiels)
+  birthPlace  String?
 
   ExamAverage ExamAverage[]
 
@@ -67,6 +69,9 @@ model Student {
   // X05 — versements aux cotisations d'événements (§2.4)
   contributionPayments EventContributionPayment[]
 
+  // X08 — certificats de transfert délivrés (§2.1.3)
+  transferCertificates TransferCertificate[]
+
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
@@ -93,6 +98,24 @@ model Enrollment {
   schoolYear   SchoolYear       @relation(fields: [schoolYearId], references: [id])
   status       EnrollmentStatus @default(ACTIVE)
   enrolledAt   DateTime         @default(now())
+
+  // ---- X07 — bilan de fin d'année (bulletin annuel + certificat de transfert)
+  // Saisi une seule fois par le maître / la direction, il alimente les DEUX
+  // documents officiels et pré-remplit l'assistant de passage d'année (W04).
+  /** « Très bonne », « Bonne », « Assez bonne », « À améliorer », « Avertissement » */
+  conduct           String?
+  /** Appréciation du travail : « Excellent », « Bien »… (certificat de transfert) */
+  workAppreciation  String?
+  /** Décision du conseil des maîtres : « Passe en CP2 », « Redouble »… */
+  annualDecision    String?
+  /** Observations portées au bulletin annuel */
+  annualObservation String?
+  /**
+   * Nombre de retards de l'année. SAISI À LA MAIN : le modèle Attendance ne
+   * porte que présent/absent (pas de notion de retard) — les ABSENCES, elles,
+   * sont comptées depuis Attendance et ne sont donc pas stockées ici.
+   */
+  lateCount         Int?
 
   // Une seule inscription par élève et par année
   @@unique([studentId, schoolYearId])
@@ -765,6 +788,10 @@ model SchoolYear {
   // X01 — cantine (§2.5)
   mealPlans            MealPlan[]
   canteenSubscriptions CanteenSubscription[]
+  // X06 — registres de cotisation ouverts au titre de l'année
+  eventContributions   EventContribution[]
+  // X08 — certificats de transfert délivrés au titre de l'année
+  transferCertificates TransferCertificate[]
 
   // V02 — rattachement multi-établissements (W01 : schoolId explicite, plus de défaut)
   schoolId Int
@@ -807,6 +834,24 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   // l'école ») : false = les élèves ne peuvent pas écrire à leurs enseignants.
   studentMessagingEnabled Boolean @default(false)
 
+  // ---- X08 — en-tête officiel des documents (certificat de transfert,
+  // bulletin annuel). Reprend la maquette fournie par l'école : tutelle à
+  // gauche, devise de la République à droite, signataire en bas.
+  /** « MINISTERE DE L'EDUCATION NATIONALE » */
+  ministry      String?
+  /** « CAP DE BAGUINEDA » (académie / centre d'animation pédagogique) */
+  academy       String?
+  /** « REPUBLIQUE DU MALI » */
+  countryLine1  String?
+  /** « Un Peuple – Un But – Une Foi » */
+  countryLine2  String?
+  /** Ville de la mention « Fait à …, le … » */
+  city          String?
+  /** « MARIKO Aminata » — signataire des documents officiels */
+  directorName  String?
+  /** « La Directrice » / « Le Directeur » */
+  directorTitle String?
+
   users             User[]
   classes           Class[]
   levels            Level[] // W02
@@ -834,6 +879,8 @@ model School {                  // établissement (ex-singleton SchoolSettings)
   meals                MealAttendance[]
   // X05 — cotisations d'événements (§2.4)
   eventContributions   EventContribution[]
+  // X08 — certificats de transfert (§2.1.3)
+  transferCertificates TransferCertificate[]
 
   @@map("SchoolSettings")
 }
@@ -1373,6 +1420,13 @@ model EventContribution {
   // Registre clôturé : plus aucun versement accepté (le récapitulatif reste lisible)
   closedAt DateTime?
 
+  // X06 — année scolaire d'OUVERTURE du registre. L'événement n'est rattaché à
+  // aucune année ; sans cette colonne, les stats devraient rattacher les
+  // versements par leur DATE, et un versement encaissé hors de la fenêtre de
+  // l'année (vacances, régularisation tardive) disparaîtrait du résultat.
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+
   createdById String
   createdAt   DateTime @default(now())
 
@@ -1406,4 +1460,49 @@ model EventContributionPayment {
 
   @@index([contributionId, studentId])
   @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// X08 — Certificat de transfert (§2.1.3). Document OFFICIEL remis à la famille
+// quand l'élève quitte l'établissement : les valeurs y sont FIGÉES au moment de
+// l'émission (moyenne, rang, classe, dates de fréquentation). Recalculer plus
+// tard une moyenne qui a bougé rendrait le certificat déjà remis incohérent.
+// L'émission marque l'inscription de l'année en TRANSFERRED (W03) et journalise
+// `document.transfer_certificate` (W10).
+// ---------------------------------------------------------------------------
+
+model TransferCertificate {
+  id        String @id @default(uuid())
+  reference String @unique // « CT-2026-00003 »
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  schoolYearId Int
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id])
+
+  className     String // figé (la classe peut être renommée ou supprimée ensuite)
+  attendedFrom  DateTime // « A fréquenté mon établissement du … »
+  attendedTo    DateTime // « … au … »
+  yearsAttended Int // nombre d'années de scolarité (inscriptions cumulées)
+
+  annualAverage    Float? // moyenne annuelle figée (/20)
+  annualRank       Int? // rang général figé
+  classSize        Int? // effectif noté (dénominateur du rang)
+  conduct          String?
+  workAppreciation String?
+  decision         String? // décision du conseil des maîtres
+  reason           String // motif de transfert (obligatoire)
+
+  // Demande d'origine quand le certificat répond au module « Demandes »
+  attestationId String?
+
+  issuedById String
+  issuedAt   DateTime @default(now())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([schoolId, issuedAt])
 }

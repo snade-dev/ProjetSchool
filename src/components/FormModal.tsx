@@ -47,6 +47,7 @@ import {
   deleteEventContribution,
   deleteContributionPayment,
 } from "@/lib/actions/contributionAction";
+import { deleteTransferCertificate } from "@/lib/actions/transferAction";
 // import { deleteSemester } from "@/lib/actions/parentAction";
 
 const TeacherForms = dynamic(() => import("./forms/TeacherForms"), {
@@ -134,6 +135,15 @@ const EventContributionForm = dynamic(
 );
 const ContributionPaymentForm = dynamic(
   () => import("./forms/ContributionPaymentForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+// X07/X08 — documents officiels
+const AnnualAssessmentForm = dynamic(
+  () => import("./forms/AnnualAssessmentForm"),
+  { loading: () => <h1>Loading...</h1> }
+);
+const TransferCertificateForm = dynamic(
+  () => import("./forms/TransferCertificateForm"),
   { loading: () => <h1>Loading...</h1> }
 );
 
@@ -377,6 +387,22 @@ const forms: {
       relatedData={relatedData}
     />
   ),
+  annualAssessment: (type, data, setOpen, relatedData) => (
+    <AnnualAssessmentForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
+  transferCertificate: (type, data, setOpen, relatedData) => (
+    <TransferCertificateForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
 };
 
 // Form est défini au niveau module (et non dans le corps de FormModal) :
@@ -427,7 +453,9 @@ const Form = ({
       canteenSubscription:deleteCanteenSubscription,
       // X05 — cotisations d'événements (§2.4)
       eventContribution:deleteEventContribution,
-      contributionPayment:deleteContributionPayment
+      contributionPayment:deleteContributionPayment,
+      // X08 — certificat de transfert (§2.1.3)
+      transferCertificate:deleteTransferCertificate
     };
     // si c'est un formulaire de suppression
     // (payment n'utilise pas ce chemin : encaissement = création uniquement)

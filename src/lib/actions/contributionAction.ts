@@ -7,6 +7,7 @@ import { auditWithSession, auditDiff } from "../audit";
 import { deleteErrorMessage } from "../actionErrors";
 import { nextContributionReference } from "../contribution";
 import { notifyGuardians } from "../notify";
+import { getActiveSchoolYear } from "../schoolYear";
 import { Prisma } from "@/app/generated/prisma";
 import {
   EventContributionSchema,
@@ -55,10 +56,14 @@ export const upsertEventContribution = async (
       select: { id: true, amount: true, dueDate: true, note: true },
     });
 
+    // X06 — le registre est rattaché à l'année scolaire de son OUVERTURE
+    const activeYear = await getActiveSchoolYear(schoolId);
+
     const saved = await prisma.eventContribution.upsert({
       where: { eventId: data.eventId },
       create: {
         schoolId,
+        schoolYearId: activeYear.id,
         eventId: data.eventId,
         amount: data.amount,
         dueDate: data.dueDate ?? null,
@@ -103,33 +108,27 @@ export const upsertEventContribution = async (
       // W12 — à l'OUVERTURE du registre seulement : les tuteurs des élèves
       // concernés sont prévenus du montant attendu. Jamais bloquant.
       try {
-        const activeYear = await prisma.schoolYear.findFirst({
-          where: { isActive: true, schoolId },
-          select: { id: true },
+        const enrollments = await prisma.enrollment.findMany({
+          where: {
+            schoolYearId: activeYear.id,
+            status: "ACTIVE",
+            student: { schoolId },
+            ...(event.classId ? { classId: event.classId } : {}),
+          },
+          select: { studentId: true },
         });
-        if (activeYear) {
-          const enrollments = await prisma.enrollment.findMany({
-            where: {
-              schoolYearId: activeYear.id,
-              status: "ACTIVE",
-              student: { schoolId },
-              ...(event.classId ? { classId: event.classId } : {}),
-            },
-            select: { studentId: true },
-          });
-          await notifyGuardians(
-            enrollments.map((e) => e.studentId),
-            {
-              schoolId,
-              type: "PAYMENT",
-              title: "Cotisation — " + event.title,
-              body: `Une cotisation de ${data.amount.toLocaleString("fr-FR")} FCFA est attendue pour « ${event.title} ».`,
-              link: `/list/events/${event.id}`,
-            },
-            // §2.2.3 — seuls les tuteurs qui peuvent payer sont sollicités
-            "canPay"
-          );
-        }
+        await notifyGuardians(
+          enrollments.map((e) => e.studentId),
+          {
+            schoolId,
+            type: "PAYMENT",
+            title: "Cotisation — " + event.title,
+            body: `Une cotisation de ${data.amount.toLocaleString("fr-FR")} FCFA est attendue pour « ${event.title} ».`,
+            link: `/list/events/${event.id}`,
+          },
+          // §2.2.3 — seuls les tuteurs qui peuvent payer sont sollicités
+          "canPay"
+        );
       } catch (err) {
         console.error("[notify] ouverture de cotisation non notifiée:", err);
       }

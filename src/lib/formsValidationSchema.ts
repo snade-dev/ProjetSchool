@@ -114,6 +114,8 @@ export const studentSchema = z.object({
   img: z.string().optional(),
   bloodType: z.string().min(1, { message: "Le groupe sanguin est requis !" }),
   birthday: z.coerce.date({ message: "La date de naissance est requise !" }),
+  // X08 — « Né(e) le … à … » du certificat de transfert
+  birthPlace: z.string().optional().or(z.literal("")),
   sex: z.enum(["MALE", "FEMALE"], { message: "Le sexe est requis !" }),
   classId: z.coerce.number().min(1, { message: "La classe est requise !" }),
   // W05 — tuteur principal, requis à la CRÉATION seulement (crée la ligne
@@ -218,6 +220,15 @@ export const schoolSettingsSchema = z.object({
   logo: z.string().optional().or(z.literal("")),
   currency: z.string().optional().or(z.literal("")),
   legalFooter: z.string().optional().or(z.literal("")),
+  // X08 — en-tête des documents officiels (certificat de transfert, bulletin
+  // annuel) : tutelle, devise de la République, ville et signataire.
+  ministry: z.string().optional().or(z.literal("")),
+  academy: z.string().optional().or(z.literal("")),
+  countryLine1: z.string().optional().or(z.literal("")),
+  countryLine2: z.string().optional().or(z.literal("")),
+  city: z.string().optional().or(z.literal("")),
+  directorName: z.string().optional().or(z.literal("")),
+  directorTitle: z.string().optional().or(z.literal("")),
   themePrimary: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, { message: "Couleur invalide" })
@@ -856,4 +867,77 @@ export const contributionPaymentSchema = z.object({
 
 export type ContributionPaymentSchema = z.infer<
   typeof contributionPaymentSchema
+>;
+
+// ---- X07 : Bilan de fin d'année d'un élève (bulletin annuel + certificat) ----
+// Référentiels FIXES : le PDF coche la case correspondante, une saisie libre
+// ne serait jamais cochée. Ils doivent rester alignés sur CONDUCT_OPTIONS
+// (components/pdf/AnnualBulletinPdf.tsx).
+export const CONDUCT_VALUES = [
+  "Très-bonne",
+  "Bonne",
+  "Assez-bonne",
+  "À améliorer",
+  "Avertissement",
+] as const;
+
+export const WORK_APPRECIATION_VALUES = [
+  "Excellent",
+  "Très bien",
+  "Bien",
+  "Assez bien",
+  "Passable",
+  "Insuffisant",
+] as const;
+
+export const annualAssessmentSchema = z.object({
+  enrollmentId: z.coerce
+    .number()
+    .min(1, { message: "L'inscription est requise !" }),
+  conduct: z
+    .union([z.literal(""), z.enum(CONDUCT_VALUES)])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  workAppreciation: z
+    .union([z.literal(""), z.enum(WORK_APPRECIATION_VALUES)])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  annualDecision: z.string().optional().or(z.literal("")),
+  annualObservation: z.string().optional().or(z.literal("")),
+  // Retards : saisis à la main (Attendance ne porte que présent/absent).
+  lateCount: z
+    .union([z.literal(""), z.coerce.number().int().min(0)])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+});
+
+export type AnnualAssessmentSchema = z.infer<typeof annualAssessmentSchema>;
+
+// ---- X08 : Certificat de transfert (§2.1.3) ----
+export const transferCertificateSchema = z.object({
+  studentId: z.string().min(1, { message: "L'élève est requis !" }),
+  reason: z
+    .string()
+    .trim()
+    .min(3, { message: "Le motif de transfert est requis !" }),
+  decision: z.string().optional().or(z.literal("")),
+  conduct: z
+    .union([z.literal(""), z.enum(CONDUCT_VALUES)])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  workAppreciation: z
+    .union([z.literal(""), z.enum(WORK_APPRECIATION_VALUES)])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  /** Dernier jour de fréquentation (défaut : fin de l'année scolaire). */
+  attendedTo: z
+    .union([z.literal(""), z.coerce.date()])
+    .optional()
+    .transform((v) => (v === "" || v === undefined ? null : v)),
+  /** Demande d'origine (module « Demandes ») quand le certificat y répond. */
+  attestationId: z.string().optional().or(z.literal("")),
+});
+
+export type TransferCertificateSchema = z.infer<
+  typeof transferCertificateSchema
 >;

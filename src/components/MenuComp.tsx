@@ -119,6 +119,8 @@ const MENU: MenuEntry[] = [
         { icon: MonitorPlay, label: "Examens en ligne", href: "/list/onlineExam", visible: ["admin", "director", "teacher", "student"] },
         { icon: FileText, label: "Résultats en ligne", href: "/list/resultExam", visible: ["admin", "director", "teacher", "student"] },
         { icon: FilePlus, label: "Créer un examen", href: "/quiz", visible: ["admin", "director", "teacher"] },
+        // X07 — bilans de fin d'année + bulletins annuels (§2.3)
+        { icon: GraduationCap, label: "Fin d'année", href: "/list/annual", visible: ["admin", "director", "teacher", "supervisor"] },
       ],
     },
   },

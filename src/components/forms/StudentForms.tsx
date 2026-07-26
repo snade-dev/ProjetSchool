@@ -160,6 +160,14 @@ const StudentForm = ({
           error={errors.birthday}
           type="date"
         />
+        {/* X08 — « Né(e) le … à … » du certificat de transfert */}
+        <InputField
+          label="Lieu de naissance"
+          name="birthPlace"
+          defaultValue={data?.birthPlace ?? ""}
+          register={register}
+          error={errors.birthPlace}
+        />
         {/* W05 — tuteur principal à la CRÉATION seulement (crée le lien
             StudentGuardian) ; ensuite, gestion des tuteurs sur la fiche élève */}
         {type === "create" && (

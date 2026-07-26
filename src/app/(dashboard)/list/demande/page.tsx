@@ -11,7 +11,31 @@ import Link from "next/link";
 import { headers } from "next/headers";
 
 import { sessionSchoolId } from "@/lib/authGuard";
-type AttestationList = Attestation;
+
+// X08 — la demande porte l'élève et son bilan annuel : la direction peut
+// émettre le certificat de transfert directement depuis la demande.
+type AttestationList = Attestation & {
+  student: {
+    id: string;
+    name: string;
+    surname: string;
+    username: string;
+    enrollments: {
+      conduct: string | null;
+      workAppreciation: string | null;
+      annualDecision: string | null;
+      class: { name: string };
+    }[];
+  };
+};
+
+/**
+ * X08 — Une demande concerne-t-elle un certificat de transfert ? Le module
+ * « Demandes » a un titre LIBRE : on reconnaît la demande sur son intitulé
+ * plutôt que d'imposer un type au formulaire existant.
+ */
+const isTransferRequest = (title: string) =>
+  /transfert|transfer/i.test(title);
 
 const ReclamationListPage = async (props: {
   searchParams: Promise<{ [key: string]: string | undefined }>;
@@ -125,8 +149,29 @@ const ReclamationListPage = async (props: {
         {(role === "admin" || role === "director") && (
           <td>
             <div className="flex items-center gap-2">
-              {/* <FormContainer table="complaint" type="update" data={item} />
-              <FormContainer table="complaint" type="delete" id={item.id} /> */}
+              {/* X08 — la demande d'un certificat de transfert se traite ici :
+                  le formulaire est pré-rempli par le bilan annuel de l'élève et
+                  l'émission clôt automatiquement la demande. */}
+              {isTransferRequest(item.title) &&
+                item.status !== "COMPLETED" &&
+                item.student.enrollments.length > 0 && (
+                  <FormContainer
+                    table="transferCertificate"
+                    type="create"
+                    data={{
+                      studentId: item.student.id,
+                      studentName: `${item.student.name} ${item.student.surname}`,
+                      username: item.student.username,
+                      className: item.student.enrollments[0].class.name,
+                      conduct: item.student.enrollments[0].conduct,
+                      workAppreciation:
+                        item.student.enrollments[0].workAppreciation,
+                      annualDecision:
+                        item.student.enrollments[0].annualDecision,
+                      attestationId: item.id,
+                    }}
+                  />
+                )}
             </div>
           </td>
         )}
@@ -179,6 +224,28 @@ const ReclamationListPage = async (props: {
   const [data, count] = await prisma.$transaction([
     prisma.attestation.findMany({
       where: { AND: [{ student: { schoolId } }, query] },
+      // X08 — élève + inscription de l'année active (pré-remplissage du
+      // certificat de transfert émis depuis la demande)
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            username: true,
+            enrollments: {
+              where: { schoolYear: { isActive: true } },
+              select: {
+                conduct: true,
+                workAppreciation: true,
+                annualDecision: true,
+                class: { select: { name: true } },
+              },
+              take: 1,
+            },
+          },
+        },
+      },
       orderBy: {
         title: "asc",
       },
